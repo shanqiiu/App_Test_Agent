@@ -1,0 +1,24 @@
+# Z-Image Spike - Dependencies
+
+# PyTorch (根据CUDA版本选择)
+# 安装命令: pip install torch torchvision --index-url https://download.pytorch.org/whl/cu118
+torch>=2.0.0
+torchvision>=0.15.0
+
+# Diffusion模型核心库
+diffusers>=0.25.0
+transformers>=4.36.0
+accelerate>=0.25.0
+safetensors>=0.4.0
+
+# 图像处理
+Pillow>=10.0.0
+
+# 优化加速(可选,需要匹配PyTorch版本)
+# xformers>=0.0.23
+
+# 配置管理
+pyyaml>=6.0
+
+# 进度条
+tqdm>=4.65.0
