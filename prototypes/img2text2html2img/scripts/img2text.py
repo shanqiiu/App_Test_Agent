@@ -152,9 +152,9 @@ class ImageAnalyzer:
 
 def main():
     parser = argparse.ArgumentParser(description="UI Screenshot to Description")
-    parser.add_argument("--api-key", required=True)
-    parser.add_argument("--api-url", required=True)
-    parser.add_argument("--model", default="qwen3-vl-30b")
+    parser.add_argument("--api-url", default="https://api.openai-next.com/v1/chat/completions")
+    parser.add_argument("--api-key", default="sk-K9B2ccVeW4VdAcobD53b16E06b104aA1B5A82593FdFb2557")
+    parser.add_argument("--model", default="qwen-vl-max")
     parser.add_argument("--image-path", help="Single image file")
     parser.add_argument("--images-dir", default="./images", help="Directory of images")
     parser.add_argument("--output-dir", default="./outputs")
