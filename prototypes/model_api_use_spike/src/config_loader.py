@@ -7,7 +7,10 @@
 import json
 import os
 import re
+from pathlib import Path
 from typing import Dict, List, Any
+
+from dotenv import load_dotenv
 
 
 class ConfigError(Exception):
@@ -59,6 +62,14 @@ def load_api_config(config_path: str = "config/api_config.json") -> Dict[str, An
     if not os.path.exists(config_path):
         raise ConfigError(f"Config file not found: {config_path}")
 
+    # 自动加载 .env 文件（从配置文件所在目录向上查找）
+    config_dir = Path(config_path).resolve().parent
+    for search_dir in [config_dir, config_dir.parent]:
+        env_file = search_dir / ".env"
+        if env_file.exists():
+            load_dotenv(env_file)
+            break
+
     try:
         with open(config_path, 'r', encoding='utf-8') as f:
             config = json.load(f)
@@ -70,10 +81,17 @@ def load_api_config(config_path: str = "config/api_config.json") -> Dict[str, An
         config = resolve_env_vars(config)
     except ConfigError as e:
         # 如果环境变量未设置,给出友好提示
+        error_msg = str(e)
+        # 尝试从错误消息中提取变量名
+        var_name = "YOUR_VAR_NAME"
+        if "'" in error_msg:
+            parts = error_msg.split("'")
+            if len(parts) >= 2:
+                var_name = parts[1]
         raise ConfigError(
             f"{e}\n"
             f"Please set the environment variable or create a .env file.\n"
-            f"Example: export {e.args[0].split(\"'\")[1]}='your_api_key'"
+            f"Example: export {var_name}='your_api_key'"
         )
 
     # 验证必填字段
