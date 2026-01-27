@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>携程旅行</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background: #FFFFFF;
+            font-family: Arial, sans-serif;
+            height: 2774px;
+            position: relative;
+        }
+        .status-bar {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 60px;
+            background: #007AFF;
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 16px;
+            font-size: 14px;
+        }
+        .nav-bar {
+            position: absolute;
+            top: 60px;
+            left: 0;
+            right: 0;
+            height: 80px;
+            background: #007AFF;
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .nav-bar .title {
+            font-size: 18px;
+            font-weight: bold;
+        }
+        .nav-bar .right {
+            position: absolute;
+            right: 16px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .nav-bar .left {
+            position: absolute;
+            left: 16px;
+        }
+        .content {
+            position: absolute;
+            top: 140px;
+            left: 0;
+            right: 0;
+            height: 2554px;
+            display: flex;
+            flex-direction: column;
+        }
+        .section {
+            height: 850px;
+            display: flex;
+            padding: 16px;
+            gap: 16px;
+        }
+        .left-image, .right-image {
+            width: 300px;
+            height: 100%;
+            background: #E0E0E0;
+        }
+        .center-info {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+        .icon {
+            color: #007AFF;
+            font-size: 24px;
+        }
+        .footer {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 80px;
+            background: #FFFFFF;
+            display: flex;
+            justify-content: space-around;
+            align-items: center;
+            border-top: 1px solid #E0E0E0;
+        }
+    </style>
+</head>
+<body>
+    <!-- 状态栏 -->
+    <div class="status-bar">
+        <div>14:32</div>
+        <div><i class="fa-solid fa-video"></i></div>
+        <div>
+            <i class="fa-solid fa-signal"></i>
+            <i class="fa-solid fa-battery-three-quarters"></i>
+            <span>61%</span>
+        </div>
+    </div>
+
+    <!-- 导航栏 -->
+    <div class="nav-bar">
+        <div class="nav-title"><span>携程旅行</span></div>
+        <div class="right">
+            <i class="fa-solid fa-gem" style="color: blue;"></i>
+            <span>普通会员</span>
+            <i class="fa-solid fa-coins" style="color: yellow;"></i>
+            <span>积分</span>
+        </div>
+    </div>
+
+    <!-- 内容区 -->
+    <div class="content">
+        <!-- 功能区-第1行 -->
+        <div class="section">
+            <div style="width: 100px; height: 100px; background: orange; border-radius: 8px; margin-right: 12px;"></div>
+            <span>酒店</span>
+            <div style="width: 100px; height: 100px; background: orange; border-radius: 8px; margin-right: 12px;"></div>
+            <span>攻略/景点</span>
+            <div style="width: 100px; height: 100px; background: blue; border-radius: 8px; margin-right: 12px;"></div>
+            <span>机票</span>
+            <div style="width: 100px; height: 100px; background: purple; border-radius: 8px; margin-right: 12px;"></div>
+            <span>火车票</span>
+            <div style="width: 100px; height: 100px; background: green; border-radius: 8px; margin-right: 12px;"></div>
+            <span>旅游/定制</span>
+        </div>
+
+        <!-- 功能区-第2行 -->
+        <div class="section">
+            <div style="width: 80px; height: 80px; background: orange; border-radius: 8px; margin-right: 12px;"></div>
+            <span>民宿/客栈</span>
+            <div style="width: 80px; height: 80px; background: orange; border-radius: 8px; margin-right: 12px;"></div>
+            <span>门票/玩乐</span>
+            <div style="width: 80px; height: 80px; background: blue; border-radius: 8px; margin-right: 12px;"></div>
+            <span>接送机/包车</span>
+            <div style="width: 80px; height: 80px; background: purple; border-radius: 8px; margin-right: 12px;"></div>
+            <span>租车自驾</span>
+            <div style="width: 80px; height: 80px; background: cyan; border-radius: 8px; margin-right: 12px;"></div>
+            <span>跟团游</span>
+        </div>
+
+        <!-- 更多产品 -->
+        <div class="section">
+            <div style="text-align: center; width: 100%;">
+                <i class="fa-solid fa-bus"></i>
+                <i class="fa-solid fa-shopping-bag"></i>
+                <i class="fa-solid fa-money-bill"></i>
+                <i class="fa-solid fa-coins"></i>
+                <span>+12个更多产品</span>
+            </div>
+        </div>
+
+        <!-- 搜索框 -->
+        <div class="section">
+            <i class="fa-solid fa-robot" style="color: blue;"></i>
+            <div style="flex: 1; text-align: center;">蜜悦·深圳波西塔诺悬崖海景美宿</div>
+            <div style="background: blue; border-radius: 20px; padding: 8px;">
+                <i class="fa-solid fa-magnifying-glass" style="color: white;"></i>
+            </div>
+            <div style="position: absolute; right: 16px;">
+                <i class="fa-solid fa-location-dot" style="color: gray;"></i>
+                <span>旅游地图</span>
+            </div>
+        </div>
+
+        <!-- 热搜城市 -->
+        <div class="section">
+            <div style="text-align: center; width: 100%;">搜一搜： 北京 | 上海 | 西安 | 成都 | 南京 | 杭州 | 大连</div>
+        </div>
+
+        <!-- 快捷入口 -->
+        <div class="section">
+            <div>
+                <span>特价/直播</span>
+                <i class="fa-solid fa-tag" style="color: red;"></i>
+            </div>
+            <div>
+                <span>演出/展览</span>
+                <i class="fa-solid fa-music" style="color: blue;"></i>
+            </div>
+            <div>
+                <span>线路规划</span>
+                <i class="fa-solid fa-arrows-left-right" style="color: blue;"></i>
+            </div>
+            <div>
+                <span>旅行热点</span>
+                <i class="fa-solid fa-atlas" style="color: orange;"></i>
+            </div>
+            <div>
+                <span>携程榜单</span>
+                <i class="fa-solid fa-graduation-cap" style="color: brown;"></i>
+            </div>
+        </div>
+
+        <!-- 推荐卡片1 -->
+        <div class="section">
+            <div class="left-image" style="background: #E0E0E0;"></div>
+            <div class="center-info">
+                <div>ONEREPUBLIC 一体共和乐队2026巡演 武汉站</div>
+                <div>FROM ASIA WITH LOVE TOUR 2026</div>
+                <div>04.19 武汉五环体育中心体育场</div>
+                <div>OneRepublic 2026巡演强势来袭 武汉站 火热开售</div>
+                <div>月20日17:00 速来抢位</div>
+                <div style="width: 80px; height: 80px; background: blue; border-radius: 50%;"></div>
+            </div>
+        </div>
+
+        <!-- 推荐卡片2 -->
+        <div class="section">
+            <div class="center-info">
+                <div>想去三亚？AI帮你定制行程/</div>
+                <div>想去三亚？试试 AI一键定制 4天经典必去线路</div>
+                <div>
+                    <i class="fa-solid fa-arrows-left-right" style="color: blue;"></i>
+                    <span>AI线路规划</span>
+                </div>
+                <div>智能规划 · 一站式预订</div>
+            </div>
+            <div class="right-image" style="background: #E0E0E0;"></div>
+        </div>
+
+        <!-- 推荐卡片3 -->
+        <div class="section">
+            <div class="center-info">
+                <div>12-2月去哪最合适</div>
+                <div>
+                    <div style="width: 100px; height: 100px; background: #E0E0E0; border-radius: 8px;"></div>
+                    <span>大理：苍山雪映洱海月，风花雪月醉冬候。骑单车过喜洲稻田，白族扎染裹着慢生活漫成诗。</span>
+                </div>
+                <div>
+                    <div style="width: 100px; height: 100px; background: #E0E0E0; border-radius: 8px;"></div>
+                    <span>稻城亚丁：神山巍峨立云端，海子湛蓝若宝石，姊妹湖边日照金山，高原净土把年春酿成圣洁序章。</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 底部栏 -->
+    <div class="footer">
+        <div>
+            <i class="fa-solid fa-house" style="color: blue;"></i>
+            <span>首页</span>
+        </div>
+        <div>
+            <i class="fa-solid fa-comment" style="color: gray;"></i>
+            <span>消息</span>
+        </div>
+        <div>
+            <i class="fa-solid fa-comments" style="color: blue;"></i>
+            <span>社区</span>
+        </div>
+        <div>
+            <i class="fa-solid fa-folder" style="color: gray;"></i>
+            <span>行程</span>
+        </div>
+        <div>
+            <i class="fa-solid fa-user" style="color: gray;"></i>
+            <span>我的</span>
+        </div>
+    </div>
+</body>
+</html>

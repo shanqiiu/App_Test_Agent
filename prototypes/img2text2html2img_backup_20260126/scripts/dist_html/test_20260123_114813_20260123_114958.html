@@ -1,0 +1,316 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>微信聊天列表</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        html, body {
+            margin: 0;
+            padding: 0;
+            background: #000000;
+            color: #FFFFFF;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+        }
+        .container {
+            position: relative;
+            width: 1279px;
+            height: 2774px;
+            background: #000000;
+        }
+        .status-bar, .nav-bar, .bottom-bar {
+            position: absolute;
+            width: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 16px;
+        }
+        .status-bar {
+            top: 0;
+            height: 60px;
+            background: #000000;
+            color: #FFFFFF;
+        }
+        .status-bar .time {
+            font-size: 14px;
+        }
+        .status-bar .icons {
+            font-size: 16px;
+        }
+        .nav-bar {
+            top: 60px;
+            height: 60px;
+            background: #000000;
+        }
+        .nav-bar .title {
+            font-size: 18px;
+            font-weight: bold;
+        }
+        .nav-bar .left, .nav-bar .right {
+            position: absolute;
+            top: 50%;
+            transform: translateY(-50%);
+            font-size: 20px;
+        }
+        .nav-bar .left {
+            left: 16px;
+        }
+        .nav-bar .right {
+            right: 16px;
+        }
+        .content {
+            position: absolute;
+            top: 120px;
+            left: 0;
+            width: 100%;
+            height: 2554px;
+            background: #000000;
+            overflow-y: hidden;
+        }
+        .list-item {
+            height: 232px;
+            display: flex;
+            align-items: center;
+            padding: 0 16px;
+            border-bottom: 1px solid #222222;
+        }
+        .avatar {
+            width: 50px;
+            height: 50px;
+            border-radius: 8px;
+            background: #3A3A3A;
+            flex-shrink: 0;
+            margin-right: 12px;
+        }
+        .info {
+            flex: 1;
+            min-width: 0;
+            display: flex;
+            flex-direction: column;
+        }
+        .name {
+            font-size: 16px;
+            font-weight: bold;
+            margin-bottom: 4px;
+        }
+        .subtext {
+            font-size: 14px;
+            color: #BFBFBF;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .time {
+            color: #BFBFBF;
+            font-size: 12px;
+            flex-shrink: 0;
+            margin-left: 8px;
+        }
+        .badge {
+            position: relative;
+            margin-left: 8px;
+        }
+        .badge .dot {
+            position: absolute;
+            top: -4px;
+            right: -4px;
+            width: 16px;
+            height: 16px;
+            background: #FF4D4D;
+            border-radius: 50%;
+            color: #FFFFFF;
+            font-size: 10px;
+            text-align: center;
+            line-height: 16px;
+        }
+        .bottom-bar {
+            bottom: 0;
+            height: 100px;
+            background: #000000;
+            justify-content: space-around;
+            align-items: center;
+        }
+        .bottom-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            font-size: 18px;
+        }
+        .bottom-item .label {
+            font-size: 12px;
+            margin-top: 4px;
+            color: #FFFFFF;
+        }
+        .green {
+            color: #00CC00;
+        }
+        .orange {
+            color: #FF6600;
+        }
+        .red-dot {
+            color: #FF4D4D;
+        }
+        .white {
+            color: #FFFFFF;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="status-bar">
+            <div class="time">20:51</div>
+            <div class="icons">
+                <i class="fa-solid fa-signal"></i>
+                <span style="font-size:12px">5G</span>
+                <i class="fa-solid fa-battery-three-quarters"></i>
+                <span style="font-size:12px">89%</span>
+            </div>
+        </div>
+        
+        <div class="nav-bar">
+            <div class="left"><i class="fa-solid fa-arrow-left white"></i></div>
+            <div class="title">微信 (5)</div>
+            <div class="right"><i class="fa-solid fa-plus white"></i></div>
+        </div>
+        
+        <div class="content">
+            <!-- 第1项 -->
+            <div class="list-item">
+                <div class="avatar"></div>
+                <div class="info">
+                    <div class="name">周木 🤗 的伏水</div>
+                    <div class="subtext">[动画表情]</div>
+                </div>
+                <div class="time">19:46</div>
+            </div>
+            
+            <!-- 第2项 -->
+            <div class="list-item">
+                <div class="avatar"></div>
+                <div class="info">
+                    <div class="name">杜蕾</div>
+                    <div class="subtext">[动画表情]</div>
+                </div>
+                <div class="time">19:45</div>
+            </div>
+            
+            <!-- 第3项 -->
+            <div class="list-item">
+                <div class="avatar"></div>
+                <div class="info">
+                    <div class="name">华为有栗群</div>
+                    <div class="subtext">青山绿水: 栗子走了</div>
+                </div>
+                <div class="time">19:34</div>
+            </div>
+            
+            <!-- 第4项 -->
+            <div class="list-item">
+                <div class="avatar"></div>
+                <div class="info">
+                    <div class="name">夏桐</div>
+                    <div class="subtext">你春节放几天啊</div>
+                </div>
+                <div class="time">19:29</div>
+            </div>
+            
+            <!-- 第5项 -->
+            <div class="list-item">
+                <div class="avatar"></div>
+                <div class="info">
+                    <div class="name">青青草原</div>
+                    <div class="subtext">码农基数大 国内压力大 什么事都不稀奇</div>
+                </div>
+                <div class="time">19:26</div>
+            </div>
+            
+            <!-- 第6项 -->
+            <div class="list-item">
+                <div class="avatar"></div>
+                <div class="info">
+                    <div class="name">丁永泉</div>
+                    <div class="subtext">你领取了丁永泉的红包</div>
+                </div>
+                <div class="time">18:23</div>
+            </div>
+            
+            <!-- 第7项 -->
+            <div class="list-item">
+                <div class="avatar" style="background:#00CC00">
+                    <i class="fa-solid fa-check" style="position:absolute; top:50%; left:50%; transform:translate(-50%, -50%); color:#FFFFFF; font-size:20px;"></i>
+                </div>
+                <div class="info">
+                    <div class="name">微信支付</div>
+                    <div class="subtext">已支付 ¥54.40</div>
+                </div>
+                <div class="time">18:19</div>
+            </div>
+            
+            <!-- 第8项 -->
+            <div class="list-item">
+                <div class="avatar" style="background:#FF6600">
+                    <i class="fa-solid fa-envelope" style="position:absolute; top:50%; left:50%; transform:translate(-50%, -50%); color:#FFFFFF; font-size:20px;"></i>
+                </div>
+                <div class="info">
+                    <div class="name">服务号</div>
+                    <div class="subtext">牛客网: 26年大厂春招时间表出来了（附最新春招表）</div>
+                </div>
+                <div class="time">17:52</div>
+            </div>
+            
+            <!-- 第9项 -->
+            <div class="list-item">
+                <div class="avatar"></div>
+                <div class="info">
+                    <div class="name">卡码网刷题群2 🔁</div>
+                    <div class="subtext">[3条] 卡哥助手: 卡码投递表 上线内测中 🔥 20...</div>
+                </div>
+                <div class="time">17:33</div>
+            </div>
+            
+            <!-- 第10项 -->
+            <div class="list-item">
+                <div class="avatar"></div>
+                <div class="info">
+                    <div class="name">我的家 🍓 🍓 💋 💋</div>
+                    <div class="subtext">老妈: 哈哈</div>
+                </div>
+                <div class="time">17:25</div>
+                <div class="badge">
+                    <div class="dot">2</div>
+                </div>
+            </div>
+            
+            <!-- 第11项 -->
+            <div class="list-item">
+                <div class="avatar"></div>
+                <div class="info">
+                    <div class="name">北研闲鱼协会</div>
+                    <div class="subtext">北化头成么小助走/加n入了群聊 群聊会上上下下...</div>
+                </div>
+                <div class="time">17:01</div>
+            </div>
+        </div>
+        
+        <div class="bottom-bar">
+            <div class="bottom-item">
+                <i class="fa-solid fa-comment green"></i>
+                <div class="label">微信</div>
+            </div>
+            <div class="bottom-item">
+                <i class="fa-solid fa-users white"></i>
+                <div class="label">通讯录</div>
+            </div>
+            <div class="bottom-item">
+                <i class="fa-solid fa-pencil white"></i>
+                <div class="label">发现</div>
+            </div>
+            <div class="bottom-item">
+                <i class="fa-solid fa-user white"></i>
+                <div class="label">我</div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

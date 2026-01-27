@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>微信聊天列表</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+    <style>
+        body {
+            margin: 0;
+            background: #000000;
+            font-family: sans-serif;
+        }
+        .container {
+            width: 1279px;
+            height: 2774px;
+            position: relative;
+            overflow: hidden;
+        }
+        .status-bar {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 60px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: #000000;
+            color: #FFFFFF;
+            padding: 0 20px;
+            box-sizing: border-box;
+        }
+        .nav-bar {
+            position: absolute;
+            top: 60px;
+            left: 0;
+            right: 0;
+            height: 60px;
+            display: flex;
+            align-items: center;
+            background: #000000;
+            color: #FFFFFF;
+            padding: 0 20px;
+            box-sizing: border-box;
+        }
+        .nav-bar .title {
+            flex: 1;
+            text-align: center;
+            font-size: 18px;
+        }
+        .nav-bar .action {
+            font-size: 24px;
+        }
+        .content {
+            position: absolute;
+            top: 120px;
+            left: 0;
+            right: 0;
+            bottom: 100px;
+            display: flex;
+            flex-direction: column;
+            color: #FFFFFF;
+        }
+        .item {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            padding: 15px 20px;
+            box-sizing: border-box;
+            border-bottom: 1px solid #222222;
+        }
+        .item .name {
+            font-size: 16px;
+            text-align: left;
+        }
+        .item .remark {
+            font-size: 14px;
+            text-align: left;
+            color: #BFBFBF;
+        }
+        .item .time {
+            font-size: 12px;
+            text-align: right;
+            color: #FFFFFF;
+        }
+        .tab-bar {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 100px;
+            display: flex;
+            background: #000000;
+            color: #FFFFFF;
+            font-size: 12px;
+        }
+        .tab-bar div {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+        .tab-bar i {
+            font-size: 24px;
+            margin-bottom: 5px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="status-bar">
+            <div>20:51</div>
+            <div>5G 89%</div>
+        </div>
+        <div class="nav-bar">
+            <div class="title">微信 (5)</div>
+            <div class="action">+</div>
+        </div>
+        <div class="content">
+            <div class="item">
+                <div class="name">周木 🤗 的伏尔</div>
+                <div class="remark">[动画表情]</div>
+                <div class="time">19:45</div>
+            </div>
+            <div class="item">
+                <div class="name">杜蕾</div>
+                <div class="remark">[动画表情]</div>
+                <div class="time">19:34</div>
+            </div>
+            <div class="item">
+                <div class="name">华为有栗群</div>
+                <div class="remark">青山绿水: 栗子走了</div>
+                <div class="time">19:29</div>
+            </div>
+            <div class="item">
+                <div class="name">夏桐</div>
+                <div class="remark">你春节放几天啊</div>
+                <div class="time">19:26</div>
+            </div>
+            <div class="item">
+                <div class="name">青青草原</div>
+                <div class="remark">码农基数大 国内压力大 什么事都不稀奇</div>
+                <div class="time">18:23</div>
+            </div>
+            <div class="item">
+                <div class="name">丁永泉</div>
+                <div class="remark">你领取了丁永泉的红包</div>
+                <div class="time">18:19</div>
+            </div>
+            <div class="item">
+                <div class="name">微信支付</div>
+                <div class="remark">已支付 ¥54.40</div>
+                <div class="time">17:52</div>
+            </div>
+            <div class="item">
+                <div class="name">服务号</div>
+                <div class="remark">牛客网: 26年大厂春招时间表出来了（附最新春招表）</div>
+                <div class="time">17:33</div>
+            </div>
+            <div class="item">
+                <div class="name">卡码网刷题群 2 🔁</div>
+                <div class="remark">[3 条] 卡哥助手: 卡码投递表 上线内测中 🔥 20...</div>
+                <div class="time">17:25</div>
+            </div>
+            <div class="item">
+                <div class="name">我的家 🍓 🍓 💋 💋</div>
+                <div class="remark">老妈: 哈哈</div>
+                <div class="time">17:01</div>
+            </div>
+            <div class="item">
+                <div class="name">北研闲鱼协会</div>
+                <div class="remark">北化头成么小助走/加n 入了我群 群聊会上上下下...</div>
+                <div class="time">17:01</div>
+            </div>
+        </div>
+        <div class="tab-bar">
+            <div><i class="fab fa-weixin"></i>微信</div>
+            <div><i class="fas fa-address-book"></i>通讯录</div>
+            <div><i class="fas fa-compass"></i>发现</div>
+            <div><i class="fas fa-user"></i>我</div>
+        </div>
+    </div>
+</body>
+</html>

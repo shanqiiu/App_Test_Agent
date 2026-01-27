@@ -1,0 +1,465 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+  <style>
+    * { margin:0; padding:0; box-sizing:border-box; }
+    html, body {
+      width: 1279px;
+      height: 2774px;
+      overflow: hidden;
+      font-family: -apple-system, sans-serif;
+    }
+    .container {
+      display: flex;
+      flex-direction: column;
+      height: 100%;
+    }
+    .status-bar {
+      height: 50px;
+      flex-shrink: 0;
+      background: #1E88E5;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 0 16px;
+      color: white;
+      font-size: 16px;
+    }
+    .nav-bar {
+      height: 70px;
+      flex-shrink: 0;
+      background: #1E88E5;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 16px;
+      color: white;
+      font-size: 18px;
+    }
+    .content {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      background: #FFFFFF;
+    }
+    .bottom-bar {
+      height: 83px;
+      flex-shrink: 0;
+      background: #FFFFFF;
+      display: flex;
+      justify-content: space-around;
+      align-items: center;
+      border-top: 1px solid #E0E0E0;
+    }
+
+    /* 功能区 */
+    .func-grid {
+      height: 140px;
+      flex-shrink: 0;
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 10px;
+      padding: 8px 16px;
+      background: #FFFFFF;
+    }
+    .func-btn {
+      width: 120px;
+      height: 80px;
+      border-radius: 12px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      font-size: 14px;
+    }
+    .func-btn:nth-child(1) { background: #F46B6B; }
+    .func-btn:nth-child(2) { background: #FFA500; }
+    .func-btn:nth-child(3) { background: #42A5F5; }
+    .func-btn:nth-child(4) { background: #9C27B0; }
+    .func-btn:nth-child(5) { background: #66BB6A; }
+    .func-btn:nth-child(6) { background: #F44336; }
+    .func-btn:nth-child(7) { background: #FF9800; }
+    .func-btn:nth-child(8) { background: #2196F3; }
+    .func-btn:nth-child(9) { background: #9C27B0; }
+    .func-btn:nth-child(10) { background: #4CAF50; }
+
+    /* 更多产品提示 */
+    .more-products {
+      height: 40px;
+      flex-shrink: 0;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 16px;
+      background: #FFFFFF;
+      color: #666;
+      font-size: 14px;
+    }
+
+    /* 搜索框 */
+    .search-bar {
+      height: 60px;
+      flex-shrink: 0;
+      background: #E8F5E8;
+      border-radius: 12px;
+      margin: 8px 16px;
+      padding: 0 16px;
+      display: flex;
+      align-items: center;
+      position: relative;
+    }
+    .search-icon-left {
+      color: #1E88E5;
+      margin-right: 12px;
+    }
+    .search-placeholder {
+      flex: 1;
+      color: #000000;
+      font-size: 16px;
+    }
+    .map-label {
+      position: absolute;
+      right: 20px;
+      top: 50%;
+      transform: translateY(-50%);
+      color: #1E88E5;
+      font-size: 14px;
+    }
+
+    /* 热门城市推荐 */
+    .city-scroll {
+      height: 40px;
+      flex-shrink: 0;
+      display: flex;
+      align-items: center;
+      padding: 0 16px;
+      overflow-x: auto;
+      gap: 12px;
+      background: #FFFFFF;
+    }
+    .city-tag {
+      color: #1E88E5;
+      font-size: 14px;
+      padding: 4px 12px;
+      border: 1px solid #1E88E5;
+      border-radius: 20px;
+    }
+    .city-tag.active {
+      background: #1E88E5;
+      color: white;
+    }
+
+    /* 分类栏 */
+    .category-grid {
+      height: 80px;
+      flex-shrink: 0;
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 10px;
+      padding: 8px 16px;
+      background: #FFFFFF;
+    }
+    .category-card {
+      background: white;
+      border-radius: 12px;
+      border: 1px solid #E0E0E0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      font-size: 14px;
+      color: #000000;
+      padding: 4px;
+    }
+
+    /* 卡片区 */
+    .card-row {
+      height: 400px;
+      flex-shrink: 0;
+      display: flex;
+      gap: 12px;
+      padding: 8px 16px;
+      background: #FFFFFF;
+    }
+    .card-left {
+      flex: 1;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      border-radius: 12px;
+      position: relative;
+      color: white;
+    }
+    .card-left .title {
+      position: absolute;
+      bottom: 16px;
+      left: 16px;
+      font-size: 16px;
+    }
+    .card-left .subtitle {
+      position: absolute;
+      bottom: 8px;
+      left: 16px;
+      background: red;
+      padding: 4px 8px;
+      border-radius: 8px;
+      font-size: 14px;
+    }
+    .card-left .icon {
+      position: absolute;
+      bottom: 8px;
+      right: 16px;
+      background: #3A3A3A;
+      border-radius: 50%;
+      width: 32px;
+      height: 32px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .card-right {
+      flex: 1;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      border-radius: 12px;
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+    }
+    .card-right .title {
+      color: yellow;
+      font-size: 28px;
+    }
+    .card-right .subtitle {
+      color: #000000;
+      font-size: 16px;
+    }
+    .card-right .btn {
+      background: #1E88E5;
+      color: white;
+      padding: 8px 16px;
+      border-radius: 12px;
+      width: fit-content;
+    }
+
+    /* 推荐内容区 */
+    .recommend {
+      height: 200px;
+      flex-shrink: 0;
+      background: #1E88E5;
+      display: flex;
+      flex-direction: column;
+      padding: 16px;
+      color: yellow;
+      font-size: 24px;
+    }
+    .recommend .title {
+      margin-bottom: 16px;
+    }
+    .recommend .items {
+      display: flex;
+      gap: 12px;
+      overflow-x: auto;
+    }
+    .recommend-item {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      width: 120px;
+    }
+    .recommend-item img {
+      width: 120px;
+      height: 120px;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      border-radius: 12px;
+      margin-bottom: 8px;
+    }
+    .recommend-item .label {
+      color: #666666;
+      font-size: 12px;
+    }
+
+    /* 底部导航栏 */
+    .bottom-nav {
+      display: flex;
+      align-items: center;
+      justify-content: space-around;
+      font-size: 14px;
+      color: #666666;
+    }
+    .bottom-nav-item {
+      text-align: center;
+    }
+    .bottom-nav-item .icon {
+      font-size: 24px;
+      color: #666666;
+      margin-bottom: 4px;
+    }
+    .bottom-nav-item.active .icon,
+    .bottom-nav-item.active .icon-blue {
+      color: #1E88E5;
+    }
+    .activity-badge {
+      position: absolute;
+      top: 0;
+      right: 0;
+      background: red;
+      color: white;
+      font-size: 10px;
+      padding: 2px 6px;
+      border-radius: 10px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="status-bar">
+      <div>14:32</div>
+      <div style="text-align:right;">
+        <i class="fas fa-battery-three-quarters"></i>
+        <span>5G</span>
+        <span>61</span>
+      </div>
+    </div>
+    
+    <div class="nav-bar">
+      <div style="display:flex;align-items:center;">
+        <i class="fas fa-plane" style="color:#1E88E5;margin-right:8px;"></i>
+        <span>携程旅行</span>
+      </div>
+      <div style="display:flex;gap:12px;">
+        <div style="display:flex;align-items:center;color:white;">
+          <i class="fas fa-gem"></i>
+          <span>普通会员</span>
+        </div>
+        <div style="display:flex;align-items:center;color:white;">
+          <i class="fas fa-circle" style="color:yellow;margin-right:4px;"></i>
+          <span>积分</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="content">
+      <div class="func-grid">
+        <div class="func-btn"><i class="fas fa-hotel"></i><div>酒店</div></div>
+        <div class="func-btn"><i class="fas fa-map-marked-alt"></i><div>攻略/景点</div></div>
+        <div class="func-btn"><i class="fas fa-plane-departure"></i><div>机票</div></div>
+        <div class="func-btn"><i class="fas fa-train"></i><div>火车票</div></div>
+        <div class="func-btn"><i class="fas fa-palm-tree"></i><div>旅游/定制</div></div>
+        <div class="func-btn"><i class="fas fa-home"></i><div>民宿/客栈</div></div>
+        <div class="func-btn"><i class="fas fa-ticket-alt"></i><div>门票/玩乐</div></div>
+        <div class="func-btn"><i class="fas fa-shuttle-van"></i><div>接送机/包车</div></div>
+        <div class="func-btn"><i class="fas fa-car"></i><div>租车自驾</div></div>
+        <div class="func-btn"><i class="fas fa-flag"></i><div>跟团游</div></div>
+      </div>
+
+      <div class="more-products">
+        <div style="display:flex;gap:12px;">
+          <i class="fas fa-bus" style="font-size:20px;color:#666;"></i>
+          <i class="fas fa-suitcase" style="font-size:20px;color:#666;"></i>
+          <i class="fas fa-shopping-bag" style="font-size:20px;color:#666;"></i>
+          <i class="fas fa-coins" style="font-size:20px;color:#666;"></i>
+        </div>
+        <div>+12个更多产品</div>
+      </div>
+
+      <div class="search-bar">
+        <i class="fas fa-robot search-icon-left"></i>
+        <div class="search-placeholder">蜜悦·深圳波西塔诺悬崖海景美宿</div>
+        <i class="fas fa-search" style="color:#1E88E5;margin-left:12px;"></i>
+        <div class="map-label"><i class="fas fa-map-marker-alt"></i> 旅游地图</div>
+      </div>
+
+      <div class="city-scroll">
+        <div>搜一搜:</div>
+        <div class="city-tag active">北京</div>
+        <div class="city-tag">上海</div>
+        <div class="city-tag">西安</div>
+        <div class="city-tag">成都</div>
+        <div class="city-tag">南京</div>
+        <div class="city-tag">杭州</div>
+        <div class="city-tag">大连</div>
+      </div>
+
+      <div class="category-grid">
+        <div class="category-card">
+          <i class="fas fa-tags" style="color:red;font-size:24px;"></i>
+          <div>特价/直播</div>
+        </div>
+        <div class="category-card">
+          <i class="fas fa-music" style="color:#1E88E5;font-size:24px;"></i>
+          <div>演出/展览</div>
+        </div>
+        <div class="category-card">
+          <i class="fas fa-exchange-alt" style="color:#1E88E5;font-size:24px;"></i>
+          <div>线路规划</div>
+        </div>
+        <div class="category-card">
+          <i class="fas fa-map" style="color:orange;font-size:24px;"></i>
+          <div>旅行热点</div>
+        </div>
+        <div class="category-card">
+          <i class="fas fa-graduation-cap" style="color:brown;font-size:24px;"></i>
+          <div>携程榜单</div>
+        </div>
+      </div>
+
+      <div class="card-row">
+        <div class="card-left">
+          <div class="title">OneRepublic 2026巡演强势来袭 武汉站 火热开售</div>
+          <div class="subtitle">月20日17:00 速来抢位</div>
+          <div class="icon"><i class="fas fa-robot" style="color:#1E88E5;"></i></div>
+        </div>
+        <div class="card-right">
+          <div class="title">想去三亚？AI帮你定制行程</div>
+          <img src="" alt="三亚海滨城市全景">
+          <div class="subtitle">想去三亚？试试 AI一键定制 4天经典必去线路</div>
+          <div class="btn">AI线路规划</div>
+        </div>
+      </div>
+
+      <div class="recommend">
+        <div class="title">12-2月去哪最合适</div>
+        <div class="items">
+          <div class="recommend-item">
+            <img src="" alt="大理风光">
+            <div class="label">大理</div>
+          </div>
+          <div class="recommend-item">
+            <img src="" alt="稻城亚丁">
+            <div class="label">稻城亚丁</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="bottom-bar">
+      <div class="bottom-nav">
+        <div class="bottom-nav-item active">
+          <i class="fas fa-home icon-blue"></i>
+          <div>首页</div>
+        </div>
+        <div class="bottom-nav-item">
+          <i class="fas fa-comment-dots icon"></i>
+          <div>消息</div>
+        </div>
+        <div class="bottom-nav-item" style="position:relative;">
+          <i class="fas fa-comment icon-blue"></i>
+          <div class="activity-badge">活动</div>
+          <div>社区</div>
+        </div>
+        <div class="bottom-nav-item">
+          <i class="fas fa-folder icon"></i>
+          <div>行程</div>
+        </div>
+        <div class="bottom-nav-item">
+          <i class="fas fa-user icon"></i>
+          <div>我的</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</body>
+</html>

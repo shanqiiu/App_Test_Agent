@@ -1,10 +1,6 @@
 """
 Image to Text - UI截图描述工具
 将UI截图转换为描述性文本，供LLM生成HTML
-
-支持两种模式：
-- 快速模式：仅使用 VL 模型（原有流程）
-- 精确模式：融合 OmniParser 检测结果 + VL 模型
 """
 
 import base64
@@ -12,7 +8,7 @@ import requests
 import os
 import argparse
 import json
-from typing import Dict, List, Optional, Tuple
+from typing import Dict, Optional, Tuple
 from pathlib import Path
 from datetime import datetime
 try:
@@ -48,114 +44,8 @@ class ImageMetadata:
         return {"width": self.width, "height": self.height, "format": self.format}
 
 
-def get_prompt_with_detection(metadata: ImageMetadata, detection: Dict) -> str:
-    """
-    生成融合检测结果的增强提示词（精确模式）
-
-    Args:
-        metadata: 图像元信息
-        detection: OmniParser 检测结果
-
-    Returns:
-        融合后的提示词
-    """
-    w, h = metadata.width, metadata.height
-
-    # 格式化检测结果
-    detection_text = format_detection_for_prompt(detection)
-
-    return f"""分析这张App截图（{w}×{h}px），已通过 UI 检测器获取了组件边界框信息。
-
-## 已检测的 UI 组件
-
-以下是通过 OmniParser 检测到的组件列表（bbox格式: [x1, y1, x2, y2]）：
-
-{detection_text}
-
-## 你的任务
-
-1. **验证检测结果**：确认上述边界框是否准确，指出明显错误
-2. **补充样式细节**：为每个组件添加以下信息：
-   - 背景颜色/渐变
-   - 文字样式（字号、颜色、字重）
-   - 圆角大小
-   - 边框样式
-   - 阴影效果
-3. **识别遗漏组件**：检测器可能遗漏小图标、分割线等，请补充
-4. **描述布局关系**：组件间的对齐方式、间距
-
-## 输出格式
-
-```
-[组件名] bbox:[x1,y1,x2,y2] 尺寸:宽x高px
-  ├─ 背景: #颜色 / linear-gradient(...) / 图片
-  ├─ 文字:「内容」字号:__px 颜色:#___ 字重:___
-  ├─ 圆角: __px
-  ├─ 边框: __px solid #___
-  └─ 子元素: (如有嵌套)
-       ├─ [子组件] bbox:[...] ...
-```
-
-## 重要提示
-
-- 边界框坐标是**像素级精确**的，请在描述中保留
-- 如果检测到的文字 (text) 不完整，请根据截图补全
-- 颜色值尽量使用精确的十六进制值
-- 不要遗漏任何可见的 UI 元素"""
-
-
-def format_detection_for_prompt(detection: Dict) -> str:
-    """将检测结果格式化为 prompt 文本"""
-    lines = []
-    w, h = detection.get("image_size", [0, 0])
-
-    # 按 y 坐标排序，从上到下
-    components = sorted(
-        detection.get("components", []),
-        key=lambda c: c.get("bbox", [0, 0, 0, 0])[1]
-    )
-
-    for comp in components:
-        bbox = comp.get("bbox", [0, 0, 0, 0])
-        x1, y1, x2, y2 = bbox
-        comp_w, comp_h = x2 - x1, y2 - y1
-
-        # 计算位置区域
-        cx, cy = (x1 + x2) / 2, (y1 + y2) / 2
-        pos_x = "左" if cx < w * 0.33 else ("右" if cx > w * 0.67 else "中")
-        pos_y = "上" if cy < h * 0.33 else ("下" if cy > h * 0.67 else "中")
-
-        line = f"- [{comp.get('type', 'unknown')}] "
-        line += f"位置:{pos_y}{pos_x} "
-        line += f"bbox:[{x1},{y1},{x2},{y2}] "
-        line += f"({comp_w}x{comp_h}px)"
-
-        if comp.get("text"):
-            text = comp["text"][:60]  # 截断过长文本
-            line += f" 内容:「{text}」"
-
-        # 标记可交互元素
-        if comp.get("interactivity"):
-            line += " [可点击]"
-
-        # 显示置信度（如果有）
-        if comp.get("confidence"):
-            line += f" 置信度:{comp.get('confidence', 0):.2f}"
-
-        lines.append(line)
-
-    # 添加统计信息
-    stats = detection.get("statistics", {})
-    if stats:
-        header = f"共 {stats.get('total_components', len(components))} 个组件"
-        header += f"，其中 {stats.get('interactive_count', 0)} 个可交互\n"
-        return header + "\n".join(lines)
-
-    return "\n".join(lines) if lines else "(无检测结果)"
-
-
 def get_prompt(metadata: ImageMetadata) -> str:
-    """生成描述性文本的提示词 - 增强视觉细节版（快速模式）"""
+    """生成描述性文本的提示词 - 增强视觉细节版"""
     w, h = metadata.width, metadata.height
 
     return f"""精确分析这张App截图（{w}×{h}px），生成可用于HTML复刻的详细描述。
@@ -291,34 +181,16 @@ class ImageAnalyzer:
         with open(path, "rb") as f:
             return base64.b64encode(f.read()).decode('utf-8')
 
-    def analyze(self, image_path: str, detection: Optional[Dict] = None) -> Dict:
-        """
-        分析 UI 截图
-
-        Args:
-            image_path: 图片路径
-            detection: OmniParser 检测结果（可选，提供则启用精确模式）
-
-        Returns:
-            分析结果字典
-        """
+    def analyze(self, image_path: str) -> Dict:
         metadata = ImageMetadata(image_path)
         if not metadata.width:
             raise ValueError("Cannot read image")
-
-        # 选择 prompt（精确模式 vs 快速模式）
-        if detection and detection.get("components"):
-            prompt = get_prompt_with_detection(metadata, detection)
-            mode = "precise"
-        else:
-            prompt = get_prompt(metadata)
-            mode = "fast"
 
         payload = {
             "model": self.model,
             "messages": [{"role": "user", "content": [
                 {"type": "image_url", "image_url": {"url": f"data:image/png;base64,{self.encode_image(image_path)}"}},
-                {"type": "text", "text": prompt}
+                {"type": "text", "text": get_prompt(metadata)}
             ]}],
             "max_tokens": 4096,
             "temperature": 0.3
@@ -356,51 +228,27 @@ class ImageAnalyzer:
                 else:
                     raise
 
-        result = {
+        return {
             "description": resp.json()["choices"][0]["message"]["content"],
             "metadata": metadata.to_dict(),
             "model": self.model,
-            "mode": mode,
             "timestamp": datetime.now().isoformat()
         }
-
-        # 精确模式下保存检测信息
-        if detection:
-            result["detection"] = {
-                "detector": detection.get("detector", "unknown"),
-                "component_count": len(detection.get("components", [])),
-            }
-
-        return result
 
     def save(self, result: Dict, name: str, output_dir: str) -> str:
         path = Path(output_dir)
         path.mkdir(parents=True, exist_ok=True)
         ts = datetime.now().strftime("%Y%m%d_%H%M%S")
 
-        # 根据模式生成不同的文件头
-        mode = result.get("mode", "fast")
-        mode_label = "Enhanced" if mode == "precise" else "Standard"
-
-        header_lines = [
-            f"# UI Description ({mode_label})",
-            f"# Resolution: {result['metadata']['width']} x {result['metadata']['height']}",
-            f"# Model: {result['model']}",
-            f"# Mode: {mode}",
-        ]
-
-        # 精确模式下添加检测信息
-        if result.get("detection"):
-            det = result["detection"]
-            header_lines.append(f"# Detector: {det.get('detector', 'unknown')}")
-            header_lines.append(f"# Components: {det.get('component_count', 0)}")
-
-        header_lines.append(f"# Time: {result['timestamp']}")
-        header = "\n".join(header_lines)
-
         # 保存描述文本
         txt_file = path / f"{name}_{ts}.txt"
-        content = f"{header}\n\n{result['description']}\n"
+        content = f"""# UI Description
+# Resolution: {result['metadata']['width']} x {result['metadata']['height']}
+# Model: {result['model']}
+# Time: {result['timestamp']}
+
+{result['description']}
+"""
         txt_file.write_text(content, encoding="utf-8")
         print(f"[OK] {txt_file}")
 
@@ -411,79 +259,14 @@ class ImageAnalyzer:
         return str(txt_file)
 
 
-def load_detection(detection_path: str) -> Optional[Dict]:
-    """加载检测结果文件"""
-    if not detection_path:
-        return None
-
-    path = Path(detection_path)
-    if not path.exists():
-        print(f"[WARN] 检测文件不存在: {detection_path}")
-        return None
-
-    try:
-        return json.loads(path.read_text(encoding="utf-8"))
-    except Exception as e:
-        print(f"[WARN] 加载检测文件失败: {e}")
-        return None
-
-
-def find_detection_file(image_path: Path, detection_dir: Optional[str] = None) -> Optional[str]:
-    """
-    自动查找对应的检测结果文件
-
-    查找顺序：
-    1. 指定目录下的 {image_stem}_*_detection.json
-    2. 图片同目录下的 {image_stem}_*_detection.json
-    """
-    stem = image_path.stem
-    patterns = [f"{stem}_*_detection.json", f"{stem}_detection.json"]
-
-    search_dirs = []
-    if detection_dir:
-        search_dirs.append(Path(detection_dir))
-    search_dirs.append(image_path.parent)
-
-    for dir_path in search_dirs:
-        for pattern in patterns:
-            matches = list(dir_path.glob(pattern))
-            if matches:
-                # 返回最新的文件
-                return str(sorted(matches)[-1])
-
-    return None
-
-
 def main():
-    parser = argparse.ArgumentParser(
-        description="UI Screenshot to Description",
-        formatter_class=argparse.RawDescriptionHelpFormatter,
-        epilog="""
-示例:
-  # 快速模式（仅 VL 模型）
-  python img2text.py --image-path ./test.jpg
-
-  # 精确模式（融合检测结果）
-  python img2text.py --image-path ./test.jpg --detection-file ./test_detection.json
-
-  # 自动查找检测文件
-  python img2text.py --image-path ./test.jpg --detection-dir ./outputs
-
-  # 批量处理
-  python img2text.py --images-dir ./screenshots --detection-dir ./outputs
-"""
-    )
+    parser = argparse.ArgumentParser(description="UI Screenshot to Description")
     parser.add_argument("--api-url", default="https://api.openai-next.com/v1/chat/completions")
     parser.add_argument("--api-key", default="sk-K9B2ccVeW4VdAcobD53b16E06b104aA1B5A82593FdFb2557")
     parser.add_argument("--model", default="qwen-vl-max")
-    parser.add_argument("--image-path", help="单个图片文件")
-    parser.add_argument("--images-dir", default="./images", help="图片目录")
-    parser.add_argument("--output-dir", default="./outputs", help="输出目录")
-
-    # 精确模式参数
-    parser.add_argument("--detection-file", help="检测结果 JSON 文件（启用精确模式）")
-    parser.add_argument("--detection-dir", help="检测结果目录（自动匹配）")
-
+    parser.add_argument("--image-path", help="Single image file")
+    parser.add_argument("--images-dir", default="./images", help="Directory of images")
+    parser.add_argument("--output-dir", default="./outputs")
     args = parser.parse_args()
 
     analyzer = ImageAnalyzer(args.api_key, args.api_url, args.model)
@@ -501,22 +284,8 @@ def main():
 
     for i, img in enumerate(images, 1):
         print(f"[{i}/{len(images)}] {img.name}")
-
-        # 加载检测结果
-        detection = None
-        if args.detection_file:
-            detection = load_detection(args.detection_file)
-        elif args.detection_dir:
-            det_file = find_detection_file(img, args.detection_dir)
-            if det_file:
-                print(f"  检测文件: {Path(det_file).name}")
-                detection = load_detection(det_file)
-
-        mode = "精确模式" if detection else "快速模式"
-        print(f"  模式: {mode}")
-
         try:
-            result = analyzer.analyze(str(img), detection)
+            result = analyzer.analyze(str(img))
             analyzer.save(result, img.stem, args.output_dir)
         except Exception as e:
             print(f"[FAIL] {e}")
