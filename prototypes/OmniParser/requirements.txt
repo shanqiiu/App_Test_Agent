@@ -1,0 +1,23 @@
+# Core
+torch
+torchvision
+
+# OCR
+easyocr
+paddlepaddle
+paddleocr
+
+# Object Detection
+ultralytics>=8.3.0
+
+# Vision Models
+transformers
+accelerate
+timm
+einops>=0.8.0
+
+# Image Processing
+numpy>=1.26.0
+opencv-python
+Pillow
+supervision>=0.18.0
