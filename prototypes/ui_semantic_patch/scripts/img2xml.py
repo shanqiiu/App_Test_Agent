@@ -11,6 +11,7 @@ import base64
 import argparse
 import requests
 import re
+import time
 from pathlib import Path
 from datetime import datetime
 from typing import Optional
@@ -172,9 +173,9 @@ def call_vlm_api(
     model: str,
     image_path: str,
     image_info: dict,
-    max_retries: int = 3
+    max_retries: int = 10
 ) -> dict:
-    """调用 VLM API 提取 UI 结构"""
+    """调用 VLM API 提取 UI 结构（带重试和指数退避）"""
     image_base64 = encode_image(image_path)
     mime_type = get_mime_type(image_path)
     user_prompt = build_user_prompt(image_info)
@@ -211,10 +212,26 @@ def call_vlm_api(
         'max_tokens': 8192
     }
 
+    base_wait = 5  # 基础等待时间（秒）
+
     for attempt in range(max_retries):
         try:
-            print(f"  正在调用 VLM API (尝试 {attempt + 1}/{max_retries})...")
+            if attempt > 0:
+                # 指数退避：5s, 10s, 20s, 40s, ...（最大60秒）
+                wait_time = min(base_wait * (2 ** (attempt - 1)), 60)
+                print(f"  ⏳ 等待 {wait_time}s 后重试 ({attempt + 1}/{max_retries})...")
+                time.sleep(wait_time)
+            else:
+                print(f"  正在调用 VLM API...")
+
             response = requests.post(api_url, headers=headers, json=payload, timeout=180)
+
+            # 处理可重试的错误：429 限流 和 5xx 服务器错误
+            if response.status_code == 429 or response.status_code >= 500:
+                error_type = "API 限流 (429)" if response.status_code == 429 else f"服务器错误 ({response.status_code})"
+                print(f"  ⚠ {error_type}，准备重试...")
+                continue
+
             response.raise_for_status()
 
             result = response.json()
@@ -224,6 +241,20 @@ def call_vlm_api(
             ui_structure = extract_json(content)
             return ui_structure
 
+        except (requests.exceptions.ConnectionError, requests.exceptions.Timeout) as e:
+            print(f"  ⚠ 网络连接错误: {type(e).__name__}")
+            if attempt == max_retries - 1:
+                # 最后一次也不放弃，额外等待后再试
+                print(f"  ⚠ 已达最大重试次数，额外等待 120s 后最后尝试...")
+                time.sleep(120)
+                try:
+                    response = requests.post(api_url, headers=headers, json=payload, timeout=180)
+                    response.raise_for_status()
+                    result = response.json()
+                    content = result['choices'][0]['message']['content']
+                    return extract_json(content)
+                except Exception as final_e:
+                    raise Exception(f"网络持续不稳定，请检查网络连接: {final_e}")
         except requests.exceptions.RequestException as e:
             print(f"  ⚠ API 请求失败: {e}")
             if attempt == max_retries - 1:

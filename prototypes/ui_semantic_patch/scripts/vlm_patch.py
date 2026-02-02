@@ -9,33 +9,34 @@ import json
 import base64
 import argparse
 import requests
+import time
 from pathlib import Path
 from datetime import datetime
 from typing import Optional
 
 
 # 系统提示词：定义 VLM 的角色和输出格式
-SYSTEM_PROMPT = """你是一个 UI 异常场景生成专家。你的任务是分析 App 界面，并根据用户的异常指令，输出精确的 UI 修改操作（JSON Patch）。
+SYSTEM_PROMPT = """你是一个 UI 异常场景生成专家。你的任务是分析 App 界面，并根据用户的异常指令，生成逼真的异常弹窗。
+
+## 核心原则：语义感知
+
+**关键要求**：生成的弹窗内容必须与页面实际业务场景高度相关！
+
+### 场景识别与内容匹配示例：
+- 火车票/机票页面 → 余票不足、票价变动、抢票失败、排队超时
+- 电商购物页面 → 库存不足、优惠券弹窗、限时抢购、商品推荐
+- 视频/音乐页面 → VIP会员推荐、版权提示、广告弹窗
+- 金融支付页面 → 支付失败、余额不足、安全验证
+- 登录注册页面 → 登录过期、认证失败、账号锁定
+- 社交聊天页面 → 好友请求、隐私提醒、权限申请
 
 ## 输出格式要求
 
-你必须输出一个 JSON 对象，包含 `actions` 数组，每个 action 是以下三种类型之一：
+**重要**：你只能生成 add 类型的操作（添加弹窗），不允许生成 modify 或 delete 操作。
 
-### 1. modify - 修改现有组件
-```json
-{
-  "type": "modify",
-  "target": "组件的 id 或 index",
-  "changes": {
-    "text": "新文本内容",
-    "textColor": "#FF0000",
-    "enabled": false,
-    "background": "#EEEEEE"
-  }
-}
-```
+你必须输出一个 JSON 对象，包含 `actions` 数组，每个 action 格式如下：
 
-### 2. add - 新增组件
+### add - 新增弹窗组件
 ```json
 {
   "type": "add",
@@ -44,26 +45,30 @@ SYSTEM_PROMPT = """你是一个 UI 异常场景生成专家。你的任务是分
     "bounds": {"x": 起始x, "y": 起始y, "width": 宽度, "height": 高度},
     "text": "显示内容",
     "style": "error | warning | info | success",
-    "children": []
+    "children": [],
+    "semantic": {
+      "scene": "页面场景类型（如 ticket/ecommerce/video/finance/login/social）",
+      "dialog_type": "弹窗类型（如 no_ticket/out_of_stock/vip_prompt/payment_failed）",
+      "title": "弹窗标题",
+      "message": "弹窗正文（要与页面内容相关，如包含具体的车次、商品名、金额等）",
+      "buttons": ["按钮1", "按钮2"],
+      "is_ad": false
+    }
   },
   "zIndex": 100
 }
 ```
 
-### 3. delete - 隐藏/移除组件
-```json
-{
-  "type": "delete",
-  "target": "组件的 id 或 index",
-  "mode": "hide | blur | placeholder"
-}
-```
+**弹窗内容生成要求**：
+1. 分析页面中的关键信息（如车次号、航班号、商品名、价格等）
+2. 将这些信息融入弹窗文案中，使弹窗看起来真实可信
+3. 广告弹窗应与页面主题相关（如火车票页面推荐相关出行服务）
 
 ## 注意事项
 
 1. bounds 坐标基于截图的像素坐标系（左上角为原点）
-2. 新增弹窗时，需要居中显示，并考虑合适的尺寸
-3. 修改文本时，确保新文本与异常场景语义一致
+2. 新增弹窗时，需要居中显示，并考虑合适的尺寸（通常 width=屏幕宽度*0.8, height=300-400）
+3. 弹窗文案必须像真实 App 会显示的内容，避免生硬的测试文本
 4. 只输出 JSON，不要输出任何解释性文字
 5. 确保 JSON 格式正确，可以被直接解析
 """
@@ -121,6 +126,8 @@ def build_user_prompt(ui_json: dict, instruction: str) -> str:
 
 请分析上述页面截图和组件结构，根据异常指令生成 UI-Edit-Action (JSON Patch)。
 
+**关键要求**：只生成 add 操作（添加异常弹窗），不允许生成 modify 或 delete 操作。
+
 只输出 JSON，格式如下：
 ```json
 {{
@@ -137,10 +144,10 @@ def call_vlm_api(
     model: str,
     screenshot_path: str,
     user_prompt: str,
-    max_retries: int = 3
+    max_retries: int = 10
 ) -> dict:
     """
-    调用 VLM API 生成 JSON Patch
+    调用 VLM API 生成 JSON Patch（带重试和指数退避）
     """
     image_base64 = encode_image(screenshot_path)
     mime_type = get_image_mime_type(screenshot_path)
@@ -177,9 +184,26 @@ def call_vlm_api(
         'max_tokens': 4096
     }
 
+    base_wait = 5  # 基础等待时间（秒）
+
     for attempt in range(max_retries):
         try:
+            if attempt > 0:
+                # 指数退避：5s, 10s, 20s, 40s, ...（最大60秒）
+                wait_time = min(base_wait * (2 ** (attempt - 1)), 60)
+                print(f"  ⏳ 等待 {wait_time}s 后重试 ({attempt + 1}/{max_retries})...")
+                time.sleep(wait_time)
+            else:
+                print(f"  正在调用 VLM API 生成 Patch...")
+
             response = requests.post(api_url, headers=headers, json=payload, timeout=120)
+
+            # 处理可重试的错误：429 限流 和 5xx 服务器错误
+            if response.status_code == 429 or response.status_code >= 500:
+                error_type = "API 限流 (429)" if response.status_code == 429 else f"服务器错误 ({response.status_code})"
+                print(f"  ⚠ {error_type}，准备重试...")
+                continue
+
             response.raise_for_status()
 
             result = response.json()
@@ -189,13 +213,26 @@ def call_vlm_api(
             patch = extract_json(content)
             return patch
 
+        except (requests.exceptions.ConnectionError, requests.exceptions.Timeout) as e:
+            print(f"  ⚠ 网络连接错误: {type(e).__name__}")
+            if attempt == max_retries - 1:
+                # 最后一次也不放弃，额外等待后再试
+                print(f"  ⚠ 已达最大重试次数，额外等待 120s 后最后尝试...")
+                time.sleep(120)
+                try:
+                    response = requests.post(api_url, headers=headers, json=payload, timeout=120)
+                    response.raise_for_status()
+                    result = response.json()
+                    content = result['choices'][0]['message']['content']
+                    return extract_json(content)
+                except Exception as final_e:
+                    raise Exception(f"网络持续不稳定，请检查网络连接: {final_e}")
         except requests.exceptions.RequestException as e:
-            print(f"API 请求失败 (尝试 {attempt + 1}/{max_retries}): {e}")
+            print(f"  ⚠ API 请求失败: {e}")
             if attempt == max_retries - 1:
                 raise
         except json.JSONDecodeError as e:
-            print(f"JSON 解析失败 (尝试 {attempt + 1}/{max_retries}): {e}")
-            print(f"原始内容: {content[:500]}...")
+            print(f"  ⚠ JSON 解析失败: {e}")
             if attempt == max_retries - 1:
                 raise
 

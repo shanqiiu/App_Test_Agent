@@ -17,6 +17,7 @@ from utils.text_render import TextRenderer
 from utils.inpainting import BackgroundInpainter
 from utils.compositor import LayerCompositor
 from utils.gt_manager import GTManager
+from utils.semantic_dialog_generator import SemanticDialogGenerator
 
 
 class PatchRenderer:
@@ -34,12 +35,12 @@ class PatchRenderer:
         screenshot_path: str,
         ui_json_path: str,
         fonts_dir: Optional[str] = None,
-        components_dir: Optional[str] = None,
-        render_mode: str = 'pil',
+        render_mode: str = 'semantic_ai',
         api_key: Optional[str] = None,
-        api_url: str = 'https://api.openai-next.com/v1/images/generations',
-        image_model: str = 'flux-schnell',
-        gt_dir: Optional[str] = None
+        gt_dir: Optional[str] = None,
+        vlm_api_url: str = 'https://api.openai-next.com/v1/chat/completions',
+        vlm_model: str = 'gpt-4o',
+        reference_path: Optional[str] = None
     ):
         """
         初始化渲染引擎
@@ -47,17 +48,22 @@ class PatchRenderer:
         Args:
             screenshot_path: 原始截图路径
             ui_json_path: UI-JSON 文件路径
-            fonts_dir: 字体目录
-            components_dir: 组件库目录
-            render_mode: 渲染模式 ('pil' 纯算法 / 'generate' 大模型生成)
-            api_key: 图像生成 API 密钥（render_mode='generate' 时需要）
-            api_url: 图像生成 API 端点
-            image_model: 图像生成模型名称
+            fonts_dir: 字体目录（可选，不指定则使用系统默认字体）
+            render_mode: 渲染模式（默认 semantic_ai）
+            api_key: VLM API 密钥（用于语义分析）
             gt_dir: GT样本目录（用于模板匹配）
+            vlm_api_url: VLM API 端点（用于语义分析）
+            vlm_model: VLM 模型名称
+            reference_path: 参考弹窗图片路径（用于风格学习）
+
+        Note:
+            AI 图像生成使用 DashScope API，API Key 从环境变量 DASHSCOPE_API_KEY 获取
         """
+        self.screenshot_path = screenshot_path
         self.screenshot = Image.open(screenshot_path).convert('RGBA')
         self.width, self.height = self.screenshot.size
         self.render_mode = render_mode
+        self.api_key = api_key
 
         with open(ui_json_path, 'r', encoding='utf-8') as f:
             self.ui_json = json.load(f)
@@ -72,16 +78,20 @@ class PatchRenderer:
         self.inpainter = BackgroundInpainter()
         self.compositor = LayerCompositor()
 
-        # 初始化组件生成器（如果使用生成模式）
-        self.component_generator = None
-        if render_mode == 'generate' and api_key:
-            from utils.component_generator import ComponentGenerator
-            self.component_generator = ComponentGenerator(
+        # 初始化语义弹窗生成器
+        self.semantic_generator = None
+        self.reference_path = reference_path
+        if render_mode.startswith('semantic'):
+            self.semantic_generator = SemanticDialogGenerator(
+                fonts_dir=fonts_dir,
                 api_key=api_key,
-                api_url=api_url,
-                model=image_model,
-                templates_dir=components_dir
+                vlm_api_url=vlm_api_url,
+                vlm_model=vlm_model,
+                reference_path=reference_path
             )
+            print(f"  ✓ 语义弹窗生成器已初始化 (mode={render_mode})")
+            if reference_path:
+                print(f"  ✓ 参考风格图片: {reference_path}")
 
         # 初始化GT管理器（如果提供GT目录）
         self.gt_manager = None
@@ -159,14 +169,13 @@ class PatchRenderer:
             self._fill_region((x, y, x + w, y + h), bg_color)
             print(f"  ✓ 修改背景: {target} → {bg_color}")
 
-        # 处理禁用状态
-        if changes.get('enabled') is False:
-            self._apply_disabled_effect((x, y, x + w, y + h))
-            print(f"  ✓ 禁用组件: {target}")
-
-    def apply_add(self, action: dict) -> None:
+    def apply_add(self, action: dict, instruction: str = None) -> None:
         """
         执行 add 操作：新增组件
+
+        Args:
+            action: 操作描述
+            instruction: 异常指令（用于语义弹窗生成）
         """
         component = action.get('component', {})
         comp_class = component.get('class', 'Unknown')
@@ -181,8 +190,9 @@ class PatchRenderer:
             x = (self.width - w) // 2
             y = (self.height - h) // 2
 
-        # 渲染优先级: GT模板 > 大模型生成 > PIL绘制
+        # 渲染优先级: GT模板 > 语义弹窗生成 > 旧版大模型生成 > PIL绘制
         layer = None
+        is_ai_generated = False
 
         # 1. 优先尝试从GT模板获取
         if self.gt_manager:
@@ -195,21 +205,55 @@ class PatchRenderer:
             if layer:
                 print(f"  ✓ 使用GT模板: {comp_class}/{style}")
 
-        # 2. 尝试使用大模型生成组件（如果启用）
-        if layer is None and self.render_mode == 'generate' and self.component_generator:
-            text = component.get('text', '')
-            style = component.get('style', 'info')
-            layer = self.component_generator.generate_component(
-                component_type=comp_class,
-                style=style,
-                text=text,
-                width=w,
-                height=h
-            )
-            if layer:
-                print(f"  ✓ 使用生成模型创建 {comp_class}")
+        # 2. 使用语义弹窗生成器（如果启用且是弹窗类型）
+        if layer is None and self.semantic_generator and comp_class in ['Dialog', 'AlertDialog', 'Toast']:
+            semantic_info = component.get('semantic', {})
 
-        # 3. 回退到 PIL 绘制
+            # 如果有参考风格，使用参考风格的尺寸和位置
+            ref_bounds = self.semantic_generator.get_dialog_bounds_from_reference(self.width, self.height)
+            if ref_bounds:
+                w = ref_bounds['width']
+                h = ref_bounds['height']
+                x = ref_bounds['x']
+                y = ref_bounds['y']
+                print(f"  ✓ 使用参考风格布局: ({x}, {y}) {w}x{h}")
+
+            # 如果 VLM 已经生成了语义信息，直接使用
+            if semantic_info:
+                content = {
+                    'title': semantic_info.get('title', component.get('text', '提示')),
+                    'message': semantic_info.get('message', ''),
+                    'style': semantic_info.get('style', component.get('style', 'info')),
+                    'buttons': semantic_info.get('buttons', ['确定']),
+                    'is_ad': semantic_info.get('is_ad', False),
+                    'icon_type': semantic_info.get('dialog_type', 'info')
+                }
+            else:
+                # 否则让语义生成器分析页面并生成内容
+                content = self.semantic_generator.generate_semantic_content(
+                    ui_json=self.ui_json,
+                    instruction=instruction or component.get('text', ''),
+                    screenshot_path=self.screenshot_path
+                )
+
+            # 根据渲染模式选择生成方式
+            if self.render_mode == 'semantic_ai':
+                # semantic_ai 模式：坚持使用 AI 生成，不回退
+                layer = self.semantic_generator.generate_dialog_ai(
+                    content, w, h, self.screenshot_path
+                )
+                if layer:
+                    is_ai_generated = True
+                    print(f"  ✓ 使用 AI 生成语义弹窗: {content.get('title')}")
+            else:
+                # semantic_pil 模式：使用 PIL 绘制
+                layer = self.semantic_generator.generate_dialog_pil(
+                    content, w, h, self.width, self.height
+                )
+                if layer:
+                    print(f"  ✓ 使用 PIL 生成语义弹窗: {content.get('title')}")
+
+        # 3. 回退到基础 PIL 绘制
         if layer is None:
             if comp_class in ['Dialog', 'AlertDialog']:
                 layer = self._create_dialog(component, w, h)
@@ -219,17 +263,88 @@ class PatchRenderer:
                 layer = self._create_loading(component, w, h)
             else:
                 layer = self._create_generic_component(component, w, h)
+            print(f"  ✓ 使用基础 PIL 绘制 {comp_class}")
 
-        # 如果是弹窗，先添加遮罩层
+        # 如果是弹窗且非 AI 生成模式，添加遮罩层
+        # AI 生成的弹窗自带白色背景卡片，直接叠加即可
         if comp_class in ['Dialog', 'AlertDialog'] and z_index >= 100:
-            self._add_overlay_mask()
+            if self.render_mode != 'semantic_ai':
+                self._add_overlay_mask()
 
-        # 合成到原图
-        self.screenshot = self.compositor.overlay(
-            self.screenshot, layer, (x, y)
-        )
+        # 合成到原图 - 使用改进的合成方法
+        if is_ai_generated and comp_class in ['Dialog', 'AlertDialog']:
+            # AI 生成的弹窗使用居中合成方法（参考 merge_images.py）
+            self.screenshot = self._merge_dialog_center(layer, max_ratio=0.8)
+            print(f"  ✓ 新增组件: {comp_class} (居中合成)")
+        else:
+            # 其他组件使用原有的合成方法
+            self.screenshot = self.compositor.overlay(
+                self.screenshot, layer, (x, y)
+            )
+            print(f"  ✓ 新增组件: {comp_class} at ({x}, {y})")
 
-        print(f"  ✓ 新增组件: {comp_class} at ({x}, {y})")
+    def _merge_dialog_center(
+        self,
+        dialog: Image.Image,
+        max_ratio: float = 0.8
+    ) -> Image.Image:
+        """
+        将弹窗图片居中合成到截图上（参考 merge_images.py 的成功逻辑）
+
+        Args:
+            dialog: 弹窗图片（带透明通道）
+            max_ratio: 弹窗最大占屏幕比例
+
+        Returns:
+            合成后的图片
+        """
+        # [调试] 创建调试目录
+        from pathlib import Path
+        debug_dir = Path("debug_dialog_output")
+        debug_dir.mkdir(exist_ok=True)
+
+        # 确保底图是 RGBA 模式
+        if self.screenshot.mode != 'RGBA':
+            self.screenshot = self.screenshot.convert('RGBA')
+
+        # 确保弹窗是 RGBA 模式
+        if dialog.mode != 'RGBA':
+            dialog = dialog.convert('RGBA')
+
+        # [调试] 保存合成前的底图和弹窗
+        self.screenshot.save(debug_dir / "debug_1_screenshot_before.png")
+        dialog.save(debug_dir / "debug_2_dialog_before.png")
+        print(f"  [调试] 底图已保存: debug_dialog_output/debug_1_screenshot_before.png")
+        print(f"  [调试] 弹窗已保存: debug_dialog_output/debug_2_dialog_before.png")
+
+        # 计算缩放比例，确保弹窗不超过屏幕尺寸的 max_ratio
+        max_width = int(self.width * max_ratio)
+        max_height = int(self.height * max_ratio)
+
+        scale = min(max_width / dialog.width, max_height / dialog.height, 1.0)
+
+        if scale < 1.0:
+            new_size = (int(dialog.width * scale), int(dialog.height * scale))
+            dialog = dialog.resize(new_size, Image.Resampling.LANCZOS)
+            print(f"  ℹ 弹窗已缩放: {scale:.2%} -> {new_size}")
+            # [调试] 保存缩放后的弹窗
+            dialog.save(debug_dir / "debug_3_dialog_resized.png")
+
+        # 计算居中位置
+        x = (self.width - dialog.width) // 2
+        y = (self.height - dialog.height) // 2
+
+        # 合成（使用 alpha 通道作为 mask 以支持透明图片）
+        result = self.screenshot.copy()
+        result.paste(dialog, (x, y), dialog)
+
+        print(f"  ℹ 弹窗合成位置: ({x}, {y}), 尺寸: {dialog.size}")
+
+        # [调试] 保存合成后的结果用于对比
+        result.save(debug_dir / "debug_4_merge_result.png")
+        print(f"  [调试] 合成结果已保存: debug_dialog_output/debug_4_merge_result.png")
+
+        return result
 
     def apply_delete(self, action: dict) -> None:
         """
@@ -264,8 +379,29 @@ class PatchRenderer:
 
     def _fill_region(self, region: Tuple[int, int, int, int], color: str) -> None:
         """用纯色填充区域"""
+        # 解析颜色并确保包含 alpha 通道
+        if color.startswith('#'):
+            color_hex = color[1:]
+            if len(color_hex) == 6:
+                # RGB 格式，添加完全不透明的 alpha
+                r = int(color_hex[0:2], 16)
+                g = int(color_hex[2:4], 16)
+                b = int(color_hex[4:6], 16)
+                fill_color = (r, g, b, 255)
+            elif len(color_hex) == 8:
+                # RGBA 格式
+                r = int(color_hex[0:2], 16)
+                g = int(color_hex[2:4], 16)
+                b = int(color_hex[4:6], 16)
+                a = int(color_hex[6:8], 16)
+                fill_color = (r, g, b, a)
+            else:
+                fill_color = color
+        else:
+            fill_color = color
+
         draw = ImageDraw.Draw(self.screenshot)
-        draw.rectangle(region, fill=color)
+        draw.rectangle(region, fill=fill_color)
 
     def _blur_region(self, region: Tuple[int, int, int, int], radius: int = 10) -> None:
         """对区域进行高斯模糊"""
@@ -273,14 +409,6 @@ class PatchRenderer:
         cropped = self.screenshot.crop(region)
         blurred = cropped.filter(ImageFilter.GaussianBlur(radius))
         self.screenshot.paste(blurred, (x1, y1))
-
-    def _apply_disabled_effect(self, region: Tuple[int, int, int, int]) -> None:
-        """应用禁用效果（半透明灰色覆盖）"""
-        x1, y1, x2, y2 = region
-        overlay = Image.new('RGBA', (x2 - x1, y2 - y1), (128, 128, 128, 100))
-        self.screenshot = self.compositor.overlay(
-            self.screenshot, overlay, (x1, y1)
-        )
 
     def _add_overlay_mask(self, opacity: int = 128) -> None:
         """添加全屏半透明遮罩"""
@@ -428,6 +556,44 @@ class PatchRenderer:
 
         return layer
 
+    def generate_dialog_and_merge(
+        self,
+        screenshot_path: str,
+        instruction: str
+    ) -> Image.Image:
+        """
+        直接生成异常弹窗并合并到截图（跳过 JSON Patch 中间格式）
+
+        Args:
+            screenshot_path: 原始截图路径
+            instruction: 异常指令
+
+        Returns:
+            合成后的截图
+        """
+        print(f"  正在生成异常弹窗...")
+
+        if not self.semantic_generator:
+            raise RuntimeError("语义弹窗生成器未初始化")
+
+        # 生成弹窗（使用Stage 2过滤后的UI JSON来辅助场景识别）
+        dialog, content = self.semantic_generator.generate(
+            ui_json=self.ui_json,
+            instruction=instruction,
+            screenshot_path=screenshot_path,
+            mode='ai'
+        )
+
+        print(f"  ✓ 弹窗已生成: {content.get('title')}")
+
+        # 合并到截图
+        result = self._merge_dialog_center(dialog)
+
+        # 关键：保存合成后的结果，以便 save() 方法能正确保存
+        self.screenshot = result
+
+        return result
+
     def apply_patch(self, patch: dict) -> Image.Image:
         """
         应用完整的 Patch
@@ -439,25 +605,38 @@ class PatchRenderer:
             修改后的截图
         """
         actions = patch.get('actions', [])
+        # 从 metadata 中获取原始指令，用于语义弹窗生成
+        instruction = patch.get('metadata', {}).get('instruction', '')
 
-        print(f"开始应用 Patch，共 {len(actions)} 个操作:")
+        # 只执行 add 操作（生成异常弹窗）
+        # 不执行 delete 和 modify 操作，因为它们基于 AI 推理不可靠
+        add_actions = [a for a in actions if a.get('type') == 'add']
+        delete_actions = [a for a in actions if a.get('type') == 'delete']
+        modify_actions = [a for a in actions if a.get('type') == 'modify']
 
-        for action in actions:
-            action_type = action.get('type')
+        # 如果 patch 中包含 delete 或 modify 操作，输出警告但不执行
+        if delete_actions:
+            print(f"⚠ 警告: 检测到 {len(delete_actions)} 个 delete 操作，已忽略（不执行）")
+        if modify_actions:
+            print(f"⚠ 警告: 检测到 {len(modify_actions)} 个 modify 操作，已忽略（不执行）")
 
-            if action_type == 'modify':
-                self.apply_modify(action)
-            elif action_type == 'add':
-                self.apply_add(action)
-            elif action_type == 'delete':
-                self.apply_delete(action)
-            else:
-                print(f"  ⚠ 未知操作类型: {action_type}")
+        print(f"开始应用 Patch，共 {len(add_actions)} 个操作 (仅执行 add 操作):")
+
+        # 执行 add 操作（弹窗等在最上层）
+        for action in add_actions:
+            self.apply_add(action, instruction=instruction)
 
         return self.screenshot
 
     def save(self, output_path: str) -> None:
         """保存结果"""
+        # [调试] 保存前再次输出调试图，对比是否与 _merge_dialog_center 中的一致
+        from pathlib import Path
+        debug_dir = Path("debug_dialog_output")
+        debug_dir.mkdir(exist_ok=True)
+        self.screenshot.save(debug_dir / "debug_before_save.png")
+        print(f"  [调试] save前图像已保存: debug_dialog_output/debug_before_save.png")
+
         # 转换为 RGB 保存（PNG 支持 RGBA，JPG 不支持）
         if output_path.lower().endswith('.jpg') or output_path.lower().endswith('.jpeg'):
             self.screenshot.convert('RGB').save(output_path)
@@ -478,23 +657,19 @@ def main():
     parser.add_argument('--output', '-o',
                         help='输出图片路径')
     parser.add_argument('--fonts-dir',
-                        help='字体目录')
-    parser.add_argument('--components-dir',
-                        help='组件库目录')
-    parser.add_argument('--render-mode',
-                        choices=['pil', 'generate'],
-                        default='pil',
-                        help='渲染模式: pil(纯算法，默认) / generate(大模型生成)')
+                        help='字体目录（可选，不指定则使用系统默认字体）')
     parser.add_argument('--api-key',
-                        help='图像生成 API 密钥（render-mode=generate时需要）')
-    parser.add_argument('--image-api-url',
-                        default='https://api.openai-next.com/v1/images/generations',
-                        help='图像生成 API 端点')
-    parser.add_argument('--image-model',
-                        default='flux-schnell',
-                        help='图像生成模型名称')
+                        help='VLM API 密钥（用于语义分析）')
     parser.add_argument('--gt-dir',
                         help='GT样本目录（用于模板匹配）')
+    parser.add_argument('--vlm-api-url',
+                        default='https://api.openai-next.com/v1/chat/completions',
+                        help='VLM API 端点（用于语义分析）')
+    parser.add_argument('--vlm-model',
+                        default='gpt-4o',
+                        help='VLM 模型名称（用于语义分析）')
+    parser.add_argument('--reference', '-r',
+                        help='参考弹窗图片路径（用于风格学习，生成相似风格的弹窗）')
 
     args = parser.parse_args()
 
@@ -507,12 +682,11 @@ def main():
         screenshot_path=args.screenshot,
         ui_json_path=args.ui_json,
         fonts_dir=args.fonts_dir,
-        components_dir=args.components_dir,
-        render_mode=args.render_mode,
         api_key=args.api_key,
-        api_url=args.image_api_url,
-        image_model=args.image_model,
-        gt_dir=args.gt_dir
+        gt_dir=args.gt_dir,
+        vlm_api_url=args.vlm_api_url,
+        vlm_model=args.vlm_model,
+        reference_path=args.reference
     )
 
     # 应用 Patch
