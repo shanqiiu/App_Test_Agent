@@ -1,0 +1,39 @@
+{
+  "category": "loading_timeout",
+  "description": "加载超时/白屏 - 页面无内容或加载失败",
+  "count": 1,
+  "samples": {
+    "白屏无内容.jpg": {
+      "anomaly_type": "white_screen",
+      "anomaly_description": "页面加载失败呈现白屏状态，无任何内容显示",
+      "visual_features": {
+        "app_style": "通用",
+        "primary_color": "#FFFFFF",
+        "background": "纯白 #FFFFFF",
+        "screen_state": "blank",
+        "has_loading_indicator": false,
+        "has_error_message": false,
+        "has_retry_button": false
+      },
+      "generation_template": {
+        "instruction": "生成页面白屏/加载失败的异常场景",
+        "patch_operations": [
+          {
+            "type": "replace",
+            "component": "FullScreen",
+            "content": "blank_white",
+            "preserve_status_bar": true,
+            "preserve_nav_bar": false
+          }
+        ],
+        "key_points": [
+          "主内容区域完全白屏",
+          "可选保留顶部状态栏",
+          "无加载提示、无错误信息",
+          "模拟网络超时或数据加载失败"
+        ]
+      }
+    }
+  },
+  "usage": "--gt-dir ./gt_templates/loading_timeout --reference ./gt_templates/loading_timeout/白屏无内容.jpg"
+}
