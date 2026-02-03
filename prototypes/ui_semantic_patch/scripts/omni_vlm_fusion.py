@@ -13,14 +13,14 @@ omni_vlm_fusion.py - OmniParser + VLM 融合提取
 
 import sys
 import json
-import base64
 import requests
-import re
 import time
 from pathlib import Path
 from datetime import datetime
-from typing import List, Dict, Optional
+from typing import List, Dict
 from PIL import Image
+
+from utils.common import encode_image, get_mime_type, extract_json
 
 # 添加 OmniParser 路径 (third_party 目录)
 OMNIPARSER_PATH = Path(__file__).parent.parent / 'third_party' / 'OmniParser'
@@ -110,46 +110,6 @@ SEMANTIC_FILTER_PROMPT = """你是一个 UI 结构分析专家。
 3. **所有原始组件的 index 必须出现在某个操作中**
 4. 组件类型: StatusBar, NavigationBar, TextView, Button, ImageView, ImageButton, Card, TabBar, TabItem, SearchBar, Dialog, Avatar, ListItem, InputField 等
 """
-
-
-def encode_image(image_path: str) -> str:
-    """将图片编码为 base64"""
-    with open(image_path, 'rb') as f:
-        return base64.b64encode(f.read()).decode('utf-8')
-
-
-def get_mime_type(image_path: str) -> str:
-    """获取图片 MIME 类型"""
-    suffix = Path(image_path).suffix.lower()
-    mime_map = {
-        '.jpg': 'image/jpeg',
-        '.jpeg': 'image/jpeg',
-        '.png': 'image/png',
-        '.gif': 'image/gif',
-        '.webp': 'image/webp'
-    }
-    return mime_map.get(suffix, 'image/png')
-
-
-def extract_json(content: str) -> dict:
-    """从 VLM 输出中提取 JSON"""
-    try:
-        return json.loads(content)
-    except json.JSONDecodeError:
-        pass
-
-    json_match = re.search(r'```(?:json)?\s*([\s\S]*?)\s*```', content)
-    if json_match:
-        try:
-            return json.loads(json_match.group(1))
-        except json.JSONDecodeError:
-            pass
-
-    brace_match = re.search(r'\{[\s\S]*\}', content)
-    if brace_match:
-        return json.loads(brace_match.group(0))
-
-    raise ValueError(f"无法从 VLM 输出中提取 JSON: {content[:200]}...")
 
 
 def fix_component_bounds(

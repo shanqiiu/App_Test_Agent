@@ -21,7 +21,6 @@ from datetime import datetime
 # DASHSCOPE_API_KEY: 用于 DashScope AI 图像生成（在 semantic_dialog_generator.py 中使用）
 DEFAULT_VLM_API_KEY = os.environ.get('VLM_API_KEY', 'sk-K9B2ccVeW4VdAcobD53b16E06b104aA1B5A82593FdFb2557')
 
-from img2xml import img_to_ui_json
 from patch_renderer import PatchRenderer
 from visualize_omni import visualize_components
 

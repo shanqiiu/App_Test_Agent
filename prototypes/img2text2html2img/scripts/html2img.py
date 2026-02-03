@@ -61,7 +61,7 @@ def extract_resolution_from_meta(meta_path: Path) -> Optional[Tuple[int, int]]:
             if "metadata" in data:
                 meta = data["metadata"]
                 return meta.get("width"), meta.get("height")
-        except:
+        except (json.JSONDecodeError, KeyError, TypeError):
             pass
 
     # 结构化文本格式

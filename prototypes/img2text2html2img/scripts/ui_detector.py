@@ -214,76 +214,6 @@ class OmniParserRawDetector(UIDetector):
         return adapter.load_from_file(json_file, image_path)
 
 
-class MockDetector(UIDetector):
-    """
-    模拟检测器（用于测试，无需安装 OmniParser）
-
-    基于图像分割生成模拟的 UI 组件边界框
-    """
-
-    def __init__(self, grid_rows: int = 4, grid_cols: int = 3):
-        self.grid_rows = grid_rows
-        self.grid_cols = grid_cols
-
-    def detect(self, image_path: str) -> Dict:
-        """生成模拟检测结果"""
-        # 获取图像尺寸
-        if Image:
-            with Image.open(image_path) as img:
-                width, height = img.size
-        else:
-            width, height = 1080, 1920
-
-        # 生成网格组件
-        components = []
-        cell_w = width // self.grid_cols
-        cell_h = height // self.grid_rows
-
-        component_types = ["button", "text", "icon", "image", "input"]
-
-        idx = 0
-        for row in range(self.grid_rows):
-            for col in range(self.grid_cols):
-                x1 = col * cell_w + 10
-                y1 = row * cell_h + 10
-                x2 = (col + 1) * cell_w - 10
-                y2 = (row + 1) * cell_h - 10
-
-                components.append({
-                    "id": idx,
-                    "type": component_types[idx % len(component_types)],
-                    "bbox": [x1, y1, x2, y2],
-                    "confidence": 0.85 + (idx % 10) * 0.01,
-                    "text": f"组件{idx}" if idx % 2 == 0 else "",
-                })
-                idx += 1
-
-        return {
-            "image_size": [width, height],
-            "components": components,
-            "detector": "MockDetector",
-            "timestamp": datetime.now().isoformat()
-        }
-
-
-class SAM2Detector(UIDetector):
-    """
-    基于 SAM2 (Segment Anything Model 2) 的 UI 检测器
-
-    SAM2 提供强大的零样本分割能力，但不提供组件类型分类。
-    适合与其他模型组合使用。
-
-    [TODO] 待实现
-    """
-
-    def __init__(self, model_path: str = "sam2_hiera_large"):
-        self.model_path = model_path
-        raise NotImplementedError("SAM2Detector 尚未实现，请使用 OmniParserDetector")
-
-    def detect(self, image_path: str) -> Dict:
-        pass
-
-
 def get_detector(detector_type: str = "omniparser", **kwargs) -> UIDetector:
     """
     获取检测器实例
@@ -292,8 +222,6 @@ def get_detector(detector_type: str = "omniparser", **kwargs) -> UIDetector:
         detector_type: 检测器类型
             - "omniparser": OmniParser pip 包（需安装）
             - "omniparser_raw": 加载预解析的 JSON 文件（推荐）
-            - "mock": 模拟检测器（测试用）
-            - "sam2": SAM2 检测器（未实现）
         **kwargs: 传递给检测器的参数
 
     Returns:
@@ -302,8 +230,6 @@ def get_detector(detector_type: str = "omniparser", **kwargs) -> UIDetector:
     detectors = {
         "omniparser": OmniParserDetector,
         "omniparser_raw": OmniParserRawDetector,
-        "mock": MockDetector,
-        "sam2": SAM2Detector,
     }
 
     if detector_type not in detectors:
@@ -365,9 +291,6 @@ def main():
 
   # 使用 CPU 推理
   python ui_detector.py --image-path ./test.jpg --device cpu
-
-  # 使用模拟检测器（测试用）
-  python ui_detector.py --image-path ./test.jpg --detector mock
 """
     )
 
@@ -380,12 +303,6 @@ def main():
     parser.add_argument("--output-dir", default="./outputs", help="输出目录")
 
     # 检测器参数
-    parser.add_argument(
-        "--detector",
-        default="omniparser",
-        choices=["omniparser", "mock"],
-        help="检测器类型"
-    )
     parser.add_argument(
         "--device",
         default=os.environ.get("OMNIPARSER_DEVICE", "cuda"),
@@ -403,20 +320,16 @@ def main():
     args = parser.parse_args()
 
     # 初始化检测器
-    print(f"=== UI Detector | {args.detector} ===\n")
+    print(f"=== UI Detector | OmniParser ===\n")
 
     try:
-        if args.detector == "omniparser":
-            detector = get_detector(
-                "omniparser",
-                device=args.device,
-                model_path=args.model_path
-            )
-        else:
-            detector = get_detector("mock")
+        detector = get_detector(
+            "omniparser",
+            device=args.device,
+            model_path=args.model_path
+        )
     except ImportError as e:
         print(f"[ERROR] {e}")
-        print("\n使用 --detector mock 可跳过 OmniParser 进行测试")
         return
 
     # 确定输入文件列表

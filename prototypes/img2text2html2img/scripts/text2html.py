@@ -307,13 +307,17 @@ class HTMLGenerator:
 
 def main():
     parser = argparse.ArgumentParser(description="UI Description to HTML")
-    parser.add_argument("--api-url", default="https://api.openai-next.com/v1/chat/completions")
-    parser.add_argument("--api-key", default="sk-K9B2ccVeW4VdAcobD53b16E06b104aA1B5A82593FdFb2557")
+    parser.add_argument("--api-url", default=os.environ.get("API_URL", "https://api.openai-next.com/v1/chat/completions"))
+    parser.add_argument("--api-key", default=os.environ.get("API_KEY"), help="API密钥（或设置环境变量 API_KEY）")
     parser.add_argument("--model", default="qwen3-235b-a22b")
     parser.add_argument("--input-file", help="单个输入文件(.txt)")
     parser.add_argument("--input-dir", help="输入目录，处理所有.txt文件")
     parser.add_argument("--output-dir", default="./dist_html")
     args = parser.parse_args()
+
+    if not args.api_key:
+        print("[ERROR] 未设置 API 密钥。请设置环境变量 API_KEY 或使用 --api-key 参数")
+        return
 
     generator = HTMLGenerator(args.api_key, args.api_url, args.model)
     print(f"=== text2html | Model: {args.model} ===\n")

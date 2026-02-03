@@ -7,7 +7,7 @@
 ## 项目定位
 
 - **项目类型**: 技术研究
-- **当前阶段**: 调研与方案设计（Phase 1）
+- **当前阶段**: 原型开发与优化（Phase 2）
 - **核心目标**: 构建异常测试场景自动生成平台
 
 ---
@@ -18,25 +18,18 @@
 App_Test_Agent/
 ├── README.md                           # 项目概览
 ├── Claude.md                           # 本文件：AI协作配置
+├── .env.example                        # 环境变量模板
 ├── docs/
-│   ├── research/                       # 📚 调研文档
-│   │   ├── 01_方案可行性分析.md
-│   │   ├── 02_程序化异常生成调研.md
-│   │   └── README.md
+│   ├── research/                       # 📚 调研文档（5篇）
 │   ├── technical/                      # 🔧 技术文档
-│   │   ├── 技术栈与工具.md
-│   │   ├── 术语表.md
-│   │   └── README.md
 │   ├── references/                     # 📖 参考资源
-│   │   ├── 学术研究.md
-│   │   ├── 开源项目.md
-│   │   └── README.md
-│   └── planning/                       # 🗺️ 研究规划
-│       ├── 研究路线图.md
-│       ├── 待研究问题.md
-│       └── README.md
-├── prototypes/                         # 💻 原型代码（待添加）
-└── 异常测试场景生成探索.md            # ⚠️ 旧文件（已拆分到docs/）
+│   ├── planning/                       # 🗺️ 研究规划
+│   └── setup/                          # 🛠️ 环境配置
+├── prototypes/                         # 💻 原型代码
+│   ├── img2text2html2img/              # UI截图复刻工具链
+│   └── ui_semantic_patch/              # 异常场景语义补丁框架
+└── third_party/                        # 📦 第三方依赖
+    └── GUI-Odyssey/                    # UI数据集
 ```
 
 ---
@@ -219,10 +212,12 @@ refactor: 重组文档结构，降低耦合性
 
 ### 📍 核心文档
 - [README.md](./README.md) - 项目概览
+- [环境搭建指南](./docs/setup/环境搭建指南.md) - 开发环境配置
 - [研究路线图](./docs/planning/研究路线图.md) - 整体规划
 - [方案可行性分析](./docs/research/01_方案可行性分析.md) - 核心技术方案
 
 ### 🔍 查找信息
+- 环境配置 → [环境搭建指南](./docs/setup/环境搭建指南.md)
 - 技术问题 → [待研究问题清单](./docs/planning/待研究问题.md)
 - 术语定义 → [术语表](./docs/technical/术语表.md)
 - 工具选型 → [技术栈与工具](./docs/technical/技术栈与工具.md)
@@ -238,9 +233,9 @@ refactor: 重组文档结构，降低耦合性
 
 ---
 
-**配置版本**: v2.0
-**最后更新**: 2024-12-30
+**配置版本**: v3.0
+**最后更新**: 2026-02-03
 **重大变更**:
-- 重构文档结构，按类型分类（research/technical/references/planning）
-- 拆分大文件，降低耦合性
-- 建立清晰的文档索引系统
+- Phase 2：新增原型代码（img2text2html2img、ui_semantic_patch）
+- 新增环境搭建指南和 .env.example 配置模板
+- 清理冗余代码和备份目录，统一 API 密钥管理

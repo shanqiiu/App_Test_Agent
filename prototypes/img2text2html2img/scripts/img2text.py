@@ -473,8 +473,8 @@ def main():
   python img2text.py --images-dir ./screenshots --detection-dir ./outputs
 """
     )
-    parser.add_argument("--api-url", default="https://api.openai-next.com/v1/chat/completions")
-    parser.add_argument("--api-key", default="sk-K9B2ccVeW4VdAcobD53b16E06b104aA1B5A82593FdFb2557")
+    parser.add_argument("--api-url", default=os.environ.get("API_URL", "https://api.openai-next.com/v1/chat/completions"))
+    parser.add_argument("--api-key", default=os.environ.get("API_KEY"), help="API密钥（或设置环境变量 API_KEY）")
     parser.add_argument("--model", default="qwen-vl-max")
     parser.add_argument("--image-path", help="单个图片文件")
     parser.add_argument("--images-dir", default="./images", help="图片目录")
@@ -485,6 +485,10 @@ def main():
     parser.add_argument("--detection-dir", help="检测结果目录（自动匹配）")
 
     args = parser.parse_args()
+
+    if not args.api_key:
+        print("[ERROR] 未设置 API 密钥。请设置环境变量 API_KEY 或使用 --api-key 参数")
+        return
 
     analyzer = ImageAnalyzer(args.api_key, args.api_url, args.model)
     print(f"=== img2text | Model: {args.model} ===\n")

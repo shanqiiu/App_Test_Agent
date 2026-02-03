@@ -54,9 +54,11 @@ def run_pipeline(
         包含各阶段输出路径的字典
     """
 
-    # 默认API Key
+    # 默认API Key（从环境变量获取）
     if api_key is None:
-        api_key = os.environ.get("API_KEY", "sk-K9B2ccVeW4VdAcobD53b16E06b104aA1B5A82593FdFb2557")
+        api_key = os.environ.get("API_KEY")
+        if not api_key:
+            raise ValueError("未设置 API 密钥。请设置环境变量 API_KEY 或使用 --api-key 参数")
 
     image_path = Path(image_path)
     if not image_path.exists():

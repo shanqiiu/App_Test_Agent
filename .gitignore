@@ -50,7 +50,6 @@ Desktop.ini
 
 # 数据文件（根据需要调整）
 *.csv
-*.json
 !package.json
 !package-lock.json
 
@@ -73,3 +72,20 @@ prototypes/**/data/
 prototypes/**/output/
 prototypes/**/*.pkl
 prototypes/**/*.h5
+
+# Claude CLI 临时文件
+.claude/
+
+# img2text2html2img 生成文件
+prototypes/img2text2html2img/scripts/dist_html/
+prototypes/img2text2html2img/scripts/pipeline_output/
+prototypes/img2text2html2img/scripts/test_resume/
+prototypes/img2text2html2img/scripts/parse_json/
+prototypes/img2text2html2img/scripts/outputs/
+prototypes/img2text2html2img/scripts/output_images/
+
+# ui_semantic_patch 生成文件
+prototypes/ui_semantic_patch/scripts/debug_dialog_output/
+prototypes/ui_semantic_patch/data/stage*.json
+prototypes/ui_semantic_patch/data/final_*.png
+

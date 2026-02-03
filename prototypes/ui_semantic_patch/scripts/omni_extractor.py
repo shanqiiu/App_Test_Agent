@@ -196,40 +196,21 @@ def map_element_type(elem_type: str, content: str, interactivity: bool) -> str:
 
 def img_to_ui_json(
     image_path: str,
-    api_key: str = None,  # 保持接口兼容，但不使用
-    api_url: str = None,
-    model: str = None,
-    use_omniparser: bool = True,
     device: str = None,
     **kwargs
 ) -> dict:
     """
-    兼容 img2xml.py 的接口，支持切换提取方式
+    从截图提取 UI 结构（使用 OmniParser）
 
     Args:
         image_path: 截图路径
-        api_key: VLM API 密钥（use_omniparser=False 时需要）
-        api_url: VLM API 端点
-        model: VLM 模型名称
-        use_omniparser: 是否使用 OmniParser（默认 True）
-        device: OmniParser 运行设备
+        device: OmniParser 运行设备 ('cuda' / 'cpu')
 
     Returns:
         UI-JSON 格式字典
     """
-    if use_omniparser:
-        print("  使用 OmniParser 本地提取...")
-        return omni_to_ui_json(image_path, device=device, **kwargs)
-    else:
-        # 回退到原来的 VLM 方案
-        print("  使用 VLM API 提取...")
-        from img2xml import img_to_ui_json as vlm_img_to_ui_json
-        return vlm_img_to_ui_json(
-            image_path=image_path,
-            api_key=api_key,
-            api_url=api_url,
-            model=model
-        )
+    print("  使用 OmniParser 本地提取...")
+    return omni_to_ui_json(image_path, device=device, **kwargs)
 
 
 def main():

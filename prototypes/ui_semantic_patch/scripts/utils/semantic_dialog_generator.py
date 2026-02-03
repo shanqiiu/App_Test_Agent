@@ -15,16 +15,16 @@ semantic_dialog_generator.py - 语义感知弹窗生成器
 """
 
 import json
+import re
+import random
 import base64
 import time
 import os
 import requests
 from pathlib import Path
-from datetime import datetime
 from typing import Optional, Tuple, List, Dict, Any
-from PIL import Image, ImageDraw, ImageFont, ImageFilter
+from PIL import Image, ImageDraw, ImageFont, ImageFilter, ImageChops
 import io
-import math
 
 import dashscope
 from dashscope import MultiModalConversation
@@ -674,7 +674,6 @@ class SemanticDialogGenerator:
         content = response.json()['choices'][0]['message']['content']
 
         # 提取 JSON
-        import re
         json_match = re.search(r'\{[\s\S]*\}', content)
         if json_match:
             return json.loads(json_match.group(0))
@@ -688,7 +687,6 @@ class SemanticDialogGenerator:
         instruction: str
     ) -> Dict[str, Any]:
         """使用模板生成弹窗内容"""
-        import random
 
         # 选择弹窗类型
         dialog_type = suggested_types[0] if suggested_types else 'network_error'
@@ -1195,27 +1193,13 @@ class SemanticDialogGenerator:
 
         print(f"  正在使用 DashScope AI 生成弹窗 (目标尺寸: {width}x{height})...")
 
-        # 计算生成尺寸（qwen-image-max 支持的尺寸）
         gen_size = f"{width}*{height}"
 
-        # 创建调试输出目录
-        debug_dir = Path("debug_dialog_output")
-        debug_dir.mkdir(exist_ok=True)
-        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-
         try:
-            image = generate_image_dashscope(
-                prompt=prompt,
-                size=gen_size
-            )
+            image = generate_image_dashscope(prompt=prompt, size=gen_size)
 
             if image:
                 gen_width, gen_height = image.size
-
-                # [调试] 保存原始 AI 生成的图像
-                raw_path = debug_dir / f"1_raw_ai_{timestamp}.png"
-                image.save(raw_path)
-                print(f"  [调试] 原始AI图像已保存: {raw_path}")
 
                 # 后处理：调整到精确的目标尺寸
                 if (gen_width, gen_height) != (width, height):
@@ -1223,13 +1207,7 @@ class SemanticDialogGenerator:
                     image = image.resize((width, height), Image.Resampling.LANCZOS)
 
                 # 后处理：移除背景，使弹窗外的区域变为透明
-                print(f"  正在移除背景...")
                 image = self._remove_background(image, tolerance=30)
-
-                # [调试] 保存移除背景后的图像
-                transparent_path = debug_dir / f"2_transparent_{timestamp}.png"
-                image.save(transparent_path)
-                print(f"  [调试] 透明背景图像已保存: {transparent_path}")
 
                 print(f"  ✓ AI 弹窗生成成功: {width}x{height}")
                 return image
@@ -1260,9 +1238,7 @@ class SemanticDialogGenerator:
         pixels = image.load()
 
         # 直接使用纯黑色作为背景色（AI 生成时已要求纯黑背景）
-        # 不再从角落采样，因为背景应该是固定的黑色
         bg_color = (0, 0, 0)
-        print(f"  ℹ 目标背景色: RGB(0, 0, 0) 纯黑色")
 
         # 使用洪水填充从边缘开始标记背景像素
         # 创建访问标记数组
@@ -1417,31 +1393,6 @@ class SemanticDialogGenerator:
 
         return largest_region
 
-    def _smooth_edges(self, image: Image.Image, blur_radius: float = 0.5) -> Image.Image:
-        """
-        平滑处理透明边缘，减少锯齿
-
-        Args:
-            image: RGBA 图像
-            blur_radius: 模糊半径，用于平滑边缘
-
-        Returns:
-            边缘平滑后的图像
-        """
-        if image.mode != 'RGBA':
-            return image
-
-        # 提取 alpha 通道
-        r, g, b, alpha = image.split()
-
-        # 对 alpha 通道进行轻微模糊以平滑边缘
-        alpha_blurred = alpha.filter(ImageFilter.GaussianBlur(radius=blur_radius))
-
-        # 重新合并通道
-        result = Image.merge('RGBA', (r, g, b, alpha_blurred))
-
-        return result
-
     def _smooth_edges_safe(self, image: Image.Image, blur_radius: float = 0.5) -> Image.Image:
         """
         安全的边缘平滑处理 - 只平滑边缘，不影响已经完全透明的区域
@@ -1469,9 +1420,6 @@ class SemanticDialogGenerator:
 
         # 关键：使用原始 alpha 作为遮罩
         # 原本完全透明的像素（alpha=0）保持透明，不使用模糊后的值
-        # 使用 ImageChops 实现：result = min(original, blurred)
-        # 这样原本 alpha=0 的区域不会变成 alpha>0
-        from PIL import ImageChops
         alpha_result = ImageChops.darker(alpha, alpha_blurred)
 
         result = Image.merge('RGBA', (r, g, b, alpha_result))
