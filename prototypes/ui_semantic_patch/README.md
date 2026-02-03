@@ -89,9 +89,50 @@ ui_semantic_patch/
 
 ## 依赖安装
 
+### 1. 安装 Python 依赖
+
 ```bash
-pip install pillow requests numpy
+pip install -r requirements.txt
 ```
+
+核心依赖：
+- `pillow` - 图像处理
+- `requests` - HTTP 请求
+- `python-dotenv` - 环境变量加载
+- `dashscope` - AI 图像生成（可选，推荐安装）
+
+### 2. 配置环境变量
+
+项目需要 API 密钥来运行。配置步骤：
+
+**Step 1：复制配置模板**
+```bash
+cd ../..  # 进入项目根目录
+cp .env.example .env
+```
+
+**Step 2：编辑 .env 文件，填入实际密钥**
+```bash
+# .env 文件内容
+VLM_API_KEY=your-actual-api-key
+VLM_API_URL=https://api.openai-next.com/v1/chat/completions
+VLM_MODEL=gpt-4o
+
+# AI 图像生成（可选，但推荐配置用于高保真效果）
+DASHSCOPE_API_KEY=your-dashscope-key
+```
+
+**Step 3：获取 API 密钥**
+
+| 服务 | 用途 | 获取地址 |
+|------|------|---------|
+| VLM API | UI 分析、语义理解、风格提取 | [api.openai-next.com](https://api.openai-next.com) |
+| DashScope | AI 图像生成（高保真弹窗和加载图标） | [阿里云 DashScope](https://dashscope.aliyun.com/) |
+
+**优先级说明**：
+- 脚本优先使用 `VLM_API_KEY` 环境变量
+- 若环境变量未设置，会尝试使用命令行参数 `--api-key`
+- 若都未设置，脚本会报错提示配置 .env 文件
 
 ### OmniParser 集成（必需）
 
@@ -114,12 +155,47 @@ mv weights/icon_caption weights/icon_caption_florence
 
 ## 快速开始
 
+### 环境检查
+
+确保已配置 `.env` 文件：
+```bash
+# 检查环境变量是否生效
+python -c "import os; from dotenv import load_dotenv; load_dotenv('../../.env'); print('API Key:', os.getenv('VLM_API_KEY')[:20] + '...' if os.getenv('VLM_API_KEY') else 'NOT SET')"
+```
+
 ### 基本用法
 
+**1. 全屏弹窗模式（默认）**
 ```bash
 python scripts/run_pipeline.py \
   --screenshot ./page.png \
   --instruction "模拟网络超时弹窗" \
+  --output ./output/
+```
+
+**2. 区域加载模式（新功能）**
+```bash
+# 智能推荐目标区域
+python scripts/run_pipeline.py \
+  --screenshot ./page.png \
+  --instruction "模拟列表加载超时" \
+  --anomaly-mode area_loading \
+  --output ./output/
+
+# 指定目标组件
+python scripts/run_pipeline.py \
+  --screenshot ./page.png \
+  --instruction "模拟图片加载失败" \
+  --anomaly-mode area_loading \
+  --target-component 5 \
+  --output ./output/
+
+# 使用参考加载图标（推荐！显著提升生成真实性）
+python scripts/run_pipeline.py \
+  --screenshot ./page.png \
+  --instruction "模拟列表加载超时" \
+  --anomaly-mode area_loading \
+  --reference-icon ./reference_loading_icon.png \
   --output ./output/
 ```
 
@@ -215,14 +291,17 @@ python scripts/run_pipeline.py \
 | `--screenshot, -s` | 原始截图路径 | （必需） |
 | `--instruction, -i` | 异常指令 | （必需） |
 | `--output, -o` | 输出目录 | `./output` |
-| `--api-key` | VLM API 密钥 | 内置 |
-| `--api-url` | VLM API 端点 | OpenAI 兼容 |
-| `--structure-model` | 结构提取/语义过滤模型 | `qwen-vl-max` |
-| `--patch-model` | Patch 生成模型 | `qwen-vl-max` |
-| `--render-mode` | 渲染模式 | `semantic_pil` |
-| `--reference, -r` | 参考弹窗图片路径 | - |
+| `--api-key` | VLM API 密钥 | 从 `VLM_API_KEY` 环境变量读取 |
+| `--api-url` | VLM API 端点 | 从 `VLM_API_URL` 环境变量读取 |
+| `--structure-model` | 结构提取/语义过滤模型 | 从 `STRUCTURE_MODEL` 环境变量读取 |
+| `--vlm-model` | VLM 模型名称 | 从 `VLM_MODEL` 环境变量读取 |
+| `--anomaly-mode` | 异常模式：`dialog` / `area_loading` | `dialog` |
+| `--target-component` | 目标组件 ID（area_loading 模式） | 自动推荐 |
+| `--reference, -r` | 参考弹窗图片路径（dialog 模式） | - |
+| `--reference-icon` | 参考加载图标路径（area_loading 模式，推荐！） | - |
 | `--gt-dir` | GT样本目录 | - |
-| `--omni-device` | OmniParser 设备 | auto |
+| `--omni-device` | OmniParser 设备 (`cuda`/`cpu`) | 从 `OMNIPARSER_DEVICE` 环境变量读取 |
+| `--no-visualize` | 禁用检测结果可视化 | False |
 
 ## JSON Patch 操作类型
 

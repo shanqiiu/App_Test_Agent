@@ -1218,6 +1218,65 @@ class SemanticDialogGenerator:
             print(f"  ⚠ AI 生成失败: {e}")
             raise  # 不返回 None，直接抛出异常
 
+    def generate_dialog_ai_from_meta(
+        self,
+        meta_semantic: str,
+        meta_features: Dict[str, Any],
+        reference_path: str,
+        width: int = 600,
+        height: int = 400
+    ) -> Optional[Image.Image]:
+        """
+        基于meta.json语义描述使用AI生成弹窗（增强版本）
+
+        这是meta.json驱动生成的核心方法，与generate_dialog_ai的区别：
+        - 使用meta.json提供的精确语义描述，而非VLM自动生成的内容
+        - 结合参考图片的视觉风格
+        - 生成质量更高、更一致
+
+        Args:
+            meta_semantic: MetaLoader.extract_semantic_prompt()的输出
+            meta_features: MetaLoader.extract_visual_features_dict()的输出
+            reference_path: 参考图片路径
+            width: 目标宽度
+            height: 目标高度
+
+        Returns:
+            生成的弹窗图像
+        """
+        # 使用meta信息构建prompt
+        prompt = self._build_ai_prompt_from_meta(meta_semantic, meta_features, reference_path)
+
+        print(f"  正在使用 Meta-driven AI 生成弹窗 (目标尺寸: {width}x{height})...")
+        print(f"  ✓ 参考图: {reference_path}")
+        print(f"  ✓ APP风格: {meta_features.get('app_style', '通用')}")
+        print(f"  ✓ 主色调: {meta_features.get('primary_color', 'N/A')}")
+
+        gen_size = f"{width}*{height}"
+
+        try:
+            image = generate_image_dashscope(prompt=prompt, size=gen_size)
+
+            if image:
+                gen_width, gen_height = image.size
+
+                # 后处理：调整到精确的目标尺寸
+                if (gen_width, gen_height) != (width, height):
+                    print(f"  ℹ 后处理: {gen_width}x{gen_height} → {width}x{height}")
+                    image = image.resize((width, height), Image.Resampling.LANCZOS)
+
+                # 后处理：移除背景
+                image = self._remove_background(image, tolerance=30)
+
+                print(f"  ✓ Meta-driven AI 弹窗生成成功: {width}x{height}")
+                return image
+            else:
+                raise Exception("图像生成返回空结果")
+
+        except Exception as e:
+            print(f"  ⚠ Meta-driven AI 生成失败: {e}")
+            raise
+
     def _remove_background(self, image: Image.Image, tolerance: int = 30) -> Image.Image:
         """
         移除 AI 生成图像的背景，使用从边缘扩散的洪水填充算法
@@ -1510,6 +1569,110 @@ class SemanticDialogGenerator:
 - Professional mobile app quality
 
 {black_bg}"""
+
+        return prompt
+
+    def _build_ai_prompt_from_meta(
+        self,
+        meta_semantic: str,
+        meta_features: Dict[str, Any],
+        reference_path: str = None
+    ) -> str:
+        """
+        基于meta.json的语义描述构建AI生成prompt（核心增强）
+
+        这是meta.json驱动生成的核心方法：
+        - meta_semantic: 从meta.json提取的结构化语义描述（包含异常类型、视觉特征、设计要点）
+        - meta_features: 视觉特征字典（颜色、位置、样式等）
+        - reference_path: 参考图片路径（提供视觉风格参考）
+
+        生成的prompt结合：
+        1. 精确的语义描述（来自meta.json的anomaly_description和generation_template）
+        2. 详细的视觉特征（颜色、布局、设计元素）
+        3. 参考图片作为风格锚定
+
+        Args:
+            meta_semantic: MetaLoader.extract_semantic_prompt()的输出
+            meta_features: MetaLoader.extract_visual_features_dict()的输出
+            reference_path: 参考图片路径
+
+        Returns:
+            优化的AI生成prompt
+        """
+        # 提取关键视觉参数
+        app_style = meta_features.get('app_style', '通用')
+        primary_color = meta_features.get('primary_color', '#1890FF')
+        background = meta_features.get('background', '#FFFFFF')
+        dialog_position = meta_features.get('dialog_position', 'center')
+        corner_style = meta_features.get('corner_radius', 'large')
+
+        # 提取按钮和关闭按钮信息
+        main_button_text = meta_features.get('main_button_text', '确定')
+        close_button_pos = meta_features.get('close_button_position', 'none')
+        close_button_style = meta_features.get('close_button_style', 'default')
+
+        # 提取遮罩层信息
+        overlay_enabled = meta_features.get('overlay_enabled', True)
+        overlay_opacity = meta_features.get('overlay_opacity', 0.7)
+
+        # 特殊元素
+        special_elements = meta_features.get('special_elements', [])
+        special_elements_desc = ', '.join(special_elements) if special_elements else '无'
+
+        # 构建精确的prompt
+        prompt = f"""Generate a mobile app dialog/popup that EXACTLY matches the following specifications.
+
+## 1. SEMANTIC CONTEXT (from real anomaly sample analysis)
+{meta_semantic}
+
+## 2. VISUAL STYLE REQUIREMENTS (MUST match precisely)
+
+### App Style
+- Target APP visual language: {app_style}
+- This dialog should look native to {app_style} app design system
+
+### Color Scheme (EXACT values)
+- Primary color: {primary_color}
+- Background: {background}
+- Use these exact colors, not approximations
+
+### Layout
+- Dialog position: {dialog_position}
+- Corner style: {corner_style} rounded corners
+
+### Key UI Elements
+- Main action button text: "{main_button_text}"
+- Close button: position={close_button_pos}, style={close_button_style}
+- Special elements to include: {special_elements_desc}
+
+### Overlay/Mask
+- Overlay enabled: {overlay_enabled}
+- Overlay opacity: {overlay_opacity}
+
+## 3. TECHNICAL REQUIREMENTS
+
+### Background (CRITICAL)
+- The area OUTSIDE the dialog MUST be pure black (#000000)
+- Only the dialog card itself has color
+- This black background will be removed in post-processing
+
+### Quality
+- High resolution, crisp Chinese text rendering
+- Professional mobile app quality
+- Native look matching {app_style} design language
+- Anti-aliased edges and shadows
+
+### Text
+- All Chinese text must be clear and readable
+- Use appropriate font sizes for mobile UI
+- Text should be properly kerned and aligned
+
+## 4. REFERENCE STYLE
+{"- Use the provided reference image as visual style anchor" if reference_path else "- No reference image provided, follow the specifications above"}
+- Match the reference image's design language, color palette, and overall feel
+- The generated dialog should look like it belongs to the same app as the reference
+
+Generate the dialog image now, following ALL specifications above."""
 
         return prompt
 

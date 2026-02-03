@@ -1,0 +1,12 @@
+# UI Semantic Patch 项目依赖
+
+# 核心依赖
+pillow>=10.0.0
+requests>=2.31.0
+python-dotenv>=1.0.0
+
+# DashScope AI 图像生成（可选，用于高质量弹窗生成）
+dashscope>=1.14.0
+
+# OmniParser 依赖（如果使用内置版本）
+# 参考: third_party/OmniParser/requirements.txt
