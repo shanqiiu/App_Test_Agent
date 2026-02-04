@@ -1207,7 +1207,8 @@ class SemanticDialogGenerator:
                     image = image.resize((width, height), Image.Resampling.LANCZOS)
 
                 # 后处理：移除背景，使弹窗外的区域变为透明
-                image = self._remove_background(image, tolerance=30)
+                # tolerance=70 可以更好地去除灰色边框/阴影
+                image = self._remove_background(image, tolerance=70)
 
                 print(f"  ✓ AI 弹窗生成成功: {width}x{height}")
                 return image
@@ -1224,7 +1225,8 @@ class SemanticDialogGenerator:
         meta_features: Dict[str, Any],
         reference_path: str,
         width: int = 600,
-        height: int = 400
+        height: int = 400,
+        target_content: Dict[str, str] = None
     ) -> Optional[Image.Image]:
         """
         基于meta.json语义描述使用AI生成弹窗（增强版本）
@@ -1235,22 +1237,32 @@ class SemanticDialogGenerator:
         - 生成质量更高、更一致
 
         Args:
-            meta_semantic: MetaLoader.extract_semantic_prompt()的输出
+            meta_semantic: MetaLoader.extract_semantic_prompt() 或 extract_visual_style_prompt() 的输出
             meta_features: MetaLoader.extract_visual_features_dict()的输出
             reference_path: 参考图片路径
             width: 目标宽度
             height: 目标高度
+            target_content: VLM根据目标截图生成的语义内容（可选），格式：
+                {
+                    'title': '标题',
+                    'message': '消息内容',
+                    'button_text': '按钮文字',
+                    'subtitle': '副标题（可选）'
+                }
+                如果提供，将使用这些文字而非meta中的文字
 
         Returns:
             生成的弹窗图像
         """
         # 使用meta信息构建prompt
-        prompt = self._build_ai_prompt_from_meta(meta_semantic, meta_features, reference_path)
+        prompt = self._build_ai_prompt_from_meta(meta_semantic, meta_features, reference_path, target_content)
 
         print(f"  正在使用 Meta-driven AI 生成弹窗 (目标尺寸: {width}x{height})...")
         print(f"  ✓ 参考图: {reference_path}")
         print(f"  ✓ APP风格: {meta_features.get('app_style', '通用')}")
         print(f"  ✓ 主色调: {meta_features.get('primary_color', 'N/A')}")
+        if target_content:
+            print(f"  ✓ 语义内容: {target_content.get('title', 'N/A')} - {target_content.get('message', '')[:30]}...")
 
         gen_size = f"{width}*{height}"
 
@@ -1265,8 +1277,16 @@ class SemanticDialogGenerator:
                     print(f"  ℹ 后处理: {gen_width}x{gen_height} → {width}x{height}")
                     image = image.resize((width, height), Image.Resampling.LANCZOS)
 
-                # 后处理：移除背景
-                image = self._remove_background(image, tolerance=30)
+                # 后处理：移除背景（包括灰色边框）
+                # tolerance=70 可以更好地去除灰色边框/阴影
+                # 注意：由于关闭按钮已改为在 run_pipeline.py 中程序化绘制，
+                # 不再需要担心保留AI生成的浅灰色关闭按钮
+                image = self._remove_background(image, tolerance=70)
+
+                # 注意：关闭按钮不在此处绘制
+                # 对于 bottom-center 等位置，关闭按钮应该在弹窗卡片外部
+                # 因此在 run_pipeline.py 的最终合成阶段绘制关闭按钮
+                # 这样可以正确计算关闭按钮在屏幕上的位置
 
                 print(f"  ✓ Meta-driven AI 弹窗生成成功: {width}x{height}")
                 return image
@@ -1276,6 +1296,188 @@ class SemanticDialogGenerator:
         except Exception as e:
             print(f"  ⚠ Meta-driven AI 生成失败: {e}")
             raise
+
+    def generate_content_for_target_page(
+        self,
+        screenshot_path: str,
+        instruction: str,
+        anomaly_type: str = 'promotional_dialog',
+        app_style: str = None
+    ) -> Dict[str, str]:
+        """
+        使用 VLM 根据目标截图生成语义相关的弹窗内容
+
+        这是分离"视觉风格"和"文字内容"的关键方法：
+        - 视觉风格从 meta.json 获取（extract_visual_style_prompt）
+        - 文字内容由本方法根据目标截图生成
+
+        Args:
+            screenshot_path: 目标截图路径
+            instruction: 用户指令（如"模拟广告弹窗"）
+            anomaly_type: 异常类型（从meta.json获取，用于约束生成的弹窗类型）
+            app_style: APP风格（可选，用于风格一致性）
+
+        Returns:
+            {
+                'title': '弹窗标题',
+                'message': '弹窗正文内容',
+                'button_text': '主按钮文字',
+                'subtitle': '副标题（可选）'
+            }
+        """
+        if not self.api_key:
+            print("  ⚠ 未配置 VLM API Key，使用默认文案")
+            return self._get_default_content_for_type(anomaly_type)
+
+        # 编码图片
+        try:
+            with open(screenshot_path, 'rb') as f:
+                image_base64 = base64.b64encode(f.read()).decode('utf-8')
+        except Exception as e:
+            print(f"  ⚠ 读取截图失败: {e}")
+            return self._get_default_content_for_type(anomaly_type)
+
+        # 异常类型的中文描述
+        anomaly_type_desc = {
+            'promotional_dialog': '促销/优惠弹窗（如优惠券、折扣活动）',
+            'reward_badge_dialog': '奖励/勋章弹窗（如积分奖励、成就解锁）',
+            'permission_dialog': '权限请求弹窗（如通知权限、位置权限）',
+            'tutorial_guide': '引导教程弹窗（如功能介绍、新手引导）',
+            'context_menu_dropdown': '下拉菜单/选项弹窗',
+            'tooltip_bubble': '提示气泡/引导提示',
+            'floating_tip_banner': '浮动横幅提示',
+            'coupon_popup': '优惠券弹窗',
+            'vip_prompt': 'VIP会员推广弹窗'
+        }.get(anomaly_type, '通用弹窗')
+
+        prompt = f"""分析这个App页面截图，生成一个与页面内容**语义相关**的弹窗文案。
+
+## 任务要求
+1. 仔细分析截图中的APP类型、页面内容、业务场景
+2. 生成的弹窗内容必须与该页面的业务场景相关
+3. 文案要真实自然，像该APP真正会显示的弹窗
+4. **重要**：识别截图中的APP品牌名称（如"携程"、"12306"、"美团"等）
+
+## 弹窗类型约束
+- 弹窗类型: {anomaly_type_desc}
+- 用户指令: {instruction}
+{f"- APP风格参考: {app_style}" if app_style else ""}
+
+## 示例
+- 如果是机票/火车票页面 + 促销弹窗 → 生成"春运特惠券"、"机票立减50元"等内容
+- 如果是电商页面 + 奖励弹窗 → 生成"恭喜获得购物金"、"新人专享礼包"等内容
+- 如果是社交页面 + 权限弹窗 → 生成"开启消息通知"、"允许访问通讯录"等内容
+
+## 输出格式
+请以JSON格式返回弹窗文案，必须与截图中的APP业务相关：
+```json
+{{
+    "title": "弹窗标题（简短，2-8个字）",
+    "message": "弹窗正文（描述性内容，10-30个字）",
+    "button_text": "主按钮文字（2-6个字）",
+    "subtitle": "副标题或补充说明（可选，5-15个字）",
+    "brand_name": "APP品牌名称（如携程、12306、美团，用于Logo显示）"
+}}
+```
+
+只返回JSON，不要其他内容。"""
+
+        headers = {
+            'Content-Type': 'application/json',
+            'Authorization': f'Bearer {self.api_key}'
+        }
+
+        payload = {
+            'model': self.vlm_model,
+            'messages': [
+                {
+                    'role': 'user',
+                    'content': [
+                        {
+                            'type': 'image_url',
+                            'image_url': {'url': f'data:image/png;base64,{image_base64}'}
+                        },
+                        {'type': 'text', 'text': prompt}
+                    ]
+                }
+            ],
+            'temperature': 0.7,
+            'max_tokens': 500
+        }
+
+        try:
+            response = requests.post(self.vlm_api_url, headers=headers, json=payload, timeout=60)
+            response.raise_for_status()
+
+            content = response.json()['choices'][0]['message']['content']
+
+            # 提取 JSON
+            json_match = re.search(r'\{[\s\S]*\}', content)
+            if json_match:
+                result = json.loads(json_match.group(0))
+                # 确保必要字段存在
+                if 'title' not in result:
+                    result['title'] = '提示'
+                if 'message' not in result:
+                    result['message'] = ''
+                if 'button_text' not in result:
+                    result['button_text'] = '确定'
+                if 'brand_name' not in result:
+                    result['brand_name'] = ''
+                return result
+
+            raise ValueError("无法解析 VLM 返回的内容")
+
+        except Exception as e:
+            print(f"  ⚠ VLM 内容生成失败: {e}")
+            return self._get_default_content_for_type(anomaly_type)
+
+    def _get_default_content_for_type(self, anomaly_type: str) -> Dict[str, str]:
+        """根据异常类型返回默认文案"""
+        defaults = {
+            'promotional_dialog': {
+                'title': '专属福利',
+                'message': '限时优惠活动，立即领取专属优惠券',
+                'button_text': '立即领取',
+                'subtitle': '仅限今日',
+                'brand_name': ''
+            },
+            'reward_badge_dialog': {
+                'title': '恭喜获得奖励',
+                'message': '您已获得专属奖励，快来查看',
+                'button_text': '立即查看',
+                'subtitle': '',
+                'brand_name': ''
+            },
+            'permission_dialog': {
+                'title': '开启通知权限',
+                'message': '开启后可及时接收重要消息提醒',
+                'button_text': '立即开启',
+                'subtitle': '',
+                'brand_name': ''
+            },
+            'tutorial_guide': {
+                'title': '功能介绍',
+                'message': '了解更多实用功能，提升使用体验',
+                'button_text': '下一步',
+                'subtitle': '',
+                'brand_name': ''
+            },
+            'coupon_popup': {
+                'title': '优惠券已到账',
+                'message': '您有一张优惠券待使用',
+                'button_text': '立即使用',
+                'subtitle': '限时有效',
+                'brand_name': ''
+            }
+        }
+        return defaults.get(anomaly_type, {
+            'title': '提示',
+            'message': '请确认操作',
+            'button_text': '确定',
+            'subtitle': '',
+            'brand_name': ''
+        })
 
     def _remove_background(self, image: Image.Image, tolerance: int = 30) -> Image.Image:
         """
@@ -1452,6 +1654,77 @@ class SemanticDialogGenerator:
 
         return largest_region
 
+    def _draw_close_button(
+        self,
+        image: Image.Image,
+        position: str = 'bottom-center',
+        style: str = 'gray_circle_x',
+        button_size: int = 40
+    ) -> Image.Image:
+        """
+        程序化绘制关闭按钮
+
+        由于AI生成的关闭按钮可能被背景去除算法删除（当它位于弹窗外部时），
+        这个方法在背景去除后程序化添加关闭按钮。
+
+        Args:
+            image: 弹窗图像（RGBA，已去除背景）
+            position: 关闭按钮位置，如 'bottom-center', 'top-right'
+            style: 关闭按钮样式，如 'gray_circle_x', 'white_circle_x'
+            button_size: 按钮直径
+
+        Returns:
+            添加关闭按钮后的图像
+        """
+        width, height = image.size
+        result = image.copy()
+
+        # 计算按钮位置
+        if position == 'bottom-center':
+            btn_x = width // 2 - button_size // 2
+            btn_y = height - button_size - 20  # 距底部20px
+        elif position == 'top-right':
+            btn_x = width - button_size - 15
+            btn_y = 15
+        elif position == 'top-left':
+            btn_x = 15
+            btn_y = 15
+        else:  # 默认底部居中
+            btn_x = width // 2 - button_size // 2
+            btn_y = height - button_size - 20
+
+        # 创建关闭按钮图层
+        button_layer = Image.new('RGBA', (width, height), (0, 0, 0, 0))
+        draw = ImageDraw.Draw(button_layer)
+
+        # 根据样式设置颜色
+        if 'white' in style:
+            bg_color = (255, 255, 255, 230)
+            x_color = (150, 150, 150, 255)
+        else:  # gray_circle_x 或默认
+            bg_color = (80, 80, 80, 220)
+            x_color = (255, 255, 255, 255)
+
+        # 绘制圆形背景
+        draw.ellipse(
+            [btn_x, btn_y, btn_x + button_size, btn_y + button_size],
+            fill=bg_color
+        )
+
+        # 绘制 X 符号
+        margin = button_size // 4
+        line_width = max(2, button_size // 12)
+        x1, y1 = btn_x + margin, btn_y + margin
+        x2, y2 = btn_x + button_size - margin, btn_y + button_size - margin
+
+        draw.line([(x1, y1), (x2, y2)], fill=x_color, width=line_width)
+        draw.line([(x1, y2), (x2, y1)], fill=x_color, width=line_width)
+
+        # 合并图层
+        result = Image.alpha_composite(result, button_layer)
+
+        return result
+
     def _smooth_edges_safe(self, image: Image.Image, blur_radius: float = 0.5) -> Image.Image:
         """
         安全的边缘平滑处理 - 只平滑边缘，不影响已经完全透明的区域
@@ -1576,25 +1849,28 @@ class SemanticDialogGenerator:
         self,
         meta_semantic: str,
         meta_features: Dict[str, Any],
-        reference_path: str = None
+        reference_path: str = None,
+        target_content: Dict[str, str] = None
     ) -> str:
         """
         基于meta.json的语义描述构建AI生成prompt（核心增强）
 
-        这是meta.json驱动生成的核心方法：
-        - meta_semantic: 从meta.json提取的结构化语义描述（包含异常类型、视觉特征、设计要点）
+        改进版：支持分离视觉风格和文字内容
+        - meta_semantic: 视觉风格描述（来自 extract_visual_style_prompt）
         - meta_features: 视觉特征字典（颜色、位置、样式等）
         - reference_path: 参考图片路径（提供视觉风格参考）
+        - target_content: VLM根据目标截图生成的语义内容（标题、消息、按钮文字）
 
         生成的prompt结合：
-        1. 精确的语义描述（来自meta.json的anomaly_description和generation_template）
-        2. 详细的视觉特征（颜色、布局、设计元素）
+        1. 纯视觉风格（来自meta.json的视觉特征）
+        2. 语义相关的文字内容（来自VLM分析目标截图）
         3. 参考图片作为风格锚定
 
         Args:
-            meta_semantic: MetaLoader.extract_semantic_prompt()的输出
+            meta_semantic: MetaLoader.extract_visual_style_prompt()的输出（或旧版extract_semantic_prompt）
             meta_features: MetaLoader.extract_visual_features_dict()的输出
             reference_path: 参考图片路径
+            target_content: VLM生成的语义内容，格式 {'title', 'message', 'button_text', 'subtitle'}
 
         Returns:
             优化的AI生成prompt
@@ -1607,7 +1883,6 @@ class SemanticDialogGenerator:
         corner_style = meta_features.get('corner_radius', 'large')
 
         # 提取按钮和关闭按钮信息
-        main_button_text = meta_features.get('main_button_text', '确定')
         close_button_pos = meta_features.get('close_button_position', 'none')
         close_button_style = meta_features.get('close_button_style', 'default')
 
@@ -1615,21 +1890,97 @@ class SemanticDialogGenerator:
         overlay_enabled = meta_features.get('overlay_enabled', True)
         overlay_opacity = meta_features.get('overlay_opacity', 0.7)
 
-        # 特殊元素
+        # 特殊视觉元素（过滤文字相关内容和品牌相关元素）
         special_elements = meta_features.get('special_elements', [])
-        special_elements_desc = ', '.join(special_elements) if special_elements else '无'
+        # 过滤掉文字内容和参考图品牌相关的元素
+        visual_elements = []
+        # 关键词列表：文字内容 + 参考图品牌（防止品牌污染）
+        filter_keywords = [
+            # 文字内容关键词
+            '文字', '显示', '标题', '内容', '数字', '天', '元', '折',
+            # 华为/鸿蒙品牌关键词（参考图可能来自华为APP）
+            'HarmonyOS', 'Harmony', '鸿蒙', '花粉', '华为', 'HUAWEI',
+            # 其他常见品牌（防止参考图品牌泄露）
+            '淘宝', '京东', '美团', '抖音', '微信', '支付宝'
+        ]
+        for elem in special_elements:
+            # 检查是否包含任何过滤关键词（不区分大小写）
+            has_filter_keyword = any(kw.lower() in elem.lower() for kw in filter_keywords)
+            if not has_filter_keyword:
+                visual_elements.append(elem)
+        special_elements_desc = ', '.join(visual_elements) if visual_elements else '无'
+
+        # 确定文字内容来源
+        if target_content:
+            # 使用 VLM 生成的语义相关内容
+            title_text = target_content.get('title', '提示')
+            message_text = target_content.get('message', '')
+            button_text = target_content.get('button_text', '确定')
+            subtitle_text = target_content.get('subtitle', '')
+            brand_name = target_content.get('brand_name', '')
+            content_source = "VLM generated (semantic-aware)"
+        else:
+            # 回退到 meta_features 中的文字（向后兼容）
+            title_text = meta_features.get('title_text', meta_features.get('main_button_text', '确定'))
+            message_text = meta_features.get('anomaly_description', '')
+            button_text = meta_features.get('main_button_text', '确定')
+            subtitle_text = meta_features.get('subtitle_text', '')
+            brand_name = ''
+            content_source = "meta.json (fallback)"
+
+        # 构建关闭按钮描述（保留原始灰色样式）
+        if close_button_pos != 'none':
+            close_button_desc = f"""### Close Button (CRITICAL - must be visible)
+- Position: {close_button_pos}
+- Style: {close_button_style}
+- IMPORTANT: The close button should use a LIGHT GRAY circular background (like the reference image)
+- The close button must be INSIDE the dialog area or directly attached to it
+- DO NOT place the close button floating in the black background area
+- Make sure the close button is clearly visible and properly rendered"""
+        else:
+            close_button_desc = "### Close Button\n- No close button"
+
+        # 构建 Logo/Badge 文字描述
+        if brand_name:
+            logo_text_desc = f"""### Logo/Badge Text (CRITICAL)
+- If there is a logo, badge or medal in the design, the text inside it should be: "{brand_name}"
+- DO NOT use the reference image's brand text (like "HarmonyOS")
+- The logo should display the TARGET APP's brand: "{brand_name}" """
+        else:
+            logo_text_desc = """### Logo/Badge Text
+- If there is a logo or badge, leave it without specific brand text or use generic text"""
 
         # 构建精确的prompt
+        # 注意：app_style 来自参考图的meta.json，可能包含参考图的品牌（如"华为花粉俱乐部"）
+        # 如果有目标页面的 brand_name，应使用 brand_name 作为品牌标识
+        # app_style 仅用于视觉设计风格参考（配色、圆角、间距等）
+        display_brand = brand_name if brand_name else app_style
+
         prompt = f"""Generate a mobile app dialog/popup that EXACTLY matches the following specifications.
 
-## 1. SEMANTIC CONTEXT (from real anomaly sample analysis)
+## 1. VISUAL STYLE (from reference sample)
 {meta_semantic}
 
-## 2. VISUAL STYLE REQUIREMENTS (MUST match precisely)
+## 2. CONTENT TO DISPLAY ({content_source})
+
+### Text Content (MUST use these exact texts)
+- Title: "{title_text}"
+- Message: "{message_text}"
+- Main button text: "{button_text}"
+{f'- Subtitle: "{subtitle_text}"' if subtitle_text else ''}
+
+{logo_text_desc}
+
+IMPORTANT: Use the above Chinese text EXACTLY as specified. Do not change or substitute with other content.
+IMPORTANT: This dialog belongs to "{display_brand}" app. DO NOT show any other brand name or logo text.
+
+## 3. VISUAL STYLE REQUIREMENTS (MUST match precisely)
 
 ### App Style
-- Target APP visual language: {app_style}
-- This dialog should look native to {app_style} app design system
+- Use the reference image ONLY for visual design patterns (card shape, color scheme, layout)
+- The dialog belongs to: "{display_brand}" app
+- DO NOT copy brand-specific text or logos from the reference image
+- Any logo/badge icon should display "{display_brand}" NOT any text from the reference
 
 ### Color Scheme (EXACT values)
 - Primary color: {primary_color}
@@ -1640,20 +1991,22 @@ class SemanticDialogGenerator:
 - Dialog position: {dialog_position}
 - Corner style: {corner_style} rounded corners
 
-### Key UI Elements
-- Main action button text: "{main_button_text}"
-- Close button: position={close_button_pos}, style={close_button_style}
-- Special elements to include: {special_elements_desc}
+{close_button_desc}
+
+### Visual elements to include: {special_elements_desc}
 
 ### Overlay/Mask
 - Overlay enabled: {overlay_enabled}
 - Overlay opacity: {overlay_opacity}
 
-## 3. TECHNICAL REQUIREMENTS
+## 4. TECHNICAL REQUIREMENTS
 
-### Background (CRITICAL)
-- The area OUTSIDE the dialog MUST be pure black (#000000)
-- Only the dialog card itself has color
+### Background (CRITICAL - MUST FOLLOW)
+- The area OUTSIDE the dialog MUST be pure black (#000000, RGB 0,0,0)
+- NO gray shadows, NO gray borders, NO gray glow effects around the dialog
+- The transition from dialog to background should be SHARP, not gradual
+- Only the dialog card itself has color - everything outside is pure black
+- DO NOT add any shadow or border that extends into the black background area
 - This black background will be removed in post-processing
 
 ### Quality
@@ -1667,10 +2020,11 @@ class SemanticDialogGenerator:
 - Use appropriate font sizes for mobile UI
 - Text should be properly kerned and aligned
 
-## 4. REFERENCE STYLE
+## 5. REFERENCE STYLE
 {"- Use the provided reference image as visual style anchor" if reference_path else "- No reference image provided, follow the specifications above"}
 - Match the reference image's design language, color palette, and overall feel
 - The generated dialog should look like it belongs to the same app as the reference
+- BUT use the text content specified in section 2, NOT the text from reference image
 
 Generate the dialog image now, following ALL specifications above."""
 

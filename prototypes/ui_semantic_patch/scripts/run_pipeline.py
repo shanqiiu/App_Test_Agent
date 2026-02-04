@@ -365,14 +365,13 @@ def run_pipeline(
                 # 加载 meta.json
                 meta_loader = MetaLoader(gt_dir)
 
-                # 提取语义描述和视觉特征
-                meta_semantic = meta_loader.extract_semantic_prompt(
-                    gt_category, gt_sample,
-                    target_page_context=f"目标页面: {instruction}"
+                # 提取纯视觉风格（不含文字内容）
+                visual_style_prompt = meta_loader.extract_visual_style_prompt(
+                    gt_category, gt_sample
                 )
                 meta_features = meta_loader.extract_visual_features_dict(gt_category, gt_sample)
 
-                if not meta_semantic or not meta_features:
+                if not visual_style_prompt or not meta_features:
                     print(f"  ⚠ 无法加载meta信息，回退到普通模式")
                     use_meta_driven = False
                 else:
@@ -401,13 +400,27 @@ def run_pipeline(
                         reference_path=ref_path
                     )
 
-                    # 生成弹窗
+                    # 使用 VLM 根据目标截图生成语义相关的文案内容
+                    print(f"  正在分析目标页面语义...")
+                    target_content = generator.generate_content_for_target_page(
+                        screenshot_path=screenshot_path,
+                        instruction=instruction,
+                        anomaly_type=meta_features.get('anomaly_type', 'promotional_dialog'),
+                        app_style=meta_features.get('app_style')
+                    )
+                    if target_content:
+                        print(f"  ✓ 生成语义内容: {target_content.get('title', '')} - {target_content.get('message', '')[:30]}...")
+                    else:
+                        print(f"  ⚠ VLM语义生成失败，使用默认内容")
+
+                    # 生成弹窗（视觉风格来自meta，文字内容来自VLM）
                     dialog_img = generator.generate_dialog_ai_from_meta(
-                        meta_semantic=meta_semantic,
+                        meta_semantic=visual_style_prompt,
                         meta_features=meta_features,
                         reference_path=ref_path,
                         width=dialog_width,
-                        height=dialog_height
+                        height=dialog_height,
+                        target_content=target_content
                     )
 
                     if dialog_img:
@@ -437,6 +450,60 @@ def run_pipeline(
 
                         # 粘贴弹窗
                         result_img.paste(dialog_img, (pos_x, pos_y), dialog_img)
+
+                        # 绘制关闭按钮（在最终合成图上，确保位置正确）
+                        close_button_pos = meta_features.get('close_button_position', 'none')
+                        close_button_style = meta_features.get('close_button_style', 'gray_circle_x')
+                        if close_button_pos != 'none':
+                            from PIL import ImageDraw
+                            # 计算按钮大小（约为弹窗宽度的7%）
+                            button_size = max(36, min(50, dialog_width // 14))
+
+                            # 根据位置计算关闭按钮在屏幕上的坐标
+                            if close_button_pos == 'bottom-center':
+                                # 在弹窗下方居中
+                                btn_x = pos_x + dialog_width // 2 - button_size // 2
+                                btn_y = pos_y + dialog_height + 15  # 弹窗下方15px
+                            elif close_button_pos == 'top-right':
+                                btn_x = pos_x + dialog_width - button_size // 2
+                                btn_y = pos_y - button_size // 2
+                            elif close_button_pos == 'top-left':
+                                btn_x = pos_x - button_size // 2
+                                btn_y = pos_y - button_size // 2
+                            else:
+                                # 默认底部居中
+                                btn_x = pos_x + dialog_width // 2 - button_size // 2
+                                btn_y = pos_y + dialog_height + 15
+
+                            # 创建关闭按钮图层
+                            button_layer = Image.new('RGBA', result_img.size, (0, 0, 0, 0))
+                            draw = ImageDraw.Draw(button_layer)
+
+                            # 根据样式设置颜色
+                            if 'white' in close_button_style:
+                                bg_color = (255, 255, 255, 230)
+                                x_color = (150, 150, 150, 255)
+                            else:  # gray_circle_x 或默认
+                                bg_color = (80, 80, 80, 220)
+                                x_color = (255, 255, 255, 255)
+
+                            # 绘制圆形背景
+                            draw.ellipse(
+                                [btn_x, btn_y, btn_x + button_size, btn_y + button_size],
+                                fill=bg_color
+                            )
+
+                            # 绘制 X 符号
+                            margin = button_size // 4
+                            line_width = max(2, button_size // 12)
+                            x1, y1 = btn_x + margin, btn_y + margin
+                            x2, y2 = btn_x + button_size - margin, btn_y + button_size - margin
+                            draw.line([(x1, y1), (x2, y2)], fill=x_color, width=line_width)
+                            draw.line([(x1, y2), (x2, y1)], fill=x_color, width=line_width)
+
+                            # 合并图层
+                            result_img = Image.alpha_composite(result_img, button_layer)
+                            print(f"  ✓ 添加关闭按钮: {close_button_pos}, 位置=({btn_x}, {btn_y}), 尺寸={button_size}px")
 
                         # 保存最终结果
                         final_output = output_dir / f"{screenshot_name}_final_{timestamp}.png"

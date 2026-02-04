@@ -22,7 +22,7 @@ import requests
 import re
 import os
 from typing import Dict, Tuple, Optional
-from PIL import Image, ImageDraw
+from PIL import Image, ImageDraw, ImageFilter
 from pathlib import Path
 
 # DashScope API Key（优先使用环境变量）
@@ -565,23 +565,51 @@ Generate the icon image now."""
             print(f"  ⚠ 图标生成异常: {e}")
             return None
 
-    def _ensure_transparent_bg(self, image: Image.Image) -> Image.Image:
-        """确保背景透明（将纯黑背景变透明）"""
+    def _ensure_transparent_bg(self, image: Image.Image, threshold: int = 60) -> Image.Image:
+        """
+        确保背景透明（移除黑色/深灰色背景和边框）
+
+        改进策略：
+        1. 提高黑色检测阈值（默认 60，原来是 30）
+        2. 同时检测边缘区域的深色像素（边框通常在边缘）
+        3. 使用渐变透明度处理边缘，避免生硬边界
+
+        Args:
+            image: 输入图像
+            threshold: 黑色/深灰色检测阈值（0-255，越大去除越多深色）
+        """
         if image.mode != 'RGBA':
             image = image.convert('RGBA')
 
-        # 简单实现：纯黑色背景变透明
-        pixels = image.load()
-        width, height = image.size
+        result = image.copy()
+        pixels = result.load()
+        width, height = result.size
+
+        # 计算边缘区域（用于更激进地去除边框）
+        edge_margin = max(5, min(width, height) // 20)  # 边缘区域占 5%
 
         for y in range(height):
             for x in range(width):
                 r, g, b, a = pixels[x, y]
-                # 如果接近纯黑色，变为透明
-                if r < 30 and g < 30 and b < 30:
-                    pixels[x, y] = (0, 0, 0, 0)
 
-        return image
+                # 判断是否在边缘区域
+                is_edge = (x < edge_margin or x >= width - edge_margin or
+                          y < edge_margin or y >= height - edge_margin)
+
+                # 边缘区域使用更高的阈值（更激进地去除边框）
+                local_threshold = threshold + 30 if is_edge else threshold
+
+                # 如果接近黑色/深灰色，变为透明
+                if r < local_threshold and g < local_threshold and b < local_threshold:
+                    pixels[x, y] = (0, 0, 0, 0)
+                # 深灰色区域使用渐变透明度（避免生硬边界）
+                elif r < local_threshold + 20 and g < local_threshold + 20 and b < local_threshold + 20:
+                    # 计算透明度：颜色越深越透明
+                    avg_color = (r + g + b) // 3
+                    new_alpha = int(a * (avg_color / (local_threshold + 20)))
+                    pixels[x, y] = (r, g, b, new_alpha)
+
+        return result
 
     def _build_reference_prompt_section(self, features: Optional[Dict]) -> str:
         """构建参考图标的 prompt 段落"""
@@ -675,6 +703,47 @@ Generate the icon image now."""
 
     # ==================== 图像处理：覆盖和暗化 ====================
 
+    def _add_loading_overlay(
+        self,
+        image: Image.Image,
+        x: int,
+        y: int,
+        w: int,
+        h: int,
+        blur_radius: int = 8,
+        white_opacity: int = 180
+    ) -> Image.Image:
+        """
+        真实的加载状态覆盖效果
+
+        策略：
+        1. 对区域内容进行高斯模糊（模拟失焦/加载中）
+        2. 叠加白色半透明层（淡化原内容）
+        3. 效果更接近真实 APP 的加载状态
+
+        Args:
+            image: 原始图像
+            x, y, w, h: 目标区域坐标和尺寸
+            blur_radius: 模糊半径（越大越模糊）
+            white_opacity: 白色覆盖层透明度（0-255，越大越白）
+        """
+        result = image.copy()
+
+        # 提取目标区域
+        region = result.crop((x, y, x + w, y + h)).convert('RGBA')
+
+        # Step 1: 高斯模糊（模拟加载中的失焦效果）
+        blurred = region.filter(ImageFilter.GaussianBlur(radius=blur_radius))
+
+        # Step 2: 叠加白色半透明层（淡化原内容）
+        white_overlay = Image.new('RGBA', (w, h), (255, 255, 255, white_opacity))
+        blurred = Image.alpha_composite(blurred, white_overlay)
+
+        # 粘贴回原图
+        result.paste(blurred, (x, y))
+
+        return result
+
     def _add_dimming(
         self,
         image: Image.Image,
@@ -684,15 +753,9 @@ Generate the icon image now."""
         h: int,
         opacity: int = 100
     ) -> Image.Image:
-        """代码实现区域暗化（半透明遮罩）"""
-        result = image.copy()
-        dimming = Image.new('RGBA', (w, h), (0, 0, 0, opacity))
-
-        region = result.crop((x, y, x + w, y + h))
-        region = Image.alpha_composite(region, dimming)
-        result.paste(region, (x, y))
-
-        return result
+        """[已弃用] 简单暗化效果，请使用 _add_loading_overlay"""
+        # 调用新的加载覆盖方法
+        return self._add_loading_overlay(image, x, y, w, h, blur_radius=8, white_opacity=180)
 
     def _infer_region_type(self, component: Dict) -> str:
         """根据组件类推断区域类型"""
@@ -798,10 +861,10 @@ Generate the icon image now."""
         print("  [Step 5] 合成图像...")
         result = screenshot.convert('RGBA')
 
-        # 可选：区域暗化
+        # 可选：区域加载覆盖效果（模糊+淡化）
         if add_dimming and anomaly_type in ['timeout', 'network_error']:
-            result = self._add_dimming(result, region_x, region_y, region_w, region_h, opacity=100)
-            print(f"    ✓ 添加区域暗化")
+            result = self._add_loading_overlay(result, region_x, region_y, region_w, region_h)
+            print(f"    ✓ 添加加载覆盖效果（模糊+淡化）")
 
         # 粘贴图标
         result.paste(icon, (icon_x, icon_y), icon)

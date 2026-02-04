@@ -251,7 +251,133 @@ class MetaLoader:
             else:
                 flat_features[key] = value
 
+        # 同时添加 anomaly_type（用于语义内容生成时参考）
+        flat_features['anomaly_type'] = sample_meta.get('anomaly_type', 'promotional_dialog')
+
         return flat_features
+
+    def extract_visual_style_prompt(
+        self,
+        category: str,
+        sample_name: str
+    ) -> Optional[str]:
+        """
+        只提取视觉风格相关信息（不含文字内容）
+
+        与 extract_semantic_prompt() 的区别：
+        - 不包含 anomaly_description（场景描述文字）
+        - 不包含 main_button_text、title_text 等文字内容
+        - 不包含 key_points 中的文案要求
+        - 只保留纯视觉样式（颜色、布局、圆角、遮罩等）
+
+        Returns:
+            结构化的视觉风格 prompt
+        """
+        sample_meta = self.load_sample_meta(category, sample_name)
+        if not sample_meta:
+            return None
+
+        anomaly_type = sample_meta.get('anomaly_type', 'unknown')
+        visual_features = sample_meta.get('visual_features', {})
+
+        # 构建纯视觉风格 prompt
+        prompt_parts = []
+
+        # 1. 异常类型（不含描述文字）
+        prompt_parts.append("## 弹窗类型")
+        prompt_parts.append(f"- 类型: {anomaly_type}")
+        prompt_parts.append("")
+
+        # 2. 视觉风格要求（只保留样式相关）
+        prompt_parts.append("## 视觉风格要求（精确匹配参考图样式）")
+
+        # APP 设计语言（只描述视觉风格，不含品牌名）
+        app_style = visual_features.get('app_style', '通用')
+        prompt_parts.append(f"- 视觉设计风格参考: {app_style}（仅参考配色和布局风格，不要使用该品牌的Logo或品牌文字）")
+
+        # 颜色方案
+        if 'primary_color' in visual_features:
+            prompt_parts.append(f"- 主色调: {visual_features['primary_color']}")
+
+        if 'background' in visual_features:
+            prompt_parts.append(f"- 背景: {visual_features['background']}")
+
+        # 布局
+        if 'dialog_position' in visual_features:
+            prompt_parts.append(f"- 弹窗位置: {visual_features['dialog_position']}")
+
+        if 'dialog_size_ratio' in visual_features:
+            size_ratio = visual_features['dialog_size_ratio']
+            if isinstance(size_ratio, dict):
+                prompt_parts.append(f"- 弹窗尺寸比例: 宽度={size_ratio.get('width', 0.8)}, 高度={size_ratio.get('height', 0.5)}")
+
+        # 圆角
+        if 'corner_radius' in visual_features:
+            prompt_parts.append(f"- 圆角样式: {visual_features['corner_radius']}")
+
+        # 遮罩层
+        if 'overlay_enabled' in visual_features:
+            overlay = visual_features['overlay_enabled']
+            opacity = visual_features.get('overlay_opacity', 0.7)
+            if overlay:
+                prompt_parts.append(f"- 遮罩层: 启用，不透明度={opacity}")
+            else:
+                prompt_parts.append("- 遮罩层: 无")
+
+        # 关闭按钮样式（不含文字）
+        if 'close_button_position' in visual_features:
+            close_pos = visual_features['close_button_position']
+            close_style = visual_features.get('close_button_style', 'default')
+            prompt_parts.append(f"- 关闭按钮: 位置={close_pos}, 样式={close_style}")
+
+        # 按钮样式（不含具体文字）
+        if 'main_button_style' in visual_features:
+            prompt_parts.append(f"- 主按钮样式: {visual_features['main_button_style']}")
+
+        # 特殊视觉元素（过滤掉文字相关描述和品牌相关元素）
+        if 'special_elements' in visual_features:
+            elements = visual_features['special_elements']
+            # 过滤掉包含具体文字内容和参考图品牌的元素
+            visual_elements = []
+            # 关键词列表：文字内容 + 参考图品牌（防止品牌污染）
+            filter_keywords = [
+                # 文字内容关键词
+                '文字', '显示', '标题', '内容', '数字', '天', '元', '折',
+                # 华为/鸿蒙品牌关键词（参考图可能来自华为APP）
+                'HarmonyOS', 'Harmony', '鸿蒙', '花粉', '华为', 'HUAWEI',
+                # 其他常见品牌（防止参考图品牌泄露）
+                '淘宝', '京东', '美团', '抖音', '微信', '支付宝'
+            ]
+            for elem in elements:
+                # 检查是否包含任何过滤关键词（不区分大小写）
+                has_filter_keyword = any(kw.lower() in elem.lower() for kw in filter_keywords)
+                if not has_filter_keyword:
+                    visual_elements.append(elem)
+                else:
+                    # 尝试提取纯视觉部分（如"金色圆形勋章"从"金色圆形勋章显示30"）
+                    for kw in filter_keywords:
+                        if kw.lower() in elem.lower():
+                            idx = elem.lower().find(kw.lower())
+                            if idx > 0:
+                                visual_part = elem[:idx].strip()
+                                if visual_part:
+                                    visual_elements.append(visual_part)
+                                break
+
+            if visual_elements:
+                prompt_parts.append(f"- 视觉元素: {', '.join(visual_elements)}")
+
+        prompt_parts.append("")
+
+        # 3. 设计规范（只保留视觉相关）
+        prompt_parts.append("## 设计规范")
+        prompt_parts.append("- 参考图片的整体视觉风格和配色方案")
+        prompt_parts.append("- 保持相同的卡片形状、阴影效果和圆角大小")
+        prompt_parts.append("- 按钮形状和颜色与参考图一致")
+        prompt_parts.append("- 图标/装饰元素的样式与参考图一致")
+        prompt_parts.append("")
+
+        return '\n'.join(prompt_parts)
 
     def auto_select_sample(
         self,
