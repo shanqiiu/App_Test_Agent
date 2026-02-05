@@ -424,20 +424,32 @@ def run_pipeline(
                     )
 
                     if dialog_img:
-                        # 计算弹窗位置
+                        # 计算弹窗位置（支持 UI-JSON 精确定位 + meta.json 位置类型）
                         dialog_position = meta_features.get('dialog_position', 'center')
-                        if dialog_position == 'center':
-                            pos_x = (screen_width - dialog_width) // 2
-                            pos_y = (screen_height - dialog_height) // 2
-                        elif dialog_position == 'bottom':
-                            pos_x = (screen_width - dialog_width) // 2
-                            pos_y = screen_height - dialog_height - 100
-                        elif dialog_position == 'top':
-                            pos_x = (screen_width - dialog_width) // 2
-                            pos_y = 100
+
+                        # 尝试使用 UI-JSON 精确定位
+                        from utils.component_position_resolver import resolve_popup_position
+                        position_result = resolve_popup_position(
+                            ui_json=ui_json,
+                            instruction=instruction,
+                            dialog_position=dialog_position,
+                            dialog_width=dialog_width,
+                            dialog_height=dialog_height,
+                            screen_width=screen_width,
+                            screen_height=screen_height
+                        )
+
+                        pos_x = position_result['x']
+                        pos_y = position_result['y']
+
+                        # 输出定位方式
+                        if position_result.get('matched_component'):
+                            matched_comp = position_result['matched_component']
+                            print(f"  ✓ 精确定位: 匹配到组件 [{matched_comp.get('index')}] \"{matched_comp.get('text', '')[:20]}\"")
+                            print(f"    关键词: \"{position_result.get('keyword')}\" ({position_result.get('match_type')})")
+                            print(f"    位置: ({pos_x}, {pos_y})")
                         else:
-                            pos_x = (screen_width - dialog_width) // 2
-                            pos_y = (screen_height - dialog_height) // 2
+                            print(f"  ℹ 使用百分比定位: {dialog_position} → ({pos_x}, {pos_y})")
 
                         # 合成图像
                         result_img = screenshot_img.convert('RGBA')
@@ -674,6 +686,16 @@ Meta驱动生成说明:
                         help='GT模板样本名，如"弹出广告.jpg"（与--gt-category配合使用）')
 
     args = parser.parse_args()
+
+    # 如果指定了 gt-category 和 gt-sample 但没有指定 gt-dir，自动使用默认路径
+    if args.gt_category and args.gt_sample and not args.gt_dir:
+        default_gt_dir = Path(__file__).parent.parent / 'data' / 'Agent执行遇到的典型异常UI类型' / 'analysis' / 'gt_templates'
+        if default_gt_dir.exists():
+            args.gt_dir = str(default_gt_dir)
+            print(f"  ✓ 自动使用默认 GT 目录: {args.gt_dir}")
+        else:
+            print(f"  ⚠ 默认 GT 目录不存在: {default_gt_dir}")
+            print(f"  请通过 --gt-dir 手动指定")
 
     # 检查必需的API密钥
     if not args.api_key:

@@ -1325,6 +1325,32 @@ class SemanticDialogGenerator:
                 'subtitle': '副标题（可选）'
             }
         """
+        # 下拉菜单类型：尝试从 instruction 中提取菜单项
+        if anomaly_type == 'context_menu_dropdown':
+            print("  ✓ 下拉菜单类型：尝试从 instruction 提取菜单项")
+            menu_items = self._extract_menu_items_from_instruction(instruction)
+            if menu_items:
+                print(f"    从 instruction 提取到菜单项: {menu_items}")
+                return {
+                    'title': '',
+                    'message': '',
+                    'button_text': '',
+                    'subtitle': '',
+                    'brand_name': '',
+                    'menu_items': menu_items,  # instruction 中提取的菜单项
+                    '_is_dropdown': True
+                }
+            else:
+                print("    未能从 instruction 提取菜单项，将使用 meta.json 默认值")
+                return {
+                    'title': '',
+                    'message': '',
+                    'button_text': '',
+                    'subtitle': '',
+                    'brand_name': '',
+                    '_is_dropdown': True
+                }
+
         if not self.api_key:
             print("  ⚠ 未配置 VLM API Key，使用默认文案")
             return self._get_default_content_for_type(anomaly_type)
@@ -1469,6 +1495,29 @@ class SemanticDialogGenerator:
                 'button_text': '立即使用',
                 'subtitle': '限时有效',
                 'brand_name': ''
+            },
+            'context_menu_dropdown': {
+                'title': '选择',
+                'message': '',
+                'button_text': '',
+                'subtitle': '',
+                'brand_name': '',
+                'menu_items': ['选项一', '选项二'],
+                'selected_item': '选项一'
+            },
+            'tooltip_bubble': {
+                'title': '',
+                'message': '点击这里了解更多',
+                'button_text': '',
+                'subtitle': '',
+                'brand_name': ''
+            },
+            'floating_tip_banner': {
+                'title': '',
+                'message': '温馨提示',
+                'button_text': '我知道了',
+                'subtitle': '',
+                'brand_name': ''
             }
         }
         return defaults.get(anomaly_type, {
@@ -1478,6 +1527,54 @@ class SemanticDialogGenerator:
             'subtitle': '',
             'brand_name': ''
         })
+
+    def _extract_menu_items_from_instruction(self, instruction: str) -> List[str]:
+        """
+        从 instruction 中提取下拉菜单项
+
+        示例：
+        - "内容列表包含最新、最热两个选项" → ["最新", "最热"]
+        - "选项包括选项A、选项B" → ["选项A", "选项B"]
+        - "显示排序菜单：按时间、按热度" → ["按时间", "按热度"]
+
+        Args:
+            instruction: 用户指令
+
+        Returns:
+            提取到的菜单项列表，如果提取失败返回空列表
+        """
+        import re
+
+        # 常见的菜单项分隔模式
+        patterns = [
+            # "包含X、Y两个选项" 或 "包含X、Y选项"
+            r'包含\s*([^，,]+[、,，][^，,两个选项]+?)(?:两个|三个|多个)?选项',
+            # "选项包括X、Y" 或 "选项有X、Y"
+            r'选项(?:包括|有|为|是)\s*[:：]?\s*([^，。]+)',
+            # "内容列表包含X、Y"
+            r'内容(?:列表)?(?:包含|有|为|是)\s*[:：]?\s*([^，。]+?)(?:两个|三个|选项|$)',
+            # "X、Y两个选项" (直接提取)
+            r'([^，。包含有为是]+[、,，][^，。]+?)(?:两个|三个)?选项',
+            # "菜单：X、Y" 或 "菜单项：X、Y"
+            r'菜单(?:项)?[:：]\s*([^，。]+)',
+        ]
+
+        for pattern in patterns:
+            match = re.search(pattern, instruction)
+            if match:
+                items_str = match.group(1).strip()
+                # 分割菜单项（支持中文顿号、逗号）
+                items = re.split(r'[、,，]', items_str)
+                items = [item.strip() for item in items if item.strip()]
+                if len(items) >= 2:  # 至少需要2个选项才算有效
+                    return items
+
+        # 尝试更宽松的提取：查找引号内的内容
+        quoted_items = re.findall(r'[""「」『』]([^""「」『』]+)[""「」『』]', instruction)
+        if len(quoted_items) >= 2:
+            return quoted_items
+
+        return []
 
     def _remove_background(self, image: Image.Image, tolerance: int = 30) -> Image.Image:
         """
@@ -1910,8 +2007,35 @@ class SemanticDialogGenerator:
                 visual_elements.append(elem)
         special_elements_desc = ', '.join(visual_elements) if visual_elements else '无'
 
+        # 检查是否是下拉菜单类型
+        anomaly_type = meta_features.get('anomaly_type', '')
+        is_dropdown_menu = anomaly_type == 'context_menu_dropdown'
+
+        # 获取下拉菜单专用字段（样式从 meta_features 获取）
+        list_style = meta_features.get('list_style', 'radio_list')
+        selected_indicator = meta_features.get('selected_indicator', 'checkmark')
+
+        # 获取 menu_items：优先使用 instruction 提取的，否则使用 meta.json 的
+        if target_content and target_content.get('menu_items'):
+            # instruction 中提取到了菜单项
+            menu_items = target_content.get('menu_items')
+            selected_item = menu_items[0] if menu_items else ''
+            content_source = f"instruction-derived menu: {menu_items}"
+        else:
+            # 使用 meta.json 中的默认菜单项
+            menu_items = meta_features.get('menu_items', [])
+            selected_item = meta_features.get('selected_item', menu_items[0] if menu_items else '')
+            content_source = f"meta.json menu: {menu_items}"
+
         # 确定文字内容来源
-        if target_content:
+        if is_dropdown_menu and menu_items:
+            # 下拉菜单：使用上面确定的 menu_items
+            title_text = target_content.get('title', '') if target_content else ''
+            message_text = ''
+            button_text = ''
+            subtitle_text = ''
+            brand_name = target_content.get('brand_name', '') if target_content else ''
+        elif target_content:
             # 使用 VLM 生成的语义相关内容
             title_text = target_content.get('title', '提示')
             message_text = target_content.get('message', '')
@@ -1956,12 +2080,38 @@ class SemanticDialogGenerator:
         # app_style 仅用于视觉设计风格参考（配色、圆角、间距等）
         display_brand = brand_name if brand_name else app_style
 
-        prompt = f"""Generate a mobile app dialog/popup that EXACTLY matches the following specifications.
+        # 根据弹窗类型构建不同的内容描述
+        if is_dropdown_menu and menu_items:
+            # 下拉菜单专用内容描述
+            menu_items_str = '\n'.join([f'  - "{item}"' + (' (selected, show checkmark)' if item == selected_item else '') for item in menu_items])
+            content_section = f"""## 2. DROPDOWN MENU CONTENT ({content_source})
 
-## 1. VISUAL STYLE (from reference sample)
-{meta_semantic}
+### Menu Structure (CRITICAL - use these EXACT items)
+This is a DROPDOWN MENU / CONTEXT MENU, NOT a dialog.
 
-## 2. CONTENT TO DISPLAY ({content_source})
+Menu items (in order):
+{menu_items_str}
+
+### Menu Style
+- List style: {list_style}
+- Selected indicator: {selected_indicator} (pink/red checkmark for selected item)
+- The selected item "{selected_item}" should have a visible checkmark indicator
+- Each menu item should be on its own row
+- Clean, minimal design like a native iOS/Android dropdown
+
+### Layout
+- Small, compact dropdown card (NOT a full dialog)
+- White or light background
+- No title bar, no buttons at bottom
+- Just the menu items in a vertical list
+{f'- Optional small title at top: "{title_text}"' if title_text else ''}
+
+{logo_text_desc}
+
+IMPORTANT: This is a DROPDOWN MENU, not a confirmation dialog. Generate a small, compact menu card with the items listed above."""
+        else:
+            # 标准弹窗内容描述
+            content_section = f"""## 2. CONTENT TO DISPLAY ({content_source})
 
 ### Text Content (MUST use these exact texts)
 - Title: "{title_text}"
@@ -1972,7 +2122,14 @@ class SemanticDialogGenerator:
 {logo_text_desc}
 
 IMPORTANT: Use the above Chinese text EXACTLY as specified. Do not change or substitute with other content.
-IMPORTANT: This dialog belongs to "{display_brand}" app. DO NOT show any other brand name or logo text.
+IMPORTANT: This dialog belongs to "{display_brand}" app. DO NOT show any other brand name or logo text."""
+
+        prompt = f"""Generate a mobile app dialog/popup that EXACTLY matches the following specifications.
+
+## 1. VISUAL STYLE (from reference sample)
+{meta_semantic}
+
+{content_section}
 
 ## 3. VISUAL STYLE REQUIREMENTS (MUST match precisely)
 

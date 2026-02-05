@@ -112,6 +112,115 @@ SEMANTIC_FILTER_PROMPT = """你是一个 UI 结构分析专家。
 """
 
 
+def validate_and_fix_text_assignments(
+    final_components: List[Dict],
+    omni_components: List[Dict]
+) -> List[Dict]:
+    """
+    验证并修复 VLM 文本分配的 index 偏移问题。
+
+    问题：VLM 有时将正确的文本分配给错误的 index，导致系统性偏移。
+    检测：利用数字 token（3位以上）作为锚点，检测 VLM 文本与 OCR 文本的不匹配。
+    修正：确定偏移方向后，在受影响范围内旋转文本。
+    """
+    import re
+
+    n = len(final_components)
+    if n < 3:
+        return final_components
+
+    omni_map = {c.get('index', i): c for i, c in enumerate(omni_components)}
+
+    def extract_nums(text: str) -> set:
+        """提取3位以上的连续数字"""
+        return set(re.findall(r'\d{3,}', str(text)))
+
+    def get_source_ocr(comp: dict) -> str:
+        """获取组件对应的原始 OCR 文本"""
+        indices = comp.get('source_indices', [])
+        if not indices:
+            idx = comp.get('original_index', -1)
+            indices = [idx] if idx >= 0 else []
+        return ' '.join(
+            omni_map[i].get('text', '') for i in indices
+            if i in omni_map and omni_map[i].get('text')
+        )
+
+    # 构建匹配数据
+    vlm_texts = [c.get('text', '') for c in final_components]
+    vn = [extract_nums(t) for t in vlm_texts]
+    on = [extract_nums(get_source_ocr(c)) for c in final_components]
+
+    # Step 1: 评分不同偏移量
+    def score_shift(shift: int):
+        matches, conflicts = 0, 0
+        for i in range(n):
+            j = i + shift
+            if 0 <= j < n and vn[i] and on[j]:
+                if vn[i] & on[j]:
+                    matches += 1
+                else:
+                    conflicts += 1
+        return matches - conflicts
+
+    best_shift, best_score = 0, score_shift(0)
+    for s in [1, -1, 2, -2]:
+        score = score_shift(s)
+        if score > best_score:
+            best_score, best_shift = score, s
+
+    if best_shift == 0:
+        return final_components
+
+    # Step 2: 确定受影响范围（从确认冲突位置向前扩展）
+    conflicts = [i for i in range(n) if vn[i] and on[i] and not (vn[i] & on[i])]
+    if not conflicts:
+        return final_components
+
+    range_start, range_end = min(conflicts), max(conflicts)
+
+    # 向前扩展纳入偏移链前序组件（使用原始起点计算偏移，避免迭代偏差）
+    origin = range_start
+    for k in range(1, abs(best_shift) * 2 + 1):
+        candidate = origin - k
+        if candidate < 0:
+            break
+        if vn[candidate] and on[candidate] and (vn[candidate] & on[candidate]):
+            break  # 遇到正确匹配，停止
+        range_start = candidate
+
+    # Step 3: 旋转文本
+    affected = list(range(range_start, range_end + 1))
+    original_vlm = [vlm_texts[i] for i in affected]
+    rng_size = len(affected)
+
+    fixes = []
+    for pos, comp_idx in enumerate(affected):
+        source_pos = pos - best_shift
+
+        if 0 <= source_pos < rng_size:
+            new_text = original_vlm[source_pos]
+        else:
+            # 边界：回退到 OmniParser 原始文本
+            new_text = get_source_ocr(final_components[comp_idx])
+            if not new_text.strip():
+                final_components[comp_idx]['_text_unverified'] = True
+                continue
+
+        if final_components[comp_idx]['text'] != new_text:
+            final_components[comp_idx]['_text_before_fix'] = final_components[comp_idx]['text']
+            final_components[comp_idx]['text'] = new_text
+            final_components[comp_idx]['_text_fix'] = f'shift_{best_shift}'
+            fixes.append((comp_idx, final_components[comp_idx]['_text_before_fix'], new_text))
+
+    if fixes:
+        print(f"  [校验] 文本-边界框偏移修正: shift={best_shift}, 范围=[{range_start},{range_end}]")
+        for idx, old, new in fixes:
+            print(f"    [{idx}] \"{old[:25]}...\" → \"{new[:25]}...\"")
+
+    return final_components
+
+
 def fix_component_bounds(
     vlm_components: List[Dict],
     omni_components: List[Dict],
@@ -507,6 +616,11 @@ def omni_vlm_fusion(
                 omni_components=omni_components
             )
             print(f"  ✓ 使用新格式处理（operations）")
+
+            # 验证并修复 VLM 文本分配的偏移问题
+            final_components = validate_and_fix_text_assignments(
+                final_components, omni_components
+            )
         else:
             # 旧格式兼容：VLM 返回完整的 components
             final_components = filtered_result.get('components', omni_components)
@@ -520,6 +634,11 @@ def omni_vlm_fusion(
                 img_height=height
             )
             print(f"  ⚠ 使用旧格式处理（components），坐标可能需要修复")
+
+            # 验证并修复 VLM 文本分配的偏移问题
+            final_components = validate_and_fix_text_assignments(
+                final_components, omni_components
+            )
 
         print(f"  ✓ 过滤后剩余 {len(final_components)} 个组件")
         if merge_log:

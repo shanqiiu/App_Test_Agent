@@ -20,6 +20,15 @@ python run_pipeline.py \
   --vlm-model gpt-4o \
   --fonts-dir ./fonts/ \
   --omni-device cuda
+
+# GT 模板驱动生成（推荐，精准控制弹窗样式和位置）
+# --gt-dir 可省略，自动使用默认路径
+python run_pipeline.py \
+  --screenshot ./screenshot.png \
+  --instruction "显示下拉菜单" \
+  --output ./output/ \
+  --gt-category "弹窗覆盖原UI" \
+  --gt-sample "弹出提示.jpg"
 ```
 
 ## 核心脚本
@@ -42,6 +51,8 @@ python run_pipeline.py \
 **Stage 3: 异常弹窗生成与合并**
 - 直接调用语义弹窗生成器
 - 根据页面内容生成上下文相关的异常弹窗
+- 支持 GT 模板驱动：通过 `--gt-category` + `--gt-sample` 从 `meta.json` 读取精确的样式和位置参数
+- 支持多种弹窗位置类型（见下方 [弹窗位置类型](#弹窗位置类型)）
 - 将弹窗合并到原截图上
 - 输出: `*_final_*.png`
 
@@ -211,7 +222,25 @@ python visualize_omni.py \
   --output ./annotated.png
 ```
 
-### 工作流 3: 调试和验证
+### 工作流 3: GT 模板驱动生成
+
+```bash
+# 查看可用的 GT 类别和样本
+ls ../data/Agent执行遇到的典型异常UI类型/analysis/gt_templates/
+
+# 使用 GT 模板驱动生成（--gt-dir 自动检测，无需手动指定）
+python run_pipeline.py \
+  --screenshot ./test.png \
+  --instruction "生成下拉菜单弹窗" \
+  --output ./output/ \
+  --gt-category "弹窗覆盖原UI" \
+  --gt-sample "弹出提示.jpg"
+
+# 输出同工作流 1，但弹窗样式和位置精确匹配 GT 样本
+# 位置由 meta.json 中的 dialog_position 字段控制
+```
+
+### 工作流 4: 调试和验证
 
 ```bash
 # 第 1 步：运行 pipeline
@@ -246,6 +275,20 @@ export VLM_API_KEY=sk-xxx
 export DASHSCOPE_API_KEY=sk-xxx
 ```
 
+## 弹窗位置类型
+
+Stage 3 支持通过 `meta.json` 中的 `dialog_position` 字段精确控制弹窗放置位置：
+
+| `dialog_position` 值 | 说明 | 典型场景 |
+|---|---|---|
+| `center` | 屏幕正中央 | 奖励弹窗、权限请求 |
+| `bottom-left-inline` | 左下角内联，紧贴触发元素 | 排序下拉菜单 |
+| `bottom-center-floating` | 底部居中浮动 | 提示气泡 |
+| `bottom-fixed` | 底部固定，贴底 | 优惠券弹窗 |
+| `bottom-floating` | 底部浮动，有边距 | 横幅提示 |
+| `top` | 顶部 | 顶部通知 |
+| `multi-layer` | 多层叠加 | 引导教程 |
+
 ## 输出文件说明
 
 | 文件模式 | 说明 | 生成阶段 |
@@ -276,8 +319,16 @@ export DASHSCOPE_API_KEY=sk-xxx
 # 指定字体目录
 --fonts-dir ./fonts/
 
-# 指定 GT 样本目录（用于风格参考）
+# 指定 GT 样本目录（可选，默认自动检测）
 --gt-dir ./reference_dialogs/
+
+# GT 模板驱动生成（从 meta.json 读取样式/位置）
+--gt-category "弹窗覆盖原UI"
+--gt-sample "弹出提示.jpg"
+
+# 异常模式选择
+--anomaly-mode dialog         # 全屏弹窗（默认）
+--anomaly-mode area_loading   # 区域加载图标
 
 # 为弹窗模型指定不同的 API 端点和模型
 --vlm-api-url https://xxx
@@ -285,6 +336,12 @@ export DASHSCOPE_API_KEY=sk-xxx
 
 # 指定参考弹窗图片（用于样式学习）
 --reference ./reference_dialog.png
+
+# 指定参考加载图标（area_loading 模式）
+--reference-icon ./loading_icon.png
+
+# 目标组件ID（area_loading 模式）
+--target-component 5
 ```
 
 ### 硬件参数
@@ -379,11 +436,13 @@ scripts/
 ├── omni_vlm_fusion.py                 # OmniParser + VLM
 ├── vlm_patch.py                       # (已弃用) JSON Patch 生成
 ├── patch_renderer.py                  # 弹窗渲染
+├── area_loading_renderer.py           # 区域加载图标渲染
 ├── utils/
 │   ├── semantic_dialog_generator.py   # 弹窗生成
-│   ├── text_render.py
-│   ├── inpainting.py
-│   ├── compositor.py
+│   ├── meta_loader.py                 # GT 模板元数据加载
+│   ├── gt_manager.py                  # GT 模板管理
+│   ├── reference_analyzer.py          # 参考图分析
+│   ├── common.py                      # 通用工具函数
 │   └── ...
 ├── visualize_omni.py                  # ✨ 通用可视化
 ├── visualize_pipeline_stage1.py        # ✨ Pipeline 可视化
@@ -394,5 +453,5 @@ scripts/
 
 ---
 
-**最后更新**: 2026-01-31
-**Pipeline 版本**: 3.0 (简化版)
+**最后更新**: 2026-02-05
+**Pipeline 版本**: 3.1 (支持 GT 模板驱动 + 多种弹窗位置)
