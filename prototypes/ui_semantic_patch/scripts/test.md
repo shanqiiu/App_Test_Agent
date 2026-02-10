@@ -1,0 +1,1 @@
+python run_pipeline.py --screenshot ../data/腾讯视频.jpg --instruction "选集控件处显示重复列" --anomaly-mode content_duplicate --gt-category "内容歧义、重复" --gt-sample "部分信息重复.jpg"

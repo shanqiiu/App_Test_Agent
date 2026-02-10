@@ -254,6 +254,10 @@ class MetaLoader:
         # 同时添加 anomaly_type（用于语义内容生成时参考）
         flat_features['anomaly_type'] = sample_meta.get('anomaly_type', 'promotional_dialog')
 
+        # 添加 duplicate_mode（用于内容重复异常渲染）
+        if 'duplicate_mode' in sample_meta:
+            flat_features['duplicate_mode'] = sample_meta.get('duplicate_mode')
+
         return flat_features
 
     def extract_visual_style_prompt(

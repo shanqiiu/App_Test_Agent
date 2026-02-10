@@ -1,0 +1,18 @@
+{
+  "background_color": "#181818",
+  "primary_color": "#FFAA00",
+  "text_color": "#FFFFFF",
+  "secondary_text_color": "#BBBBBB",
+  "grid_columns": 6,
+  "cell_border_radius": 8,
+  "cell_background": "#2F2F2F",
+  "selected_background": "#181818",
+  "has_vip_badge": true,
+  "vip_badge_color": "#FFCC00",
+  "cell_height": 60,
+  "cell_margin": 8,
+  "title_visible": true,
+  "close_button_visible": true,
+  "close_button_position": "top-right",
+  "overlay_opacity": 0.5
+}

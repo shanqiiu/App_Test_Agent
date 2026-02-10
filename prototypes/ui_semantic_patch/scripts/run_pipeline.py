@@ -343,6 +343,73 @@ def run_pipeline(
             print("  提示: 请确保 area_loading_renderer.py 和相关依赖已正确安装")
             return results
 
+    elif anomaly_mode == 'content_duplicate':
+        # 新模式：内容重复/歧义
+        print("[Stage 3/3] 内容重复异常渲染")
+        print("=" * 60)
+        print(f"  异常指令: {instruction}")
+        print(f"  模式: content_duplicate（底部浮层复制组件）")
+
+        try:
+            from content_duplicate_renderer import ContentDuplicateRenderer
+            from PIL import Image
+
+            # 加载meta配置
+            meta_features = {}
+            duplicate_mode = 'expanded_view'  # 默认使用扩展视图模式
+            ref_path = reference_path  # 参考图路径
+
+            if gt_category and gt_sample and gt_dir:
+                from utils.meta_loader import MetaLoader
+                meta_loader = MetaLoader(gt_dir)
+                meta_features = meta_loader.extract_visual_features_dict(gt_category, gt_sample) or {}
+                duplicate_mode = meta_features.get('duplicate_mode', 'expanded_view')
+                # 获取参考图路径（用于风格迁移）
+                ref_path = reference_path or meta_loader.get_sample_path(gt_category, gt_sample)
+                print(f"  ✓ 加载meta配置: {gt_category}/{gt_sample}")
+                print(f"  复制模式: {duplicate_mode}")
+                if ref_path:
+                    print(f"  参考图: {ref_path}")
+
+            # 初始化渲染器
+            renderer = ContentDuplicateRenderer(
+                api_key=api_key,
+                vlm_api_url=vlm_api_url,
+                vlm_model=vlm_model,
+                fonts_dir=fonts_dir
+            )
+
+            # 渲染内容重复异常
+            screenshot_img = Image.open(screenshot_path)
+            result_img = renderer.render_content_duplicate(
+                screenshot=screenshot_img,
+                screenshot_path=screenshot_path,
+                ui_json=ui_json,
+                instruction=instruction,
+                meta_features=meta_features,
+                mode=duplicate_mode,
+                reference_path=ref_path
+            )
+
+            if not result_img:
+                print("  ✗ 内容重复渲染失败")
+                return results
+
+            # 保存最终结果
+            final_output = output_dir / f"{screenshot_name}_final_{timestamp}.png"
+            result_img.save(str(final_output))
+            results['outputs']['final_image'] = str(final_output)
+            results['outputs']['anomaly_mode'] = 'content_duplicate'
+            results['outputs']['duplicate_mode'] = duplicate_mode
+
+            print(f"  ✓ 内容重复异常渲染完成!")
+            print(f"  ✓ 保存至: {final_output}")
+
+        except ImportError as e:
+            print(f"  ✗ 内容重复渲染器导入失败: {e}")
+            print("  提示: 请确保 content_duplicate_renderer.py 已正确放置")
+            return results
+
     else:
         # 原有模式：全屏弹窗生成
         print("[Stage 3/3] 异常弹窗生成与合并")
@@ -675,9 +742,9 @@ Meta驱动生成说明:
                         help='OmniParser 设备 (cuda/cpu)')
     parser.add_argument('--no-visualize', action='store_true',
                         help='禁用 OmniParser 检测结果可视化')
-    parser.add_argument('--anomaly-mode', choices=['dialog', 'area_loading'],
+    parser.add_argument('--anomaly-mode', choices=['dialog', 'area_loading', 'content_duplicate'],
                         default='dialog',
-                        help='异常模式: dialog=全屏弹窗(默认), area_loading=区域加载图标')
+                        help='异常模式: dialog=全屏弹窗(默认), area_loading=区域加载图标, content_duplicate=内容重复')
     parser.add_argument('--target-component',
                         help='目标组件ID (仅 area_loading 模式使用)')
     parser.add_argument('--gt-category',

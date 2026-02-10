@@ -6,13 +6,21 @@
     "部分信息重复.jpg": {
       "anomaly_type": "ui_duplicate_display",
       "anomaly_description": "选集列表重复显示，上方横向选集与下方浮层选集同时可见",
+      "duplicate_mode": "expanded_view",
       "visual_features": {
         "app_style": "芒果TV",
         "primary_color": "#FF6600",
-        "background": "深色模式 #1A1A1A",
-        "duplicate_element": "选集按钮列表",
+        "background": "#1A1A1A",
+        "duplicate_element": "选集",
         "original_position": "page-inline",
         "duplicate_position": "bottom-sheet",
+        "duplicate_expansion": {
+          "original_layout": "horizontal",
+          "expanded_layout": "grid",
+          "original_count": 6,
+          "expanded_count": 18,
+          "grid_columns": 6
+        },
         "overlay_enabled": true,
         "overlay_opacity": 0.5,
         "close_button_position": "top-right",
@@ -39,5 +47,5 @@
       }
     }
   },
-  "usage": "--gt-dir ./gt_templates/内容歧义、重复 --reference ./gt_templates/内容歧义、重复/部分信息重复.jpg"
+  "usage": "--anomaly-mode content_duplicate --gt-category \"内容歧义、重复\" --gt-sample \"部分信息重复.jpg\""
 }
