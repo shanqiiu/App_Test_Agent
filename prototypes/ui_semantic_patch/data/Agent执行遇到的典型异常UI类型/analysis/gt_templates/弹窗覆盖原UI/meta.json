@@ -8,10 +8,14 @@
       "anomaly_description": "华为花粉俱乐部首页中央弹出HarmonyOS勋章奖励弹窗，显示'恭喜您获得勋章 鸿蒙合伙人 30天'",
       "visual_features": {
         "app_style": "华为花粉俱乐部",
+        "design_language": "warm-toned reward card, golden circular badge, cream background, outlined CTA button with arrow",
         "primary_color": "#C8A882",
         "background": "米白色渐变 #FAF6F0",
         "dialog_position": "center",
-        "dialog_size_ratio": {"width": 0.85, "height": 0.55},
+        "dialog_size_ratio": {
+          "width": 0.85,
+          "height": 0.55
+        },
         "overlay_enabled": true,
         "overlay_opacity": 0.6,
         "close_button_position": "bottom-center",
@@ -20,7 +24,12 @@
         "main_button_style": "outlined_with_arrow",
         "title_text": "恭喜您获得勋章",
         "subtitle_text": "鸿蒙合伙人 30天",
-        "special_elements": ["金色圆形勋章", "HarmonyOS标识", "数字30", "鸿蒙操作系统文字"]
+        "special_elements": [
+          "金色圆形勋章",
+          "HarmonyOS标识",
+          "数字30",
+          "鸿蒙操作系统文字"
+        ]
       },
       "generation_template": {
         "instruction": "生成用户成就勋章奖励弹窗打断浏览流程",
@@ -47,15 +56,22 @@
       "anomaly_description": "抖音北京大学官方账号作品列表左下角弹出排序选择下拉菜单，显示'最新'和'最热'选项",
       "visual_features": {
         "app_style": "抖音",
+        "design_language": "minimal white dropdown card, compact radio list, pink checkmark indicator",
         "primary_color": "#FE2C55",
         "background": "白色 rgba(255,255,255,0.98)",
         "dialog_position": "bottom-left-inline",
-        "dialog_size_ratio": {"width": 0.2, "height": 0.1},
+        "dialog_size_ratio": {
+          "width": 0.2,
+          "height": 0.1
+        },
         "overlay_enabled": false,
         "close_button_position": "none",
         "list_style": "radio_list",
         "selected_indicator": "checkmark_pink",
-        "menu_items": ["最新", "最热"],
+        "menu_items": [
+          "最新",
+          "最热"
+        ],
         "selected_item": "最热"
       },
       "generation_template": {
@@ -75,22 +91,36 @@
           "点击外部自动关闭",
           "圆角卡片设计"
         ]
+      },
+      "dialog_bounds_px": {
+        "x": 29,
+        "y": 1505,
+        "width": 1194,
+        "height": 274
       }
     },
-    "弹出提示2.jpg": {
+    "使用教程遮挡3.jpg": {
       "anomaly_type": "tooltip_bubble",
       "anomaly_description": "美团麦当劳门店页面底部弹出黄色提示气泡'这家店所有优惠的商品都在这里哦~'",
       "visual_features": {
         "app_style": "美团",
+        "design_language": "yellow tooltip bubble, rounded rectangle, white text, downward arrow indicator",
         "primary_color": "#FFD700",
         "background": "黄色 #FFD700",
         "dialog_position": "bottom-center-floating",
-        "dialog_size_ratio": {"width": 0.75, "height": 0.08},
+        "dialog_size_ratio": {
+          "width": 0.75,
+          "height": 0.08
+        },
         "overlay_enabled": false,
         "close_button_position": "none",
         "bubble_shape": "rounded_rectangle",
         "text_content": "这家店所有优惠的商品都在这里哦~",
-        "special_elements": ["黄色底色", "白色文字", "箭头指示"]
+        "special_elements": [
+          "黄色底色",
+          "白色文字",
+          "箭头指示"
+        ]
       },
       "generation_template": {
         "instruction": "生成底部浮动提示气泡遮挡部分内容",
@@ -109,6 +139,12 @@
           "底部居中位置",
           "自动消失或点击关闭"
         ]
+      },
+      "dialog_bounds_px": {
+        "x": 4,
+        "y": 2114,
+        "width": 1374,
+        "height": 474
       }
     },
     "商品下方存在遮挡.jpg": {
@@ -116,10 +152,14 @@
       "anomaly_description": "美团外卖柴火大院餐厅详情页底部弹出红色优惠券领取弹窗，显示'送您专属福利 百补好运券 ¥3 满4元可用'",
       "visual_features": {
         "app_style": "美团",
+        "design_language": "red gradient coupon banner, bold white price text, prominent CTA button, warm color scheme, bottom-fixed horizontal strip",
         "primary_color": "#FF1744",
         "background": "红色渐变 #FF1744 → #FF6B35",
         "dialog_position": "bottom-fixed",
-        "dialog_size_ratio": {"width": 0.9, "height": 0.25},
+        "dialog_size_ratio": {
+          "width": 0.9,
+          "height": 0.25
+        },
         "overlay_enabled": false,
         "close_button_position": "none",
         "main_button_text": "立即使用",
@@ -127,7 +167,11 @@
         "title_text": "送您专属福利",
         "coupon_amount": "¥3",
         "coupon_condition": "满4元可用",
-        "special_elements": ["红色渐变背景", "白色文字", "优惠券卡片"]
+        "special_elements": [
+          "红色渐变背景",
+          "白色文字",
+          "优惠券卡片"
+        ]
       },
       "generation_template": {
         "instruction": "生成底部固定优惠券弹窗遮挡商品列表",
@@ -147,6 +191,12 @@
           "立即使用按钮",
           "遮挡部分商品内容"
         ]
+      },
+      "dialog_bounds_px": {
+        "x": 12,
+        "y": 2364,
+        "width": 1079,
+        "height": 161
       }
     },
     "关闭按钮干扰.jpg": {
@@ -154,16 +204,25 @@
       "anomaly_description": "12306火车票页面中央弹出通知权限请求弹窗",
       "visual_features": {
         "app_style": "12306",
+        "design_language": "clean white center dialog, blue CTA button, yellow feature icons, system permission style",
         "primary_color": "#2196F3",
         "background": "白色 #FFFFFF",
         "dialog_position": "center",
-        "dialog_size_ratio": {"width": 0.75, "height": 0.35},
+        "dialog_size_ratio": {
+          "width": 0.75,
+          "height": 0.35
+        },
         "overlay_enabled": true,
         "overlay_opacity": 0.5,
         "close_button_position": "none",
         "main_button_text": "立即开启",
         "main_button_color": "#2196F3",
-        "special_elements": ["三个黄色图标", "购退交易", "候补结果", "行程提醒等"],
+        "special_elements": [
+          "三个黄色图标",
+          "购退交易",
+          "候补结果",
+          "行程提醒等"
+        ],
         "title_text": "开启微信/支付宝/负一屏通知",
         "subtitle_text": "第一时间接收行程信息等重要通知"
       },
@@ -187,22 +246,40 @@
         ]
       }
     },
-    "使用教程.jpg": {
+    "使用教程遮挡.jpg": {
       "anomaly_type": "tutorial_guide",
       "anomaly_description": "美团神券页面中央及底部弹出多层引导教程",
       "visual_features": {
         "app_style": "美团",
+        "design_language": "multi-layer tutorial overlay, dark semi-transparent mask, white speech bubble, step navigation buttons",
         "primary_color": "#FF6B35",
         "background": "深灰色半透明遮罩 rgba(0,0,0,0.6)",
         "dialog_position": "multi-layer",
-        "dialog_size_ratio": {"top": {"width": 0.9, "height": 0.35}, "center": {"width": 0.8, "height": 0.15}, "bottom": {"width": 0.6, "height": 0.08}},
+        "dialog_size_ratio": {
+          "top": {
+            "width": 0.9,
+            "height": 0.35
+          },
+          "center": {
+            "width": 0.8,
+            "height": 0.15
+          },
+          "bottom": {
+            "width": 0.6,
+            "height": 0.08
+          }
+        },
         "overlay_enabled": true,
         "overlay_opacity": 0.6,
         "close_button_position": "none",
         "navigation_text": "下一步 1/3",
         "navigation_style": "outlined_button",
         "skip_button_text": "跳过指引",
-        "special_elements": ["神券包卡片", "白色提示气泡", "步骤导航按钮"]
+        "special_elements": [
+          "神券包卡片",
+          "白色提示气泡",
+          "步骤导航按钮"
+        ]
       },
       "generation_template": {
         "instruction": "生成多层引导教程弹窗打断用户流程",
@@ -225,15 +302,19 @@
         ]
       }
     },
-    "使用教程2.jpg": {
+    "使用教程遮挡2.jpg": {
       "anomaly_type": "floating_tip_banner",
       "anomaly_description": "瑞幸咖啡商品详情页底部弹出粉色提示横幅",
       "visual_features": {
         "app_style": "瑞幸咖啡/美团拼好饭",
+        "design_language": "pink gradient floating banner, rounded card, white text, mascot illustration on right",
         "primary_color": "#FF69B4",
         "background": "粉红色渐变 #FF69B4 → #FF85C8",
         "dialog_position": "bottom-floating",
-        "dialog_size_ratio": {"width": 0.85, "height": 0.12},
+        "dialog_size_ratio": {
+          "width": 0.85,
+          "height": 0.12
+        },
         "overlay_enabled": false,
         "close_button_position": "left-side",
         "close_button_style": "white_text_button",
@@ -260,6 +341,12 @@
           "左侧白色文字按钮",
           "右侧黄色笑脸吉祥物"
         ]
+      },
+      "dialog_bounds_px": {
+        "x": 44,
+        "y": 2532,
+        "width": 1142,
+        "height": 164
       }
     }
   },

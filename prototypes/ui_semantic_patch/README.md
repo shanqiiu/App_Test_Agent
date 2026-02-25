@@ -60,29 +60,53 @@ UI 语义补丁驱动的受控生成架构，通过 VLM 输出修改逻辑（JSO
 ```
 ui_semantic_patch/
 ├── scripts/
-│   ├── run_pipeline.py          # 一键执行完整流程（入口）
+│   ├── run_pipeline.py          # 主流水线入口（Stage 1→2→3）
+│   ├── omni_extractor.py        # Stage 1: OmniParser UI 检测
 │   ├── omni_vlm_fusion.py       # Stage 1+2: OmniParser + VLM 融合
-│   ├── omni_extractor.py        # OmniParser 本地提取
-│   ├── img2xml.py               # VLM 结构提取（备用）
-│   ├── vlm_patch.py             # Stage 3: VLM 推理生成 JSON Patch
-│   ├── patch_renderer.py        # Stage 4: 渲染引擎执行像素级修改
+│   ├── patch_renderer.py        # Stage 3: dialog 弹窗渲染引擎
+│   ├── area_loading_renderer.py # Stage 3: area_loading 区域加载渲染
+│   ├── content_duplicate_renderer.py  # Stage 3: content_duplicate 内容重复渲染
+│   ├── visualize_omni.py        # 检测结果可视化（标注边界框）
+│   ├── batch_pipeline.py        # 批量生成（原图 × GT 样本笛卡尔积）
+│   ├── generate_meta.py         # VLM 驱动 meta.json 自动生成
+│   ├── extract_gt_bounds.py     # OmniParser + IoU 精确提取弹窗边界框
+│   ├── style_transfer.py        # 异常 UI 风格提取与迁移
+│   ├── anomaly_sample_manager.py  # 异常样本聚类与 GT 模板导出
+│   ├── generate_filename_descriptions.py  # 基于文件名的异常描述生成
+│   ├── launch.sh                # Linux/macOS 一键启动脚本（交互式菜单）
+│   ├── launch.bat               # Windows 一键启动脚本
+│   ├── test_style_transfer.py   # 风格迁移测试
+│   ├── test_integration_content_duplicate.py  # 内容重复集成测试
 │   └── utils/
-│       ├── text_render.py       # 文字渲染工具
-│       ├── inpainting.py        # 背景修复工具
-│       ├── compositor.py        # 图层合成工具
-│       ├── component_generator.py   # 大模型组件生成
-│       ├── gt_manager.py        # GT模板管理
-│       ├── semantic_dialog_generator.py  # 语义感知弹窗生成
-│       └── reference_analyzer.py    # 参考图片风格分析
-├── assets/
-│   ├── components/              # 预定义 UI 组件库
-│   ├── fonts/                   # 系统字体文件
-│   └── gt_samples/              # GT样本目录
-│       ├── dialogs/
-│       ├── toasts/
-│       └── loadings/
-├── examples/                    # 示例输入/输出
+│       ├── __init__.py
+│       ├── common.py                  # 公共工具（encode_image, extract_json, parse_color）
+│       ├── semantic_dialog_generator.py  # 语义感知弹窗生成（DashScope AI + PIL）
+│       ├── meta_loader.py             # GT 元数据加载与管理
+│       ├── gt_manager.py              # GT 模板提取、风格分析、Few-shot 参考
+│       ├── component_position_resolver.py  # UI-JSON 精确组件定位
+│       └── reference_analyzer.py      # 参考图片风格分析
+├── docs/
+│   └── 技术实现文档.md          # 详细技术实现文档
+├── data/
+│   ├── 原图/                    # 原始 APP 截图
+│   │   ├── app首页类-开屏广告弹窗/   # 携程旅行（2 张）
+│   │   ├── 个人主页类-控件点击弹窗/   # 抖音（2 张）
+│   │   ├── 外卖类优惠信息干扰/        # 饿了么（1 张）
+│   │   └── 影视剧集类-内容歧义、重复/  # 腾讯视频（1 张）
+│   └── Agent执行遇到的典型异常UI类型/
+│       └── analysis/gt_templates/     # GT 模板
+│           ├── 弹窗覆盖原UI/          # 8 个样本 + meta.json
+│           ├── 内容歧义、重复/         # 1 个样本 + meta.json
+│           └── loading_timeout/       # 1 个样本 + meta.json
+├── third_party/
+│   └── OmniParser/              # 本地集成 OmniParser
+│       ├── omni_inference.py    # 推理引擎
+│       ├── weights/             # 模型权重
+│       └── util/                # 工具模块
+├── assets/                      # 静态资源
+├── examples/                    # 示例文件
 │   └── 广告弹窗.jpg             # 参考弹窗样例
+├── requirements.txt
 ├── .gitignore
 └── README.md
 ```
@@ -173,7 +197,7 @@ python scripts/run_pipeline.py \
   --output ./output/
 ```
 
-**2. 区域加载模式（新功能）**
+**2. 区域加载模式**
 ```bash
 # 智能推荐目标区域
 python scripts/run_pipeline.py \
@@ -182,20 +206,21 @@ python scripts/run_pipeline.py \
   --anomaly-mode area_loading \
   --output ./output/
 
-# 指定目标组件
-python scripts/run_pipeline.py \
-  --screenshot ./page.png \
-  --instruction "模拟图片加载失败" \
-  --anomaly-mode area_loading \
-  --target-component 5 \
-  --output ./output/
-
 # 使用参考加载图标（推荐！显著提升生成真实性）
 python scripts/run_pipeline.py \
   --screenshot ./page.png \
   --instruction "模拟列表加载超时" \
   --anomaly-mode area_loading \
   --reference-icon ./reference_loading_icon.png \
+  --output ./output/
+```
+
+**3. 内容重复模式**
+```bash
+python scripts/run_pipeline.py \
+  --screenshot ./腾讯视频.jpg \
+  --instruction "选集控件处显示重复列表" \
+  --anomaly-mode content_duplicate \
   --output ./output/
 ```
 
@@ -271,6 +296,59 @@ python scripts/run_pipeline.py \
 | 关闭按钮 | 位置、样式（右上角外侧白色圆形） |
 | 阴影效果 | 投影大小和模糊程度 |
 
+### GT 模板驱动生成（推荐）
+
+使用真实异常截图 meta.json 驱动生成，效果最接近原生：
+
+```bash
+# dialog 模式 + GT 模板
+python scripts/run_pipeline.py \
+  --screenshot ./page.png \
+  --instruction "生成优惠券弹窗" \
+  --gt-category "弹窗覆盖原UI" \
+  --gt-sample "弹出广告.jpg"
+
+# content_duplicate 模式 + GT 模板
+python scripts/run_pipeline.py \
+  --screenshot ./腾讯视频.jpg \
+  --instruction "剧集控件处显示重复列表" \
+  --anomaly-mode content_duplicate \
+  --gt-category "内容歧义、重复" \
+  --gt-sample "部分信息重复.jpg"
+```
+
+**渲染优先级**：GT模板 > 大模型生成 > PIL绘制
+
+### 批量生成
+
+```bash
+# 预览执行计划
+python scripts/batch_pipeline.py \
+  --input-dir data/原图/app首页类-开屏广告弹窗 \
+  --gt-category "弹窗覆盖原UI"
+
+# 实际执行
+python scripts/batch_pipeline.py \
+  --input-dir data/原图/app首页类-开屏广告弹窗 \
+  --gt-category "弹窗覆盖原UI" \
+  --output scripts/batch_output \
+  --run
+```
+
+### 一键启动
+
+```bash
+# 交互式菜单
+cd scripts
+bash launch.sh          # Linux/macOS
+launch.bat              # Windows
+
+# 直接运行
+bash launch.sh single   # 单图模式
+bash launch.sh batch    # 批量预览
+bash launch.sh list     # 列出异常类别
+```
+
 ### GT 模板
 
 使用真实异常截图作为模板，生成效果最接近原生：
@@ -295,11 +373,13 @@ python scripts/run_pipeline.py \
 | `--api-url` | VLM API 端点 | 从 `VLM_API_URL` 环境变量读取 |
 | `--structure-model` | 结构提取/语义过滤模型 | 从 `STRUCTURE_MODEL` 环境变量读取 |
 | `--vlm-model` | VLM 模型名称 | 从 `VLM_MODEL` 环境变量读取 |
-| `--anomaly-mode` | 异常模式：`dialog` / `area_loading` | `dialog` |
+| `--anomaly-mode` | 异常模式：`dialog` / `area_loading` / `content_duplicate` | `dialog` |
 | `--target-component` | 目标组件 ID（area_loading 模式） | 自动推荐 |
 | `--reference, -r` | 参考弹窗图片路径（dialog 模式） | - |
 | `--reference-icon` | 参考加载图标路径（area_loading 模式，推荐！） | - |
 | `--gt-dir` | GT样本目录 | - |
+| `--gt-category` | GT 模板类别名（如"弹窗覆盖原UI"） | - |
+| `--gt-sample` | GT 模板样本文件名（如"弹出广告.jpg"） | - |
 | `--omni-device` | OmniParser 设备 (`cuda`/`cpu`) | 从 `OMNIPARSER_DEVICE` 环境变量读取 |
 | `--no-visualize` | 禁用检测结果可视化 | False |
 
@@ -375,12 +455,14 @@ python scripts/run_pipeline.py \
 
 ## 异常场景示例
 
-| 指令 | 预期效果 |
-|------|---------|
-| "模拟网络超时弹窗" | 添加错误弹窗 + 禁用按钮 |
-| "显示登录失败提示" | Toast 提示 + 清空密码框 |
-| "模拟加载中状态" | Loading 遮罩 + 禁用交互 |
-| "显示余额不足" | 修改文案 + 错误提示 |
+| 指令 | 模式 | 预期效果 |
+|------|------|---------|
+| "模拟网络超时弹窗" | dialog | 添加错误弹窗 + 禁用按钮 |
+| "显示登录失败提示" | dialog | Toast 提示 + 清空密码框 |
+| "生成优惠券广告弹窗" | dialog | 优惠券弹窗 + 半透明遮罩 |
+| "模拟列表加载超时" | area_loading | Loading 图标 + 区域遮罩 |
+| "选集控件处显示重复列表" | content_duplicate | 底部浮层 + 扩展内容 |
+| "模拟底部信息重复显示" | content_duplicate | 复制组件到底部浮层 |
 
 ## 语义感知场景支持
 
@@ -412,6 +494,15 @@ python scripts/run_pipeline.py \
 - [x] 增强 PIL 弹窗渲染
 - [x] AI 图像直接生成模式
 - [x] 中间结果全保存
+- [x] GT 模板驱动生成（meta.json）
+- [x] 内容重复异常模式 (content_duplicate)
+- [x] 批量生成流水线 (batch_pipeline)
+- [x] 一键启动脚本 (launch.sh / launch.bat)
+- [x] VLM 驱动 meta.json 自动生成
+- [x] 精确边界框提取 (extract_gt_bounds)
+- [x] 风格迁移与样本管理工具
+- [x] 原图数据集（4 类 6 张）
+- [x] GT 模板扩展（3 类 10 个样本）
 - [ ] 组件库积累（弹窗、Toast 模板）
 - [ ] 高级 Inpainting（复杂背景）
 

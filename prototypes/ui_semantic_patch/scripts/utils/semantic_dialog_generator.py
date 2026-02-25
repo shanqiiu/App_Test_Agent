@@ -93,7 +93,8 @@ def generate_image_dashscope(
     api_key: str = None,
     size: str = '1024*1024',
     negative_prompt: str = None,
-    save_path: str = None
+    save_path: str = None,
+    prompt_extend: bool = True
 ) -> Optional[Image.Image]:
     """
     使用 DashScope MultiModalConversation API 生成图像
@@ -104,6 +105,7 @@ def generate_image_dashscope(
         size: 图像尺寸，格式 'width*height'，会自动规范化到支持范围 [512, 2048]
         negative_prompt: 负面提示词
         save_path: 可选的保存路径
+        prompt_extend: 是否启用提示词扩展（meta驱动生成建议关闭以保持精确控制）
 
     Returns:
         生成的 PIL Image 对象，失败返回 None
@@ -137,9 +139,9 @@ def generate_image_dashscope(
         }
     ]
 
-    # 默认负面提示词（排除非黑色背景和低质量图像）
+    # 默认负面提示词（排除非黑色背景、低质量图像、品牌logo）
     if negative_prompt is None:
-        negative_prompt = "低分辨率，低画质，肢体畸形，手指畸形，画面过饱和，蜡像感，人脸无细节，过度光滑，画面具有AI感。构图混乱。文字模糊，扭曲。白色背景，灰色背景，渐变背景，彩色背景，white background, gray background, colored background, gradient background"
+        negative_prompt = "低分辨率，低画质，肢体畸形，手指畸形，画面过饱和，蜡像感，人脸无细节，过度光滑，画面具有AI感。构图混乱。文字模糊，扭曲。白色背景，灰色背景，渐变背景，彩色背景，white background, gray background, colored background, gradient background, 美团logo, 淘宝logo, 京东logo, 华为logo, 抖音logo, HarmonyOS, brand logo, brand text, watermark"
 
     # 重试逻辑
     max_retries = 5
@@ -164,7 +166,7 @@ def generate_image_dashscope(
                 result_format='message',
                 stream=False,
                 watermark=False,
-                prompt_extend=True,
+                prompt_extend=prompt_extend,
                 negative_prompt=negative_prompt,
                 size=size
             )
@@ -1267,7 +1269,7 @@ class SemanticDialogGenerator:
         gen_size = f"{width}*{height}"
 
         try:
-            image = generate_image_dashscope(prompt=prompt, size=gen_size)
+            image = generate_image_dashscope(prompt=prompt, size=gen_size, prompt_extend=False)
 
             if image:
                 gen_width, gen_height = image.size
@@ -1278,10 +1280,17 @@ class SemanticDialogGenerator:
                     image = image.resize((width, height), Image.Resampling.LANCZOS)
 
                 # 后处理：移除背景（包括灰色边框）
-                # tolerance=70 可以更好地去除灰色边框/阴影
-                # 注意：由于关闭按钮已改为在 run_pipeline.py 中程序化绘制，
-                # 不再需要担心保留AI生成的浅灰色关闭按钮
-                image = self._remove_background(image, tolerance=70)
+                # 根据弹窗背景色自适应调整 tolerance
+                bg_str = meta_features.get('background', '')
+                if any(kw in bg_str for kw in ('#FF', '红', 'red', '粉', 'pink', '渐变')):
+                    bg_tolerance = 50  # 深色/彩色背景弹窗使用较低容差，避免吃掉内容边缘
+                    print(f"  ℹ 彩色背景弹窗，使用较低背景移除容差: {bg_tolerance}")
+                else:
+                    bg_tolerance = 70
+                image = self._remove_background(image, tolerance=bg_tolerance)
+
+                # 后处理：裁切到实际内容区域并 resize 到目标尺寸
+                image = self._crop_to_content_and_resize(image, width, height)
 
                 # 注意：关闭按钮不在此处绘制
                 # 对于 bottom-center 等位置，关闭按钮应该在弹窗卡片外部
@@ -1387,7 +1396,7 @@ class SemanticDialogGenerator:
 ## 弹窗类型约束
 - 弹窗类型: {anomaly_type_desc}
 - 用户指令: {instruction}
-{f"- APP风格参考: {app_style}" if app_style else ""}
+- 重要：品牌信息必须从截图中识别，不要猜测或使用其他品牌
 
 ## 示例
 - 如果是机票/火车票页面 + 促销弹窗 → 生成"春运特惠券"、"机票立减50元"等内容
@@ -1691,6 +1700,59 @@ class SemanticDialogGenerator:
 
         return result
 
+    def _crop_to_content_and_resize(
+        self,
+        image: Image.Image,
+        target_width: int,
+        target_height: int
+    ) -> Image.Image:
+        """
+        裁切透明边距并 resize 到目标尺寸
+
+        AI 生成的弹窗在背景移除后，实际内容可能不铺满画布。
+        此方法：
+        1. 找到非透明像素的边界框
+        2. 裁切到该边界框
+        3. resize 到目标尺寸
+
+        Args:
+            image: RGBA 图像（已去除背景）
+            target_width: 目标宽度
+            target_height: 目标高度
+
+        Returns:
+            调整后的图像
+        """
+        if image.mode != 'RGBA':
+            image = image.convert('RGBA')
+
+        # 通过 alpha 通道找到内容边界框
+        bbox = image.getbbox()
+        if not bbox:
+            return image  # 完全透明，无操作
+
+        content_width = bbox[2] - bbox[0]
+        content_height = bbox[3] - bbox[1]
+        canvas_width, canvas_height = image.size
+
+        fill_ratio = (content_width * content_height) / (canvas_width * canvas_height)
+
+        if fill_ratio > 0.85:
+            # 内容已经铺满大部分画布，只需 resize
+            if (canvas_width, canvas_height) != (target_width, target_height):
+                image = image.resize((target_width, target_height), Image.Resampling.LANCZOS)
+            return image
+
+        # 裁切到内容边界框
+        cropped = image.crop(bbox)
+        print(f"  ℹ 内容区域: {content_width}x{content_height} (填充率: {fill_ratio:.1%})")
+
+        # resize 到目标尺寸
+        resized = cropped.resize((target_width, target_height), Image.Resampling.LANCZOS)
+        print(f"  ℹ 已 resize 到目标尺寸: {target_width}x{target_height}")
+
+        return resized
+
     def _find_largest_connected_region(
         self,
         pixels_set: set,
@@ -1974,6 +2036,7 @@ class SemanticDialogGenerator:
         """
         # 提取关键视觉参数
         app_style = meta_features.get('app_style', '通用')
+        design_language = meta_features.get('design_language', '')
         primary_color = meta_features.get('primary_color', '#1890FF')
         background = meta_features.get('background', '#FFFFFF')
         dialog_position = meta_features.get('dialog_position', 'center')
@@ -2076,9 +2139,9 @@ class SemanticDialogGenerator:
 
         # 构建精确的prompt
         # 注意：app_style 来自参考图的meta.json，可能包含参考图的品牌（如"华为花粉俱乐部"）
-        # 如果有目标页面的 brand_name，应使用 brand_name 作为品牌标识
-        # app_style 仅用于视觉设计风格参考（配色、圆角、间距等）
-        display_brand = brand_name if brand_name else app_style
+        # 只有当 VLM 从目标截图识别出 brand_name 时才使用品牌信息
+        # 绝不回退到 app_style，避免参考图品牌泄漏到生成结果
+        display_brand = brand_name if brand_name else ''
 
         # 根据弹窗类型构建不同的内容描述
         if is_dropdown_menu and menu_items:
@@ -2122,7 +2185,18 @@ IMPORTANT: This is a DROPDOWN MENU, not a confirmation dialog. Generate a small,
 {logo_text_desc}
 
 IMPORTANT: Use the above Chinese text EXACTLY as specified. Do not change or substitute with other content.
-IMPORTANT: This dialog belongs to "{display_brand}" app. DO NOT show any other brand name or logo text."""
+{f'IMPORTANT: This dialog belongs to "{display_brand}" app. DO NOT show any other brand name or logo text.' if display_brand else 'IMPORTANT: Do NOT include any specific app brand name, logo, or brand text in the dialog. Keep the dialog brand-neutral.'}"""
+
+        # 版式形状描述映射 —— 强化 AI 对弹窗空间形态的理解
+        layout_shape_map = {
+            'bottom-fixed': 'CRITICAL LAYOUT: This is a HORIZONTAL BANNER/STRIP fixed to the bottom edge. It must be WIDE and SHORT (like a coupon bar), NOT a centered card or popup. The banner should span the full canvas width.',
+            'bottom-floating': 'CRITICAL LAYOUT: This is a wide, short rounded banner floating near the bottom. It should be a horizontal strip, NOT a tall card.',
+            'bottom-center-floating': 'CRITICAL LAYOUT: This is a small tooltip/bubble near the bottom center. Keep it compact.',
+            'center': 'LAYOUT: This is a centered card dialog, vertically and horizontally centered in the canvas.',
+            'bottom-left-inline': 'CRITICAL LAYOUT: This is a SMALL compact dropdown menu card. Keep it minimal.',
+            'multi-layer': 'LAYOUT: This consists of multiple overlapping layers with a dark semi-transparent overlay.',
+        }
+        layout_shape_hint = layout_shape_map.get(dialog_position, '')
 
         prompt = f"""Generate a mobile app dialog/popup that EXACTLY matches the following specifications.
 
@@ -2135,9 +2209,9 @@ IMPORTANT: This dialog belongs to "{display_brand}" app. DO NOT show any other b
 
 ### App Style
 - Use the reference image ONLY for visual design patterns (card shape, color scheme, layout)
-- The dialog belongs to: "{display_brand}" app
+{f'- The dialog belongs to: "{display_brand}" app' if display_brand else '- Do NOT include any specific brand name or logo text'}
 - DO NOT copy brand-specific text or logos from the reference image
-- Any logo/badge icon should display "{display_brand}" NOT any text from the reference
+{f'- Any logo/badge icon should display "{display_brand}" NOT any text from the reference' if display_brand else '- Any logo/badge should use generic visual style without brand identity'}
 
 ### Color Scheme (EXACT values)
 - Primary color: {primary_color}
@@ -2147,6 +2221,7 @@ IMPORTANT: This dialog belongs to "{display_brand}" app. DO NOT show any other b
 ### Layout
 - Dialog position: {dialog_position}
 - Corner style: {corner_style} rounded corners
+{f'- {layout_shape_hint}' if layout_shape_hint else ''}
 
 {close_button_desc}
 
@@ -2157,6 +2232,12 @@ IMPORTANT: This dialog belongs to "{display_brand}" app. DO NOT show any other b
 - Overlay opacity: {overlay_opacity}
 
 ## 4. TECHNICAL REQUIREMENTS
+
+### Canvas Fill (CRITICAL)
+- The dialog MUST fill the ENTIRE canvas width - do NOT leave empty margins
+- The dialog card should span edge-to-edge horizontally (with only thin black border for post-processing)
+- If the dialog is a banner/strip type: it MUST span the full width of the canvas
+- If the dialog is a card type: it should fill at least 90% of the canvas width
 
 ### Background (CRITICAL - MUST FOLLOW)
 - The area OUTSIDE the dialog MUST be pure black (#000000, RGB 0,0,0)
@@ -2169,7 +2250,7 @@ IMPORTANT: This dialog belongs to "{display_brand}" app. DO NOT show any other b
 ### Quality
 - High resolution, crisp Chinese text rendering
 - Professional mobile app quality
-- Native look matching {app_style} design language
+- Native look matching {design_language if design_language else 'modern mobile app'} design language
 - Anti-aliased edges and shadows
 
 ### Text

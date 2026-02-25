@@ -258,6 +258,10 @@ class MetaLoader:
         if 'duplicate_mode' in sample_meta:
             flat_features['duplicate_mode'] = sample_meta.get('duplicate_mode')
 
+        # 添加 dialog_bounds_px（精确像素边界框，由 extract_gt_bounds.py 提取）
+        if 'dialog_bounds_px' in sample_meta:
+            flat_features['dialog_bounds_px'] = sample_meta['dialog_bounds_px']
+
         return flat_features
 
     def extract_visual_style_prompt(
@@ -295,9 +299,14 @@ class MetaLoader:
         # 2. 视觉风格要求（只保留样式相关）
         prompt_parts.append("## 视觉风格要求（精确匹配参考图样式）")
 
-        # APP 设计语言（只描述视觉风格，不含品牌名）
-        app_style = visual_features.get('app_style', '通用')
-        prompt_parts.append(f"- 视觉设计风格参考: {app_style}（仅参考配色和布局风格，不要使用该品牌的Logo或品牌文字）")
+        # 优先使用品牌无关的 design_language 描述
+        design_language = visual_features.get('design_language', '')
+        if design_language:
+            prompt_parts.append(f"- 视觉设计风格: {design_language}")
+        else:
+            # 回退到 app_style，但强调不要使用品牌
+            app_style = visual_features.get('app_style', '通用')
+            prompt_parts.append(f"- 视觉设计风格参考: {app_style}（仅参考配色和布局风格，绝对不要使用该品牌的Logo或品牌文字）")
 
         # 颜色方案
         if 'primary_color' in visual_features:

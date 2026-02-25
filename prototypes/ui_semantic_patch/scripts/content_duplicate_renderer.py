@@ -54,6 +54,15 @@ class ContentDuplicateRenderer:
 
     # ==================== 组件查找 ====================
 
+    # 同义词映射：关键词 → 扩展搜索词列表（含自身）
+    KEYWORD_SYNONYMS = {
+        '选集': ['选集', '剧集', '集数', '分集'],
+        '列表': ['列表', 'list', '清单'],
+        '筛选': ['筛选', '过滤', '排序'],
+        '标签': ['标签', 'Tab', 'tab'],
+        '菜单': ['菜单', 'menu', '导航'],
+    }
+
     def find_duplicatable_component(
         self,
         ui_json: Dict,
@@ -88,7 +97,7 @@ class ContentDuplicateRenderer:
 
         print(f"  提取关键词: \"{keyword}\"")
 
-        # 在组件中搜索匹配项
+        # 在组件中搜索匹配项（精确文本匹配）
         for match_type in ['exact', 'startswith', 'contains', 'class']:
             for comp in components:
                 text = comp.get('text', '')
@@ -103,8 +112,108 @@ class ContentDuplicateRenderer:
                 elif match_type == 'class' and keyword in comp_class:
                     return self._enrich_component(comp, 'class', keyword)
 
+        print(f"  ⚠ 精确匹配未找到: \"{keyword}\"，尝试同义词和模式匹配...")
+
+        # 模式启发式优先：检测连续排列的编号按钮（典型的选集/集数区域）
+        # 对于选集类关键词，模式匹配比同义词更可靠，因为 VLM 可能将选集区域
+        # 描述为"剧集详情Banner"等泛化名称
+        if keyword in ('选集', '集数', '剧集', '列表'):
+            episode_comp = self._find_episode_button_group(components)
+            if episode_comp:
+                print(f"  ✓ 模式匹配: 检测到集数按钮组 (y≈{episode_comp['bounds']['y']})")
+                return self._enrich_component(episode_comp, 'pattern_episode_group', keyword)
+
+        # 同义词扩展匹配：在 text 和 note 字段中搜索
+        synonyms = self.KEYWORD_SYNONYMS.get(keyword, [])
+        if synonyms:
+            for syn in synonyms:
+                if syn == keyword:
+                    continue  # 已经搜过
+                for comp in components:
+                    text = comp.get('text', '')
+                    note = comp.get('note', '')
+                    if syn in text:
+                        print(f"  ✓ 同义词匹配: \"{syn}\" in text \"{text[:30]}\"")
+                        return self._enrich_component(comp, 'synonym_text', keyword)
+                    if syn in note:
+                        print(f"  ✓ 同义词匹配: \"{syn}\" in note \"{note[:40]}\"")
+                        return self._enrich_component(comp, 'synonym_note', keyword)
+
+        # note 字段匹配（VLM 语义过滤的描述中可能包含原始关键词）
+        for comp in components:
+            note = comp.get('note', '')
+            if keyword in note:
+                print(f"  ✓ note匹配: \"{keyword}\" in \"{note[:40]}\"")
+                return self._enrich_component(comp, 'note', keyword)
+
         print(f"  ⚠ 未找到匹配组件: \"{keyword}\"")
         return None
+
+    def _find_episode_button_group(self, components: List[Dict]) -> Optional[Dict]:
+        """
+        检测连续排列的编号按钮组（选集区域的典型布局模式）。
+
+        选集按钮通常是一排大小相近、y坐标相同的按钮，文本为数字（1, 2, 3...）。
+        找到后返回一个合成的父组件，bounds 覆盖整组按钮。
+        """
+        # 筛选文本为纯数字（允许空格）的可点击组件
+        numeric_buttons = []
+        for comp in components:
+            text = comp.get('text', '').strip()
+            # 去掉空格后检查是否为纯数字
+            cleaned = text.replace(' ', '')
+            if cleaned.isdigit() and comp.get('clickable', False):
+                numeric_buttons.append(comp)
+                continue
+            # Florence2 有时将数字按钮描述为英文（如 "1, September, 2014"）
+            # 检查是否以数字开头且尺寸与其他按钮相近（宽高比合理的小按钮）
+            if comp.get('clickable', False) and re.match(r'^\d+\b', cleaned):
+                bounds = comp.get('bounds', {})
+                w, h = bounds.get('width', 0), bounds.get('height', 0)
+                if 50 < w < 400 and 50 < h < 400:
+                    numeric_buttons.append(comp)
+
+        if len(numeric_buttons) < 3:
+            return None
+
+        # 按 y 坐标聚类（同一行的按钮 y 差距应 < 30px）
+        numeric_buttons.sort(key=lambda c: c['bounds']['y'])
+        rows = []
+        current_row = [numeric_buttons[0]]
+        for btn in numeric_buttons[1:]:
+            if abs(btn['bounds']['y'] - current_row[0]['bounds']['y']) < 30:
+                current_row.append(btn)
+            else:
+                rows.append(current_row)
+                current_row = [btn]
+        rows.append(current_row)
+
+        # 找到最长的一行（最可能是选集区域）
+        best_row = max(rows, key=len)
+        if len(best_row) < 3:
+            return None
+
+        # 合成一个覆盖整组的父组件
+        best_row.sort(key=lambda c: c['bounds']['x'])
+        min_x = min(c['bounds']['x'] for c in best_row)
+        min_y = min(c['bounds']['y'] for c in best_row)
+        max_x = max(c['bounds']['x'] + c['bounds']['width'] for c in best_row)
+        max_y = max(c['bounds']['y'] + c['bounds']['height'] for c in best_row)
+
+        return {
+            'index': best_row[0].get('index'),
+            'class': 'EpisodeSelector',
+            'bounds': {
+                'x': min_x,
+                'y': min_y,
+                'width': max_x - min_x,
+                'height': max_y - min_y,
+            },
+            'text': f"选集 1-{len(best_row)}",
+            'clickable': True,
+            'source_indices': [c.get('index') or c.get('original_index') for c in best_row],
+            'note': f'模式匹配：检测到 {len(best_row)} 个连续编号按钮',
+        }
 
     def _extract_keyword(self, instruction: str) -> Optional[str]:
         """从指令中提取目标组件关键词"""
@@ -148,6 +257,11 @@ class ContentDuplicateRenderer:
         """
         text = component.get('text', '').lower()
         comp_class = component.get('class', '').lower()
+        match_type = component.get('_match_type', '')
+
+        # 通过模式匹配找到的集数按钮组，或 class 为 EpisodeSelector
+        if match_type == 'pattern_episode_group' or 'episodeselector' in comp_class:
+            return 'episode_selector'
 
         # 选集/集数选择器
         if any(kw in text for kw in ['选集', '集', '第', '更新']):
@@ -438,14 +552,12 @@ class ContentDuplicateRenderer:
             print(f"  ✓ 组件分析: {component_analysis.get('component_type')} - {component_analysis.get('title')}")
 
             # 2. 计算底部浮层尺寸
-            # 关键：浮层放在组件下方，高度根据可用空间动态调整
+            # 关键：浮层从组件下方延伸到屏幕底部，完全覆盖底部区域
             margin_top = 10  # 浮层与组件的间距
             available_height = screen_height - component_bottom_y - margin_top
 
-            # 浮层最大高度不超过可用空间，最小保证基本显示
-            min_sheet_height = 300
-            max_sheet_height = int(screen_height * 0.65)
-            sheet_height = min(max(min_sheet_height, int(available_height * 0.95)), max_sheet_height)
+            # 浮层高度 = 填满组件下方到屏幕底部的所有空间
+            sheet_height = max(300, available_height)
 
             print(f"  可用空间: {available_height}px, 浮层高度: {sheet_height}px")
 
@@ -710,14 +822,32 @@ Requirements:
 
         return None
 
-    def _expand_episode_items(self, items: List[str], total_count: str) -> List[str]:
-        """扩展选集列表项"""
-        # 尝试从total_count提取数字
-        total_match = re.search(r'(\d+)', total_count or '')
-        total = int(total_match.group(1)) if total_match else 18
+    def _expand_episode_items(self, items: List[str], total_count: str, meta_features: Dict = None) -> List[str]:
+        """扩展选集列表项
 
-        # 生成扩展的集数列表
-        expanded = [str(i) for i in range(1, min(total + 1, 25))]
+        优先使用 meta_features 中 duplicate_expansion.expanded_count，
+        其次从 total_count 文本提取数字，最后默认 18。
+        """
+        # 优先从 meta_features 的 duplicate_expansion 获取目标数量
+        expanded_count = None
+        if meta_features:
+            dup_exp = meta_features.get('duplicate_expansion', {})
+            if isinstance(dup_exp, dict) and dup_exp.get('expanded_count'):
+                expanded_count = int(dup_exp['expanded_count'])
+
+        if not expanded_count:
+            # 尝试从total_count提取数字
+            total_match = re.search(r'(\d+)', total_count or '')
+            expanded_count = int(total_match.group(1)) if total_match else 18
+
+        # 保底：至少展示 meta 中配置的数量，不会因为 VLM 返回小数字而缩减
+        if meta_features:
+            dup_exp = meta_features.get('duplicate_expansion', {})
+            if isinstance(dup_exp, dict) and dup_exp.get('expanded_count'):
+                expanded_count = max(expanded_count, int(dup_exp['expanded_count']))
+
+        # 生成扩展的集数列表（上限 36）
+        expanded = [str(i) for i in range(1, min(expanded_count + 1, 37))]
         return expanded
 
     def _generate_expanded_content_pil(
@@ -780,8 +910,11 @@ Requirements:
             vip_color_str = style.get('vip_badge_color', '#B4964F')
             vip_color = self._parse_color(vip_color_str, (180, 140, 80))
 
-            # 网格参数
-            grid_cols = style.get('grid_columns', 6)
+            # 网格参数（优先 style，其次 meta_features.duplicate_expansion）
+            dup_exp = meta_features.get('duplicate_expansion', {})
+            if not isinstance(dup_exp, dict):
+                dup_exp = {}
+            grid_cols = style.get('grid_columns') or dup_exp.get('grid_columns') or 6
             cell_radius = style.get('cell_border_radius', 8)
             cell_height = style.get('cell_height', 70)
             cell_margin = style.get('cell_margin', 15)
@@ -819,7 +952,7 @@ Requirements:
                 self._draw_episode_grid_styled(
                     draw=draw,
                     img=img,
-                    items=self._expand_episode_items(items, total_count),
+                    items=self._expand_episode_items(items, total_count, meta_features),
                     primary_rgb=primary_rgb,
                     text_color=text_color,
                     cell_bg=cell_bg,
@@ -888,22 +1021,39 @@ Requirements:
         height: int,
         start_y: int = 100
     ):
-        """绘制选集网格（使用动态风格参数）"""
+        """绘制选集网格（使用动态风格参数，自适应填充可用空间）"""
         padding = 25
         cell_margin_h = cell_margin
         cell_margin_v = cell_margin + 5
         cell_width = (width - padding * 2 - cell_margin_h * (grid_cols - 1)) // grid_cols
 
-        # 计算可显示的行数
-        available_height = height - start_y - padding
-        max_rows = available_height // (cell_height + cell_margin_v)
+        # 计算网格布局需要的行数
+        total_items = len(items)
+        total_rows = (total_items + grid_cols - 1) // grid_cols
 
-        for idx, item in enumerate(items[:grid_cols * max_rows]):
+        # 根据可用高度和行数动态计算单元格高度，使网格均匀填充空间
+        available_height = height - start_y - padding
+        if total_rows > 0:
+            # 从可用高度反推每个 cell 的高度（去掉行间距）
+            dynamic_cell_height = (available_height - cell_margin_v * (total_rows - 1)) // total_rows
+            # 限制范围：不能过矮，也不超过单元格宽度（保持合理比例）
+            max_cell_height = min(cell_width, 200)
+            cell_height = max(50, min(dynamic_cell_height, max_cell_height))
+
+        max_rows = available_height // (cell_height + cell_margin_v)
+        display_count = min(total_items, grid_cols * max_rows)
+
+        # 重新计算实际使用行数后的垂直居中偏移
+        actual_rows = (display_count + grid_cols - 1) // grid_cols
+        used_height = actual_rows * cell_height + (actual_rows - 1) * cell_margin_v
+        offset_y = (available_height - used_height) // 2 if used_height < available_height else 0
+
+        for idx in range(display_count):
             row = idx // grid_cols
             col = idx % grid_cols
 
             x = padding + col * (cell_width + cell_margin_h)
-            y = start_y + row * (cell_height + cell_margin_v)
+            y = start_y + offset_y + row * (cell_height + cell_margin_v)
 
             # 第一个为选中态
             if idx == 0:
@@ -924,7 +1074,7 @@ Requirements:
                 current_text_color = text_color
 
             # 绘制集数文字
-            text = str(item)
+            text = str(items[idx])
             try:
                 bbox = draw.textbbox((0, 0), text, font=font_button)
                 text_w = bbox[2] - bbox[0]
@@ -971,25 +1121,40 @@ Requirements:
         height: int,
         start_y: int = 100
     ):
-        """绘制增强版选集网格（匹配参考图样式）"""
+        """绘制增强版选集网格（匹配参考图样式，自适应填充）"""
         # 网格参数
         cols = 6
         padding = 25
         cell_margin_h = 15
         cell_margin_v = 20
         cell_width = (width - padding * 2 - cell_margin_h * (cols - 1)) // cols
-        cell_height = 70
 
-        # 计算可显示的行数
+        # 动态计算单元格高度，使网格均匀填充可用空间
+        total_items = len(items)
+        total_rows = (total_items + cols - 1) // cols
         available_height = height - start_y - padding
-        max_rows = available_height // (cell_height + cell_margin_v)
 
-        for idx, item in enumerate(items[:cols * max_rows]):
+        if total_rows > 0:
+            dynamic_cell_height = (available_height - cell_margin_v * (total_rows - 1)) // total_rows
+            max_cell_height = min(cell_width, 200)
+            cell_height = max(50, min(dynamic_cell_height, max_cell_height))
+        else:
+            cell_height = 70
+
+        max_rows = available_height // (cell_height + cell_margin_v)
+        display_count = min(total_items, cols * max_rows)
+
+        # 垂直居中偏移
+        actual_rows = (display_count + cols - 1) // cols
+        used_height = actual_rows * cell_height + (actual_rows - 1) * cell_margin_v
+        offset_y = (available_height - used_height) // 2 if used_height < available_height else 0
+
+        for idx in range(display_count):
             row = idx // cols
             col = idx % cols
 
             x = padding + col * (cell_width + cell_margin_h)
-            y = start_y + row * (cell_height + cell_margin_v)
+            y = start_y + offset_y + row * (cell_height + cell_margin_v)
 
             # 第一个为选中态（橙色边框+浅色背景）
             if idx == 0:
@@ -1012,7 +1177,7 @@ Requirements:
                 text_color = (220, 220, 220)
 
             # 绘制集数文字
-            text = str(item)
+            text = str(items[idx])
             try:
                 bbox = draw.textbbox((0, 0), text, font=font_button)
                 text_w = bbox[2] - bbox[0]
@@ -1116,14 +1281,20 @@ Requirements:
         close_btn_area = 50
 
         content_width = min(content.width, screen_width - padding * 2)
-        content_height = min(content.height, int(screen_height * 0.6))
+        content_height = content.height
 
         # 调整内容尺寸
         if content.width != content_width or content.height != content_height:
             content = content.resize((content_width, content_height), Image.Resampling.LANCZOS)
 
         sheet_width = screen_width
-        sheet_height = title_height + content_height + padding * 2 + close_btn_area
+
+        if component_bottom_y is not None:
+            # 浮层从组件底部延伸到屏幕底部
+            margin_top = 10
+            sheet_height = screen_height - component_bottom_y - margin_top
+        else:
+            sheet_height = title_height + content_height + padding * 2 + close_btn_area
 
         # 背景样式
         bg_color_str = meta_features.get('background', '#2A2A2A')
@@ -1224,23 +1395,10 @@ Requirements:
         pos_x = 0
 
         if component_bottom_y is not None:
-            # 将浮层放在目标组件下方（留出间距）
-            margin_top = 10  # 与组件的间距
+            # 浮层紧贴组件底部，延伸到屏幕底部
+            margin_top = 10
             pos_y = component_bottom_y + margin_top
-
-            # 如果浮层会超出屏幕底部，需要调整高度
-            if pos_y + sheet_height > screen_height:
-                # 可用高度 = 屏幕高度 - 浮层起始位置
-                available_height = screen_height - pos_y
-                if available_height < 200:
-                    # 可用空间太小，回退到默认位置
-                    pos_y = screen_height - sheet_height
-                    print(f"  ℹ 可用空间不足，回退到默认底部位置")
-                else:
-                    # 这里只调整位置，浮层高度保持不变（因为内容已经生成）
-                    # 实际高度限制应在内容生成前处理
-                    pass
-            print(f"  ✓ 浮层定位: 组件底部Y={component_bottom_y}, 浮层Y={pos_y}")
+            print(f"  ✓ 浮层定位: 组件底部Y={component_bottom_y}, 浮层Y={pos_y}, 底部={pos_y + sheet_height}")
         else:
             # 默认放在屏幕底部
             pos_y = screen_height - sheet_height

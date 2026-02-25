@@ -450,13 +450,19 @@ def run_pipeline(
                     screenshot_img = Image.open(screenshot_path)
                     screen_width, screen_height = screenshot_img.size
 
-                    # 计算弹窗尺寸（从meta_features获取比例）
-                    width_ratio = meta_features.get('dialog_width_ratio', 0.8)
-                    height_ratio = meta_features.get('dialog_height_ratio', 0.5)
-                    dialog_width = int(screen_width * width_ratio)
-                    dialog_height = int(screen_height * height_ratio)
-
-                    print(f"  弹窗尺寸: {dialog_width}x{dialog_height} (比例: {width_ratio}x{height_ratio})")
+                    # 计算弹窗尺寸
+                    # 优先使用 dialog_bounds_px（OmniParser 精确提取），否则回退到比例估算
+                    bounds_px = meta_features.get('dialog_bounds_px')
+                    if bounds_px:
+                        dialog_width = bounds_px['width']
+                        dialog_height = bounds_px['height']
+                        print(f"  弹窗尺寸: {dialog_width}x{dialog_height} (来源: dialog_bounds_px 精确提取)")
+                    else:
+                        width_ratio = meta_features.get('dialog_width_ratio', 0.8)
+                        height_ratio = meta_features.get('dialog_height_ratio', 0.5)
+                        dialog_width = int(screen_width * width_ratio)
+                        dialog_height = int(screen_height * height_ratio)
+                        print(f"  弹窗尺寸: {dialog_width}x{dialog_height} (比例: {width_ratio}x{height_ratio})")
 
                     # 使用 meta-driven 生成器
                     generator = SemanticDialogGenerator(
