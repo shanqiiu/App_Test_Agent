@@ -9,7 +9,6 @@ import json
 import base64
 import re
 from pathlib import Path
-from typing import Tuple
 
 
 def encode_image(image_path: str) -> str:
@@ -60,35 +59,3 @@ def extract_json(content: str) -> dict:
         return json.loads(brace_match.group(0))
 
     raise ValueError(f"无法从 VLM 输出中提取 JSON: {content[:200]}...")
-
-
-def parse_color(color: str) -> Tuple[int, int, int, int]:
-    """
-    解析颜色字符串为 RGBA 元组
-
-    支持格式:
-    - #RGB
-    - #RRGGBB
-    - #RRGGBBAA
-    """
-    if color.startswith('#'):
-        color = color[1:]
-        if len(color) == 3:
-            color = ''.join(c * 2 for c in color)
-        if len(color) == 6:
-            r = int(color[0:2], 16)
-            g = int(color[2:4], 16)
-            b = int(color[4:6], 16)
-            return (r, g, b, 255)
-        elif len(color) == 8:
-            r = int(color[0:2], 16)
-            g = int(color[2:4], 16)
-            b = int(color[4:6], 16)
-            a = int(color[6:8], 16)
-            return (r, g, b, a)
-    return (0, 0, 0, 255)
-
-
-def rgb_to_hex(rgb: Tuple[int, int, int]) -> str:
-    """RGB 转十六进制颜色"""
-    return '#{:02x}{:02x}{:02x}'.format(*rgb)

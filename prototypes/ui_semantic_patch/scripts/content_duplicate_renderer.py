@@ -840,12 +840,6 @@ Requirements:
             total_match = re.search(r'(\d+)', total_count or '')
             expanded_count = int(total_match.group(1)) if total_match else 18
 
-        # 保底：至少展示 meta 中配置的数量，不会因为 VLM 返回小数字而缩减
-        if meta_features:
-            dup_exp = meta_features.get('duplicate_expansion', {})
-            if isinstance(dup_exp, dict) and dup_exp.get('expanded_count'):
-                expanded_count = max(expanded_count, int(dup_exp['expanded_count']))
-
         # 生成扩展的集数列表（上限 36）
         expanded = [str(i) for i in range(1, min(expanded_count + 1, 37))]
         return expanded
@@ -1095,111 +1089,6 @@ Requirements:
                     radius=3,
                     fill=(*vip_color, 255)
                 )
-                try:
-                    vip_bbox = draw.textbbox((0, 0), "VIP", font=font_vip)
-                    vip_tw = vip_bbox[2] - vip_bbox[0]
-                    vip_th = vip_bbox[3] - vip_bbox[1]
-                except:
-                    vip_tw, vip_th = 20, 10
-                draw.text(
-                    (vip_x + (vip_w - vip_tw) // 2, vip_y + (vip_h - vip_th) // 2 - 1),
-                    "VIP",
-                    fill=(255, 255, 255, 255),
-                    font=font_vip
-                )
-
-    def _draw_episode_grid_enhanced(
-        self,
-        draw: ImageDraw.Draw,
-        img: Image.Image,
-        items: List[str],
-        style: Dict,
-        primary_rgb: Tuple[int, int, int],
-        font_button: ImageFont.FreeTypeFont,
-        font_vip: ImageFont.FreeTypeFont,
-        width: int,
-        height: int,
-        start_y: int = 100
-    ):
-        """绘制增强版选集网格（匹配参考图样式，自适应填充）"""
-        # 网格参数
-        cols = 6
-        padding = 25
-        cell_margin_h = 15
-        cell_margin_v = 20
-        cell_width = (width - padding * 2 - cell_margin_h * (cols - 1)) // cols
-
-        # 动态计算单元格高度，使网格均匀填充可用空间
-        total_items = len(items)
-        total_rows = (total_items + cols - 1) // cols
-        available_height = height - start_y - padding
-
-        if total_rows > 0:
-            dynamic_cell_height = (available_height - cell_margin_v * (total_rows - 1)) // total_rows
-            max_cell_height = min(cell_width, 200)
-            cell_height = max(50, min(dynamic_cell_height, max_cell_height))
-        else:
-            cell_height = 70
-
-        max_rows = available_height // (cell_height + cell_margin_v)
-        display_count = min(total_items, cols * max_rows)
-
-        # 垂直居中偏移
-        actual_rows = (display_count + cols - 1) // cols
-        used_height = actual_rows * cell_height + (actual_rows - 1) * cell_margin_v
-        offset_y = (available_height - used_height) // 2 if used_height < available_height else 0
-
-        for idx in range(display_count):
-            row = idx // cols
-            col = idx % cols
-
-            x = padding + col * (cell_width + cell_margin_h)
-            y = start_y + offset_y + row * (cell_height + cell_margin_v)
-
-            # 第一个为选中态（橙色边框+浅色背景）
-            if idx == 0:
-                # 选中态背景
-                draw.rounded_rectangle(
-                    [x, y, x + cell_width, y + cell_height],
-                    radius=8,
-                    fill=(60, 50, 45, 255),
-                    outline=primary_rgb,
-                    width=2
-                )
-                text_color = primary_rgb
-            else:
-                # 普通态（深灰背景）
-                draw.rounded_rectangle(
-                    [x, y, x + cell_width, y + cell_height],
-                    radius=8,
-                    fill=(55, 55, 55, 255)
-                )
-                text_color = (220, 220, 220)
-
-            # 绘制集数文字
-            text = str(items[idx])
-            try:
-                bbox = draw.textbbox((0, 0), text, font=font_button)
-                text_w = bbox[2] - bbox[0]
-                text_h = bbox[3] - bbox[1]
-            except:
-                text_w, text_h = 20, 20
-            text_x = x + (cell_width - text_w) // 2
-            text_y = y + (cell_height - text_h) // 2
-            draw.text((text_x, text_y), text, fill=text_color, font=font_button)
-
-            # VIP标签（第3集及以后）
-            if idx >= 2:
-                vip_w, vip_h = 30, 16
-                vip_x = x + cell_width - vip_w - 5
-                vip_y = y + 5
-                # VIP背景（金色渐变效果用纯色近似）
-                draw.rounded_rectangle(
-                    [vip_x, vip_y, vip_x + vip_w, vip_y + vip_h],
-                    radius=3,
-                    fill=(180, 140, 80, 255)
-                )
-                # VIP文字
                 try:
                     vip_bbox = draw.textbbox((0, 0), "VIP", font=font_vip)
                     vip_tw = vip_bbox[2] - vip_bbox[0]

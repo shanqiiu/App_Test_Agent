@@ -601,9 +601,6 @@ def run_pipeline(
                         print(f"  ✓ Meta-driven 生成完成!")
                         print(f"  ✓ 保存至: {final_output}")
 
-                        # 跳过后续的普通生成
-                        use_meta_driven = True  # 标记已完成
-
             except Exception as e:
                 print(f"  ⚠ Meta-driven 生成失败: {e}")
                 print(f"  回退到普通模式...")
@@ -626,7 +623,7 @@ def run_pipeline(
             )
 
             # 直接生成弹窗并合并（不使用 JSON Patch 中间格式）
-            result = renderer.generate_dialog_and_merge(
+            renderer.generate_dialog_and_merge(
                 screenshot_path=screenshot_path,
                 instruction=instruction
             )

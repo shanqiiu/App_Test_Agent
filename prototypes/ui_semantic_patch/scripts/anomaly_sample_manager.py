@@ -15,7 +15,6 @@ import requests
 import re
 from pathlib import Path
 from typing import Dict, List, Optional
-from PIL import Image
 
 # 从环境变量读取API配置
 VLM_API_KEY = os.environ.get('VLM_API_KEY')

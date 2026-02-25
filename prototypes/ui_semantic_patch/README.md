@@ -26,8 +26,7 @@ UI 语义补丁驱动的受控生成架构，通过 VLM 输出修改逻辑（JSO
 |------|------|------|
 | Stage 1 | OmniParser | YOLO + PaddleOCR + Florence2 精确检测 |
 | Stage 2 | VLM | 语义过滤，合并海报/卡片内的文字 |
-| Stage 3 | VLM | 根据指令生成 JSON Patch |
-| Stage 4 | PIL/AI | 像素级渲染 |
+| Stage 3 | PIL/AI | 异常场景渲染（弹窗/加载/内容重复） |
 
 ## 流程
 
@@ -36,19 +35,15 @@ UI 语义补丁驱动的受控生成架构，通过 VLM 输出修改逻辑（JSO
     │
     ▼ [Stage 1] OmniParser 粗检测
     │           YOLO + PaddleOCR + Florence2
-    │           输出: stage1_omni_raw_*.json
+    │           输出: *_stage1_omni_raw_*.json + *_stage1_annotated_*.png
     │
     ▼ [Stage 2] VLM 语义过滤
     │           合并海报/卡片内的文字，过滤噪声
-    │           输出: stage2_filtered_*.json
+    │           输出: *_stage2_filtered_*.json + *_stage2_annotated_*.png
     │
-    ▼ [Stage 3] VLM 推理生成 Patch
-    │           根据异常指令生成修改逻辑
-    │           输出: stage3_patch_*.json
-    │
-    ▼ [Stage 4] 像素级渲染
-    │           执行 JSON Patch，生成异常场景
-    │           输出: final_*.png
+    ▼ [Stage 3] 异常场景渲染
+    │           根据异常模式（dialog/area_loading/content_duplicate）生成异常场景
+    │           输出: *_final_*.png + *_pipeline_meta_*.json
     │
 异常场景截图 + 中间结果
 ```
@@ -163,13 +158,13 @@ DASHSCOPE_API_KEY=your-dashscope-key
 OmniParser 提供精确的本地 UI 结构提取：
 
 ```bash
-# 确保 OmniParser 在同级目录
-# prototypes/
-# ├── OmniParser/        # OmniParser 项目
-# └── ui_semantic_patch/ # 本项目
+# OmniParser 已集成在项目内部
+# ui_semantic_patch/
+# └── third_party/
+#     └── OmniParser/        # 本地集成
 
 # 安装 OmniParser 依赖
-cd ../OmniParser
+cd third_party/OmniParser
 pip install -r requirements.txt
 
 # 下载模型权重
@@ -240,23 +235,24 @@ python scripts/run_pipeline.py \
 
 ```
 output/
-├── page_stage1_omni_raw_20240101_120000.json    # OmniParser 原始检测
-├── page_stage2_filtered_20240101_120000.json    # VLM 语义过滤后
-├── page_stage3_patch_20240101_120000.json       # JSON Patch
-├── page_final_20240101_120000.png               # 最终异常截图
-└── page_pipeline_meta_20240101_120000.json      # 流水线元数据
+├── page_stage1_omni_raw_20240101_120000.json    # OmniParser 原始检测结果
+├── page_stage1_annotated_20240101_120000.png     # Stage 1 检测可视化
+├── page_stage2_filtered_20240101_120000.json     # VLM 语义过滤后
+├── page_stage2_annotated_20240101_120000.png     # Stage 2 过滤可视化
+├── page_final_20240101_120000.png                # 最终异常截图
+└── page_pipeline_meta_20240101_120000.json       # 流水线元数据
 ```
 
 ## 渲染模式
 
-支持多种渲染模式生成异常组件：
+弹窗渲染引擎（`patch_renderer.py`）内部支持两种渲染模式：
 
-| 模式 | 参数 | 特点 |
-|------|------|------|
-| **语义 PIL** | `--render-mode semantic_pil` | **语义感知 + PIL 绘制（推荐，默认）** |
-| 语义 AI | `--render-mode semantic_ai` | 语义感知 + AI 生成（最逼真但较慢） |
-| 基础 PIL | `--render-mode pil` | 纯算法绘制，快速但简单 |
-| 旧版生成 | `--render-mode generate` | 大模型生成图片 |
+| 模式 | 说明 |
+|------|------|
+| **semantic_ai** | 语义感知 + DashScope AI 图像生成（当前默认，最逼真） |
+| semantic_pil | 语义感知 + PIL 纯算法绘制（无需 DashScope，作为回退方案） |
+
+> **注意**：渲染模式当前在代码中硬编码为 `semantic_ai`，未暴露为命令行参数。若 DashScope API 不可用，会自动回退到 PIL 绘制。
 
 ### 语义感知弹窗生成
 
@@ -265,8 +261,7 @@ output/
 ```bash
 python scripts/run_pipeline.py \
   --screenshot ./train_ticket_page.png \
-  --instruction "生成余票为0的弹窗" \
-  --render-mode semantic_pil
+  --instruction "生成余票为0的弹窗"
 ```
 
 语义感知功能会：
@@ -282,7 +277,6 @@ python scripts/run_pipeline.py \
 python scripts/run_pipeline.py \
   --screenshot ./page.png \
   --instruction "生成广告弹窗" \
-  --render-mode semantic_pil \
   --reference ./examples/广告弹窗.jpg
 ```
 
@@ -349,19 +343,6 @@ bash launch.sh batch    # 批量预览
 bash launch.sh list     # 列出异常类别
 ```
 
-### GT 模板
-
-使用真实异常截图作为模板，生成效果最接近原生：
-
-```bash
-python scripts/run_pipeline.py \
-  --screenshot ./page.png \
-  --instruction "显示网络错误弹窗" \
-  --gt-dir ./assets/gt_samples
-```
-
-**渲染优先级**：GT模板 > 大模型生成 > PIL绘制
-
 ## 命令行参数
 
 | 参数 | 说明 | 默认值 |
@@ -383,47 +364,19 @@ python scripts/run_pipeline.py \
 | `--omni-device` | OmniParser 设备 (`cuda`/`cpu`) | 从 `OMNIPARSER_DEVICE` 环境变量读取 |
 | `--no-visualize` | 禁用检测结果可视化 | False |
 
-## JSON Patch 操作类型
+## 异常渲染机制
 
-### modify - 修改现有组件
+当前实现中，异常场景通过模式专用渲染器直接生成，而非通过中间 JSON Patch 文件：
 
-```json
-{
-  "type": "modify",
-  "target": "组件ID 或 index",
-  "changes": {
-    "text": "新文本",
-    "enabled": false,
-    "textColor": "#FF0000",
-    "background": "#EEEEEE"
-  }
-}
-```
+| 异常模式 | 渲染器 | 机制 |
+|---------|--------|------|
+| `dialog` | `patch_renderer.py` | VLM 语义分析 + PIL/AI 弹窗合成叠加 |
+| `area_loading` | `area_loading_renderer.py` | VLM 推荐目标区域 + Loading 图标覆盖 |
+| `content_duplicate` | `content_duplicate_renderer.py` | 检测重复区域 + 底部浮层扩展渲染 |
 
-### add - 新增组件
+每个渲染器接收 Stage 2 输出的 UI-JSON 组件列表和用户指令，直接在原图上进行像素级修改。
 
-```json
-{
-  "type": "add",
-  "component": {
-    "class": "Toast | Dialog | Loading",
-    "bounds": {"x": 0, "y": 0, "width": 100, "height": 50},
-    "text": "内容",
-    "style": "error | warning | info"
-  },
-  "zIndex": 100
-}
-```
-
-### delete - 隐藏组件
-
-```json
-{
-  "type": "delete",
-  "target": "组件ID 或 index",
-  "mode": "hide | blur | placeholder"
-}
-```
+> **设计说明**：项目名称中的 "Patch" 体现的是 **语义层面的修改逻辑**（对 UI 结构的局部修改），而非字面的 JSON Patch 文件格式。
 
 ## 技术说明
 
@@ -444,13 +397,13 @@ python scripts/run_pipeline.py \
 | 卡片内元素 | 多个元素被分别检测 | VLM 合并为单个 Card 组件 |
 | 重复检测 | OCR 和 YOLO 重复检测 | VLM 去重，保留更合理的结果 |
 
-### 局部重绘技术栈
+### 渲染技术栈
 
 | 操作 | 技术 |
 |------|------|
-| 文本修改 | Inpainting 擦除 + PIL 字体渲染 |
-| 新增组件 | 组件库模板 + Alpha 通道合成 |
-| 删除组件 | 背景色填充 / 高斯模糊 |
+| 弹窗叠加 | PIL 绘制 / DashScope AI 生成 + Alpha 通道合成 |
+| 遮罩层 | 半透明背景填充 + 高斯模糊 |
+| 文字绘制 | PIL ImageFont 系统字体引擎 |
 | 边缘处理 | 抗锯齿 + 羽化过渡 |
 
 ## 异常场景示例

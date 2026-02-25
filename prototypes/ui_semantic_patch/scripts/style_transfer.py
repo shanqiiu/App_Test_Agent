@@ -18,7 +18,7 @@ import base64
 import requests
 import re
 from pathlib import Path
-from typing import Dict, List, Optional, Tuple
+from typing import Dict, List, Optional
 from PIL import Image
 
 # 自动加载.env文件

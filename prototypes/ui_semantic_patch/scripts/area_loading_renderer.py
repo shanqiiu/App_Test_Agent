@@ -744,19 +744,6 @@ Generate the icon image now."""
 
         return result
 
-    def _add_dimming(
-        self,
-        image: Image.Image,
-        x: int,
-        y: int,
-        w: int,
-        h: int,
-        opacity: int = 100
-    ) -> Image.Image:
-        """[已弃用] 简单暗化效果，请使用 _add_loading_overlay"""
-        # 调用新的加载覆盖方法
-        return self._add_loading_overlay(image, x, y, w, h, blur_radius=8, white_opacity=180)
-
     def _infer_region_type(self, component: Dict) -> str:
         """根据组件类推断区域类型"""
         comp_class = component.get('class', '').lower()
