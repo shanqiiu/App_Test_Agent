@@ -1,7 +1,7 @@
 {
   "category": "dialog_blocking",
   "description": "弹窗覆盖UI - 用于生成各类遮挡弹窗异常",
-  "count": 7,
+  "count": 11,
   "samples": {
     "弹出广告.jpg": {
       "anomaly_type": "reward_badge_dialog",
@@ -347,6 +347,239 @@
         "y": 2532,
         "width": 1142,
         "height": 164
+      }
+    },
+    "满减信息遮挡.jpg": {
+      "anomaly_type": "stacked_bottom_banners",
+      "anomaly_description": "瑞幸咖啡首页底部堆叠两层遮挡横幅：上层为'神券最高减16'满减优惠栏（深蓝底色，显示满减规则和'去凑单'按钮），下层为'已选1件/免配送费'去结算栏（白底黄色'去结算'按钮）。两栏紧密堆叠，共同遮挡底部商品内容区域",
+      "visual_features": {
+        "app_style": "瑞幸咖啡",
+        "primary_color": "#FFD700",
+        "background": "白色 #FFFFFF",
+        "dialog_position": "bottom-fixed",
+        "dialog_size_ratio": {
+          "width": 1.0,
+          "height": 0.15
+        },
+        "overlay_enabled": false,
+        "overlay_opacity": 0,
+        "close_button_position": "none",
+        "close_button_style": "none",
+        "main_button_text": "去结算",
+        "main_button_style": "yellow_filled",
+        "title_text": "",
+        "subtitle_text": "",
+        "special_elements": [
+          "mascot_icon",
+          "coupon_discount_bar",
+          "checkout_bar"
+        ],
+        "stacked_bars": [
+          {
+            "layer": "top",
+            "description": "神券满减优惠栏",
+            "background": "深蓝色 #1A237E",
+            "text_content": "神券最高减16 | 已减¥6，还差¥18减¥10",
+            "button_text": "去凑单",
+            "button_style": "orange_filled"
+          },
+          {
+            "layer": "bottom",
+            "description": "去结算栏",
+            "background": "白色 #FFFFFF",
+            "text_content": "已选1件 | 免配送费",
+            "button_text": "去结算",
+            "button_style": "yellow_filled"
+          }
+        ]
+      },
+      "generation_template": {
+        "instruction": "在瑞幸咖啡首页底部添加两层堆叠横幅：上层为深蓝底满减优惠栏，下层为白底去结算栏，共同遮挡底部内容。",
+        "patch_operations": [
+          {
+            "type": "add",
+            "component": "CouponDiscountBar",
+            "position": "bottom-fixed",
+            "overlay": false,
+            "close_button": false
+          },
+          {
+            "type": "add",
+            "component": "CheckoutBar",
+            "position": "bottom-fixed",
+            "overlay": false,
+            "close_button": false
+          }
+        ],
+        "key_points": [
+          "两层横幅紧密堆叠于底部",
+          "上层深蓝底色显示'神券最高减16'满减信息和'去凑单'橙色按钮",
+          "下层白色底显示'已选1件/免配送费'和黄色'去结算'按钮",
+          "两栏共同占据屏幕底部约15%高度",
+          "遮挡底部商品列表内容区域"
+        ]
+      }
+    },
+    "去哪网消息通知.jpg": {
+      "anomaly_type": "permission_dialog",
+      "anomaly_description": "去哪儿旅行APP首页弹出位置权限请求弹窗，显示'允许去哪儿旅行访问你的位置？'",
+      "visual_features": {
+        "app_style": "去哪儿旅行",
+        "primary_color": "#FFFFFF",
+        "background": "白色 #FFFFFF",
+        "dialog_position": "bottom-center-floating",
+        "dialog_size_ratio": {
+          "width": 0.9,
+          "height": 0.4
+        },
+        "overlay_enabled": true,
+        "overlay_opacity": 0.5,
+        "close_button_position": "none",
+        "close_button_style": "none",
+        "main_button_text": "本次使用允许",
+        "main_button_style": "blue_filled",
+        "title_text": "允许\"去哪儿旅行\"访问你的位置？",
+        "subtitle_text": "申请位置权限为了向您提供基于您位置信息附近的优质出行资源及相关产品",
+        "special_elements": [
+          "地图预览"
+        ]
+      },
+      "generation_template": {
+        "instruction": "在去哪儿旅行APP首页生成一个位置权限请求弹窗。",
+        "patch_operations": [
+          {
+            "type": "add",
+            "component": "PermissionDialog",
+            "position": "bottom-center-floating",
+            "overlay": true,
+            "close_button": false
+          }
+        ],
+        "key_points": [
+          "弹窗背景为白色",
+          "包含地图预览元素",
+          "主按钮为蓝色填充样式",
+          "标题询问位置权限",
+          "副标题说明权限申请原因"
+        ]
+      }
+    },
+    "携程开屏优惠广告.jpg": {
+      "anomaly_type": "promotional_coupon_dialog",
+      "anomaly_description": "某APP机票页面弹出新客随机福利优惠券弹窗，包含国内机票90元券包、国际机票100元券包、出行权益包1288元三行优惠",
+      "visual_features": {
+        "app_style": "某APP",
+        "design_language": "red-coral gradient coupon card, white rounded outer frame, three coupon rows with price highlights, cream pill CTA button, cartoon mascot at top",
+        "primary_color": "#FF6B35",
+        "background": "外层白色圆角卡片，内容区红色珊瑚渐变 #FF1744 → #FF6B35，优惠券条目白色底",
+        "dialog_position": "center",
+        "dialog_size_ratio": {
+          "width": 0.85,
+          "height": 0.65
+        },
+        "overlay_enabled": true,
+        "overlay_opacity": 0.5,
+        "close_button_position": "bottom-center",
+        "close_button_style": "gray_circle_x",
+        "main_button_text": "开心收下",
+        "main_button_style": "cream_pill",
+        "title_text": "新客随机福利",
+        "subtitle_text": "使用说明",
+        "corner_radius": "large",
+        "special_elements": [
+          "蓝色企鹅吉祥物（顶部）",
+          "红色礼盒福袋装饰",
+          "三行优惠券条目（白色卡片行）",
+          "优惠金额大号橙红色数字"
+        ],
+        "coupon_items": [
+          {
+            "amount": "90元",
+            "label": "新客国内机票券包",
+            "detail": "包含无门槛/多人/往返券"
+          },
+          {
+            "amount": "100元",
+            "label": "新客国际机票券包",
+            "detail": "包含无门槛券和多人券"
+          },
+          {
+            "amount": "1288元",
+            "label": "出行权益包",
+            "detail": "含租车、包车等权益"
+          }
+        ]
+      },
+      "generation_template": {
+        "instruction": "在某APP的机票页面中央添加一个新客随机福利优惠券弹窗，包含三行优惠券条目和底部领取按钮。",
+        "patch_operations": [
+          {
+            "type": "add",
+            "component": "CouponDialog",
+            "position": "center",
+            "overlay": true,
+            "close_button": true
+          }
+        ],
+        "key_points": [
+          "白色外框+红色渐变内容区的双层卡片结构",
+          "顶部蓝色企鹅吉祥物和礼盒装饰",
+          "三行白色优惠券条目，左侧大号金额数字",
+          "底部奶油色椭圆'开心收下'按钮",
+          "关闭按钮在弹窗底部正中央（灰色圆形X）",
+          "弹窗占屏幕约65%高度，居中显示"
+        ]
+      }
+    },
+    "携程通知.jpg": {
+      "anomaly_type": "permission_dialog",
+      "anomaly_description": "某旅行APP首页弹出iOS系统通知权限请求弹窗，显示'允许向你发送通知？'，含'不允许'和'允许'两个文字按钮",
+      "visual_features": {
+        "app_style": "某旅行APP",
+        "design_language": "iOS system alert style, white rounded card, blue bell icon, dual text buttons separated by divider line",
+        "primary_color": "#2979FF",
+        "background": "白色 #FFFFFF",
+        "dialog_position": "center",
+        "dialog_size_ratio": {
+          "width": 0.85,
+          "height": 0.22
+        },
+        "overlay_enabled": true,
+        "overlay_opacity": 0.5,
+        "close_button_position": "none",
+        "close_button_style": "none",
+        "left_button_text": "允许",
+        "left_button_style": "blue_text_regular",
+        "right_button_text": "不允许",
+        "right_button_style": "blue_text_regular",
+        "button_layout": "horizontal_split_divider",
+        "title_text": "允许\"携程旅行\"向你发送通知？",
+        "subtitle_text": "通知提醒方式可能包括锁屏、横幅、角标、响铃、振动。可前往\"设置\"更改。",
+        "corner_radius": "large",
+        "special_elements": [
+          "蓝色实心铃铛图标（顶部居中）",
+          "按钮区域水平竖线分隔"
+        ]
+      },
+      "generation_template": {
+        "instruction": "在某旅行APP首页中央生成一个iOS风格的通知权限请求弹窗。",
+        "patch_operations": [
+          {
+            "type": "add",
+            "component": "PermissionDialog",
+            "position": "center",
+            "overlay": true,
+            "close_button": false
+          }
+        ],
+        "key_points": [
+          "iOS系统弹窗风格，白色大圆角卡片",
+          "顶部蓝色实心铃铛图标",
+          "标题和副标题居中排列",
+          "底部双按钮水平排列，竖线分隔",
+          "'不允许'和'允许'均为常规蓝色文字按钮",
+          "半透明深色遮罩覆盖背景"
+        ]
       }
     }
   },

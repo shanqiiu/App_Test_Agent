@@ -2,9 +2,9 @@
 
 **AI智能体测试技术研究与实践项目**
 
-[![Project Status](https://img.shields.io/badge/status-research-blue)]()
-[![Phase](https://img.shields.io/badge/phase-foundation-green)]()
-[![Last Updated](https://img.shields.io/badge/updated-2024--12--30-brightgreen)]()
+[![Project Status](https://img.shields.io/badge/status-prototype-blue)]()
+[![Phase](https://img.shields.io/badge/phase-2_prototype-green)]()
+[![Last Updated](https://img.shields.io/badge/updated-2026--02--25-brightgreen)]()
 
 ---
 
@@ -80,8 +80,9 @@
 3. 运行测试用例验证安装
 
 ### 使用原型
-1. **UI 复刻工具**: 查看 [img2text2html2img README](./prototypes/img2text2html2img/README.md)
-2. **异常场景生成**: 查看 [ui_semantic_patch README](./prototypes/ui_semantic_patch/README.md)
+1. **异常场景生成**: 查看 [ui_semantic_patch README](./prototypes/ui_semantic_patch/README.md)
+   - 一键启动: `cd prototypes/ui_semantic_patch/scripts && launch.bat` (Windows) 或 `bash launch.sh` (Linux)
+2. **技术实现详情**: 查看 [技术实现文档](./prototypes/ui_semantic_patch/docs/技术实现文档.md)
 
 ### 技术调研
 1. 参考 [技术栈与工具](./docs/technical/技术栈与工具.md) 了解技术选型
@@ -93,14 +94,23 @@
 ## 当前进展
 
 ### 项目阶段
-**Phase 1: 基础建设** ✅ 已完成
+**Phase 2: 原型开发与优化** 🔬 进行中
 
 ### 最新里程碑
+🔬 **Milestone 3: 辅助工具链完善** (2026-02-25)
+- 新增批量生成流水线 (`batch_pipeline.py`)
+- 新增一键启动脚本 (`launch.sh` / `launch.bat`)
+- 新增 VLM 驱动 meta.json 自动生成 (`generate_meta.py`)
+- 新增精确边界框提取 (`extract_gt_bounds.py`)
+- 新增风格迁移与样本管理工具
+- 扩展 GT 模板数据集（弹窗覆盖原UI 8 个样本、内容重复 1 个、loading 1 个）
+- 新增 4 类原图数据集（携程、抖音、饿了么、腾讯视频）
+
 ✅ **Milestone 2: 原型开发** (2026-02-03)
-- 完成 `img2text2html2img` UI复刻工具链
 - 完成 `ui_semantic_patch` 异常场景生成框架
 - 集成 OmniParser + VLM 融合方案
-- 实现语义感知弹窗生成
+- 实现三种异常模式: dialog / area_loading / content_duplicate
+- 实现语义感知弹窗生成与参考图风格学习
 
 ✅ **Milestone 1: POC完成** (2024-12-30)
 - 完成技术调研
@@ -189,27 +199,31 @@ App_Test_Agent/
 │       └── 环境搭建指南.md
 │
 ├── prototypes/                         # 💻 原型代码
-│   ├── img2text2html2img/              # UI截图复刻工具链
-│   │   ├── README.md                   # 详细使用文档
-│   │   └── scripts/
-│   │       ├── pipeline.py             # 端到端流水线
-│   │       ├── ui_detector.py          # UI组件检测
-│   │       ├── img2text.py             # 图片→描述
-│   │       ├── text2html.py            # 描述→HTML
-│   │       ├── html2img.py             # HTML→图片
-│   │       └── omniparser_adapter.py   # OmniParser适配器
-│   │
-│   └── ui_semantic_patch/              # 异常场景语义补丁框架
+│   └── ui_semantic_patch/              # 异常场景语义补丁框架（核心）
 │       ├── README.md                   # 架构文档
+│       ├── docs/
+│       │   └── 技术实现文档.md         # 详细技术实现
 │       ├── scripts/
-│       │   ├── run_pipeline.py         # 一键执行入口
-│       │   ├── omni_vlm_fusion.py      # OmniParser+VLM融合
-│       │   ├── patch_renderer.py       # 像素级渲染
+│       │   ├── run_pipeline.py         # 主流水线入口
+│       │   ├── omni_extractor.py       # OmniParser UI 检测
+│       │   ├── omni_vlm_fusion.py      # OmniParser + VLM 融合
+│       │   ├── patch_renderer.py       # 弹窗渲染引擎
+│       │   ├── area_loading_renderer.py  # 区域加载渲染
+│       │   ├── content_duplicate_renderer.py  # 内容重复渲染
+│       │   ├── batch_pipeline.py       # 批量生成
+│       │   ├── generate_meta.py        # meta.json 自动生成
+│       │   ├── extract_gt_bounds.py    # 精确边界框提取
+│       │   ├── launch.sh / launch.bat  # 一键启动
 │       │   └── utils/                  # 工具模块
+│       │       ├── common.py           # 公共工具函数
 │       │       ├── semantic_dialog_generator.py  # 语义弹窗生成
-│       │       └── gt_manager.py       # GT模板管理
-│       ├── assets/                     # 静态资源
-│       ├── examples/                   # 示例文件
+│       │       ├── meta_loader.py      # GT 元数据加载
+│       │       ├── gt_manager.py       # GT 模板管理
+│       │       ├── component_position_resolver.py  # 组件定位
+│       │       └── reference_analyzer.py  # 参考图风格分析
+│       ├── data/                       # GT 模板与原图数据
+│       │   ├── 原图/                   # 原始 APP 截图（4 类 6 张）
+│       │   └── Agent执行遇到的典型异常UI类型/  # GT 模板
 │       └── third_party/
 │           └── OmniParser/             # 本地集成
 │
@@ -246,6 +260,6 @@ App_Test_Agent/
 
 ---
 
-**最后更新**: 2026-02-03
-**项目状态**: Phase 1 已完成 ✅ | Phase 2 规划中
-**里程碑**: Milestone 2 已完成 ✅
+**最后更新**: 2026-02-25
+**项目状态**: Phase 2 进行中 🔬
+**里程碑**: Milestone 3 进行中

@@ -167,18 +167,11 @@ class MetaLoader:
         if 'dialog_position' in visual_features:
             prompt_parts.append(f"- 弹窗位置: {visual_features['dialog_position']}")
 
-        if 'dialog_size_ratio' in visual_features:
-            size_ratio = visual_features['dialog_size_ratio']
-            if isinstance(size_ratio, dict):
-                prompt_parts.append(f"- 弹窗尺寸比例: 宽度={size_ratio.get('width', 0.8)}, 高度={size_ratio.get('height', 0.5)}")
+        # 注意：dialog_size_ratio 不写入 prompt，避免 AI 将比例数值当作视觉内容渲染
+        # 实际弹窗尺寸已通过 generate_dialog_ai 的 width/height 参数精确控制
 
-        if 'overlay_enabled' in visual_features:
-            overlay = visual_features['overlay_enabled']
-            opacity = visual_features.get('overlay_opacity', 0.7)
-            if overlay:
-                prompt_parts.append(f"- 遮罩层: 启用，不透明度={opacity}")
-            else:
-                prompt_parts.append("- 遮罩层: 无")
+        # 注意：overlay/遮罩层信息不写入 prompt，避免 AI 在弹窗图片中自行绘制遮罩
+        # 遮罩层由 run_pipeline.py 在最终合成阶段通过 Image.alpha_composite 添加
 
         if 'close_button_position' in visual_features:
             close_pos = visual_features['close_button_position']
@@ -319,23 +312,16 @@ class MetaLoader:
         if 'dialog_position' in visual_features:
             prompt_parts.append(f"- 弹窗位置: {visual_features['dialog_position']}")
 
-        if 'dialog_size_ratio' in visual_features:
-            size_ratio = visual_features['dialog_size_ratio']
-            if isinstance(size_ratio, dict):
-                prompt_parts.append(f"- 弹窗尺寸比例: 宽度={size_ratio.get('width', 0.8)}, 高度={size_ratio.get('height', 0.5)}")
+        # 注意：dialog_size_ratio 不写入 prompt，避免 AI 将比例数值当作视觉内容渲染
+        # 实际弹窗尺寸已通过 generate_dialog_ai 的 width/height 参数精确控制
 
         # 圆角
         if 'corner_radius' in visual_features:
             prompt_parts.append(f"- 圆角样式: {visual_features['corner_radius']}")
 
         # 遮罩层
-        if 'overlay_enabled' in visual_features:
-            overlay = visual_features['overlay_enabled']
-            opacity = visual_features.get('overlay_opacity', 0.7)
-            if overlay:
-                prompt_parts.append(f"- 遮罩层: 启用，不透明度={opacity}")
-            else:
-                prompt_parts.append("- 遮罩层: 无")
+        # 注意：overlay/遮罩层信息不写入 prompt，避免 AI 在弹窗图片中自行绘制遮罩
+        # 遮罩层由 run_pipeline.py 在最终合成阶段通过 Image.alpha_composite 添加
 
         # 关闭按钮样式（不含文字）
         if 'close_button_position' in visual_features:

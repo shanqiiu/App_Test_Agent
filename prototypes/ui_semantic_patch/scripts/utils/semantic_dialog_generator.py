@@ -1289,6 +1289,18 @@ class SemanticDialogGenerator:
                     bg_tolerance = 70
                 image = self._remove_background(image, tolerance=bg_tolerance)
 
+                # 后处理：擦除 AI 自行画的关闭按钮
+                # AI 经常无视 "Do not draw close button" 指令，在角落画 X
+                # 必须在裁切之前擦除，否则裁切后角落位置会变化
+                image = self._erase_ai_close_button(image)
+
+                # 后处理：多层弹窗清理
+                # AI 生成时可能在目标弹窗之外额外生成多余的弹窗层
+                # 对于横幅类型（宽高比 > 2:1），检测并去除多余层
+                dialog_position = meta_features.get('dialog_position', 'center')
+                if dialog_position in ('bottom-floating', 'bottom-fixed', 'bottom-center-floating'):
+                    image = self._remove_extra_layers(image, expected_aspect_ratio=width/height)
+
                 # 后处理：裁切到实际内容区域并 resize 到目标尺寸
                 image = self._crop_to_content_and_resize(image, width, height)
 
@@ -1711,7 +1723,7 @@ class SemanticDialogGenerator:
 
         AI 生成的弹窗在背景移除后，实际内容可能不铺满画布。
         此方法：
-        1. 找到非透明像素的边界框
+        1. 找到最大连通内容区域的边界框（忽略孤立小区域，如 AI 自行画的关闭按钮）
         2. 裁切到该边界框
         3. resize 到目标尺寸
 
@@ -1727,13 +1739,17 @@ class SemanticDialogGenerator:
             image = image.convert('RGBA')
 
         # 通过 alpha 通道找到内容边界框
-        bbox = image.getbbox()
-        if not bbox:
+        full_bbox = image.getbbox()
+        if not full_bbox:
             return image  # 完全透明，无操作
+
+        canvas_width, canvas_height = image.size
+
+        # 尝试找到最大连通内容块，忽略孤立的小区域（如 AI 画的关闭按钮）
+        bbox = self._find_main_content_bbox(image, full_bbox)
 
         content_width = bbox[2] - bbox[0]
         content_height = bbox[3] - bbox[1]
-        canvas_width, canvas_height = image.size
 
         fill_ratio = (content_width * content_height) / (canvas_width * canvas_height)
 
@@ -1752,6 +1768,374 @@ class SemanticDialogGenerator:
         print(f"  ℹ 已 resize 到目标尺寸: {target_width}x{target_height}")
 
         return resized
+
+    @staticmethod
+    def _find_main_content_bbox(image: Image.Image, full_bbox: tuple) -> tuple:
+        """
+        在已去背景的 RGBA 图像中，找到最大连通内容区域的 bbox。
+
+        通过行扫描检测垂直间隙，将内容分割为多个区块，
+        保留面积最大的区块。这样可以过滤掉 AI 额外画的孤立关闭按钮等小区域。
+
+        Args:
+            image: RGBA 图像
+            full_bbox: image.getbbox() 的结果
+
+        Returns:
+            最大内容区域的 bbox (left, upper, right, lower)
+        """
+        width = image.size[0]
+        alpha = image.split()[3]
+
+        left, top, right, bottom = full_bbox
+        content_width = right - left
+
+        # 如果内容区域很小，直接返回
+        if content_width < 10 or (bottom - top) < 10:
+            return full_bbox
+
+        # 按行扫描，统计每行的非透明像素数
+        # 间隙阈值：非透明像素占内容宽度不到 3% 的行视为"空行"
+        gap_threshold = content_width * 0.03
+        row_has_content = []
+
+        for y in range(top, bottom):
+            count = 0
+            for x in range(left, right):
+                if alpha.getpixel((x, y)) > 10:
+                    count += 1
+            row_has_content.append(count > gap_threshold)
+
+        # 找到连续有内容的行区间（区块）
+        blocks = []  # [(start_y, end_y), ...]
+        in_block = False
+        block_start = 0
+        gap_count = 0
+        max_gap_tolerance = 5  # 允许区块内最多 5 行间隙（抗噪声）
+
+        for i, has_content in enumerate(row_has_content):
+            y = top + i
+            if has_content:
+                if not in_block:
+                    block_start = y
+                    in_block = True
+                gap_count = 0
+                block_end = y + 1
+            else:
+                if in_block:
+                    gap_count += 1
+                    if gap_count > max_gap_tolerance:
+                        # 间隙过大，结束当前区块
+                        blocks.append((block_start, block_end))
+                        in_block = False
+                        gap_count = 0
+
+        if in_block:
+            blocks.append((block_start, block_end))
+
+        if len(blocks) <= 1:
+            # 只有一个区块或没有区块，返回原始 bbox
+            return full_bbox
+
+        # 多个区块：找面积最大的
+        best_block = None
+        best_area = 0
+        for (by_start, by_end) in blocks:
+            # 计算该区块在水平方向的实际内容范围
+            block_left, block_right = width, 0
+            for y in range(by_start, by_end):
+                for x in range(left, right):
+                    if alpha.getpixel((x, y)) > 10:
+                        block_left = min(block_left, x)
+                        block_right = max(block_right, x + 1)
+                        break
+                for x in range(right - 1, left - 1, -1):
+                    if alpha.getpixel((x, y)) > 10:
+                        block_right = max(block_right, x + 1)
+                        break
+
+            area = (block_right - block_left) * (by_end - by_start)
+            if area > best_area:
+                best_area = area
+                best_block = (block_left, by_start, block_right, by_end)
+
+        if best_block:
+            # 只有当最大区块明显大于其他区块时才过滤
+            full_area = (right - left) * (bottom - top)
+            if best_area > full_area * 0.5:
+                print(f"  ℹ 检测到 {len(blocks)} 个内容区块，保留最大区块 (占比 {best_area/full_area:.0%})")
+                return best_block
+
+        return full_bbox
+
+    def _remove_extra_layers(
+        self,
+        image: Image.Image,
+        expected_aspect_ratio: float
+    ) -> Image.Image:
+        """
+        检测并移除 AI 生成图像中多余的弹窗层。
+
+        AI 生成横幅类弹窗时，有时会在目标横幅之外额外生成一个更大的弹窗/卡片层。
+        本方法通过行扫描检测内容区域中的垂直间隙（透明行带），
+        如果存在间隙则将图像拆分为多个区域，只保留宽高比最接近预期的那个区域。
+
+        Args:
+            image: RGBA 图像（已去除背景）
+            expected_aspect_ratio: 预期宽高比（width/height），横幅通常 > 2
+
+        Returns:
+            清理后的图像
+        """
+        if image.mode != 'RGBA':
+            image = image.convert('RGBA')
+
+        width, height = image.size
+
+        # 找出内容边界框
+        bbox = image.getbbox()
+        if not bbox:
+            return image
+
+        # 扫描每一行的非透明像素数量
+        alpha_data = image.split()[3]  # alpha channel
+        row_pixel_counts = []
+        for y in range(bbox[1], bbox[3]):
+            count = 0
+            for x in range(bbox[0], bbox[2]):
+                if alpha_data.getpixel((x, y)) > 10:
+                    count += 1
+            row_pixel_counts.append((y, count))
+
+        if not row_pixel_counts:
+            return image
+
+        # 计算内容宽度（用于判断"几乎空"的行）
+        content_width = bbox[2] - bbox[0]
+        # 阈值：低于内容宽度 5% 的行视为间隙行
+        gap_threshold = content_width * 0.05
+
+        # 找到连续的内容条带（被间隙行分隔的区域）
+        strips = []  # [(y_start, y_end), ...]
+        in_content = False
+        strip_start = 0
+
+        for y, count in row_pixel_counts:
+            if count > gap_threshold:
+                if not in_content:
+                    strip_start = y
+                    in_content = True
+            else:
+                if in_content:
+                    strips.append((strip_start, y))
+                    in_content = False
+
+        if in_content:
+            strips.append((strip_start, row_pixel_counts[-1][0] + 1))
+
+        # 只有一个条带，无需清理
+        if len(strips) <= 1:
+            return image
+
+        print(f"  ℹ 检测到 {len(strips)} 个内容条带，疑似多层弹窗")
+
+        # 找出宽高比最接近预期的条带
+        best_strip = None
+        best_score = float('inf')
+
+        for y_start, y_end in strips:
+            strip_height = y_end - y_start
+            if strip_height < 10:
+                continue
+            strip_ratio = content_width / strip_height
+            score = abs(strip_ratio - expected_aspect_ratio)
+            if score < best_score:
+                best_score = score
+                best_strip = (y_start, y_end)
+
+        if not best_strip:
+            return image
+
+        y_start, y_end = best_strip
+        print(f"  ✓ 保留最佳条带: y=[{y_start}, {y_end}], "
+              f"高度={y_end - y_start}px, 宽高比={content_width / (y_end - y_start):.1f}")
+
+        # 清除最佳条带之外的像素
+        result = Image.new('RGBA', (width, height), (0, 0, 0, 0))
+        # 只复制最佳条带区域
+        strip_region = image.crop((0, y_start, width, y_end))
+        result.paste(strip_region, (0, y_start))
+
+        return result
+
+    @staticmethod
+    def _erase_ai_close_button(image: Image.Image) -> Image.Image:
+        """
+        检测并擦除 AI 自行绘制的关闭按钮（X 图标）
+
+        AI 文生图模型经常无视 "Do not draw any close button" 的否定指令，
+        在弹窗的角落（通常是右上角）自行画一个 X 按钮。
+        由于 X 按钮与弹窗卡片相连，_find_largest_connected_region 无法过滤。
+
+        策略：扫描内容区域的 4 个角落，检测是否存在只占据角落的小型内容块。
+        判断标准：角落区域内有内容，但这些内容行的宽度远小于弹窗主体宽度。
+
+        Args:
+            image: 已去背景的 RGBA 图像
+
+        Returns:
+            处理后的图像（角落 X 按钮已被擦除为透明）
+        """
+        if image.mode != 'RGBA':
+            image = image.convert('RGBA')
+
+        bbox = image.getbbox()
+        if not bbox:
+            return image
+
+        left, top, right, bottom = bbox
+        content_width = right - left
+        content_height = bottom - top
+
+        # 弹窗太小不处理
+        if content_width < 50 or content_height < 50:
+            return image
+
+        alpha = image.split()[3]
+        result = image.copy()
+        result_pixels = result.load()
+
+        # 角落扫描区域大小：内容尺寸的 12%
+        corner_h = max(20, int(content_height * 0.12))
+        corner_w = max(20, int(content_width * 0.12))
+
+        # 主体宽度参考：在内容区域中间 1/3 高度范围内，找到典型的内容行宽度
+        mid_start = top + content_height // 3
+        mid_end = top + content_height * 2 // 3
+        mid_widths = []
+        for y in range(mid_start, mid_end, max(1, (mid_end - mid_start) // 10)):
+            row_left, row_right = right, left
+            for x in range(left, right):
+                if alpha.getpixel((x, y)) > 10:
+                    row_left = min(row_left, x)
+                    row_right = max(row_right, x + 1)
+                    break
+            for x in range(right - 1, left - 1, -1):
+                if alpha.getpixel((x, y)) > 10:
+                    row_right = max(row_right, x + 1)
+                    break
+            if row_right > row_left:
+                mid_widths.append(row_right - row_left)
+
+        if not mid_widths:
+            return image
+
+        typical_width = sorted(mid_widths)[len(mid_widths) // 2]  # 中位数
+        # 角落内容行的宽度阈值：如果一行内容宽度不到主体的 30%，认为是角落小元素
+        width_threshold = typical_width * 0.30
+
+        def scan_and_erase_corner(cy_start, cy_end, cx_start, cx_end, corner_name):
+            """扫描指定角落区域，如果发现小型孤立内容则擦除"""
+            corner_pixels = []
+            for y in range(cy_start, cy_end):
+                for x in range(cx_start, cx_end):
+                    if alpha.getpixel((x, y)) > 10:
+                        corner_pixels.append((x, y))
+
+            if not corner_pixels:
+                return 0  # 角落无内容
+
+            # 关键检查：角落内容是否触及内边界（与主体相连）
+            # 如果触及，说明是卡片圆角的一部分，绝对不能擦除
+            # 内边界定义：对于 top-right 角落，内边界是左侧(cx_start)和底部(cy_end-1)
+            # 检查边界方向上 3 像素的容差范围
+            inner_margin = 3
+
+            # 判断是哪个角落，确定内边界方向
+            is_top = (cy_start <= top + corner_h)
+            is_right = (cx_end >= right - 1)
+            is_left = (cx_start <= left + 1)
+
+            touches_inner_boundary = False
+            for (px, py) in corner_pixels:
+                # 水平内边界：top-right/bottom-right 的左侧，top-left/bottom-left 的右侧
+                if is_right and px <= cx_start + inner_margin:
+                    touches_inner_boundary = True
+                    break
+                if is_left and px >= cx_end - 1 - inner_margin:
+                    touches_inner_boundary = True
+                    break
+                # 垂直内边界：top-* 的底部，bottom-* 的顶部
+                if is_top and py >= cy_end - 1 - inner_margin:
+                    touches_inner_boundary = True
+                    break
+                if not is_top and py <= cy_start + inner_margin:
+                    touches_inner_boundary = True
+                    break
+
+            if touches_inner_boundary:
+                return 0  # 内容触及内边界，是卡片主体的一部分
+
+            # 检查角落内容的水平范围
+            px_left = min(p[0] for p in corner_pixels)
+            px_right = max(p[0] for p in corner_pixels) + 1
+            corner_content_width = px_right - px_left
+
+            # 检查角落内容是否远小于主体宽度
+            if corner_content_width > width_threshold:
+                return 0  # 角落内容宽度较大，可能是正常内容（标题栏等），不擦除
+
+            # 检查像素密度：X 按钮是细线条，密度低；卡片填充区域密度高
+            corner_area = (cx_end - cx_start) * (cy_end - cy_start)
+            pixel_density = len(corner_pixels) / corner_area if corner_area > 0 else 0
+            if pixel_density > 0.4:
+                return 0  # 密度过高，更像是卡片的实心区域，不是 X 线条
+
+            # 确认是小型角落元素，擦除
+            erased = 0
+            for (x, y) in corner_pixels:
+                result_pixels[x, y] = (0, 0, 0, 0)
+                erased += 1
+
+            if erased > 0:
+                print(f"  ℹ 擦除 {corner_name} 角落疑似 AI 关闭按钮: {erased} 像素 "
+                      f"({corner_content_width}px 宽, 密度 {pixel_density:.1%})")
+            return erased
+
+        total_erased = 0
+
+        # 扫描右上角（最常见的 X 按钮位置）
+        total_erased += scan_and_erase_corner(
+            top, top + corner_h,
+            right - corner_w, right,
+            "右上"
+        )
+
+        # 扫描左上角
+        total_erased += scan_and_erase_corner(
+            top, top + corner_h,
+            left, left + corner_w,
+            "左上"
+        )
+
+        # 扫描右下角（罕见但可能）
+        total_erased += scan_and_erase_corner(
+            bottom - corner_h, bottom,
+            right - corner_w, right,
+            "右下"
+        )
+
+        # 扫描左下角（罕见但可能）
+        total_erased += scan_and_erase_corner(
+            bottom - corner_h, bottom,
+            left, left + corner_w,
+            "左下"
+        )
+
+        if total_erased > 0:
+            print(f"  ✓ AI 关闭按钮擦除完成: 共 {total_erased} 像素")
+
+        return result
 
     def _find_largest_connected_region(
         self,
@@ -1933,6 +2317,74 @@ class SemanticDialogGenerator:
 
         return prompt
 
+    @staticmethod
+    def _parse_background_to_english(raw: str) -> str:
+        """
+        将 meta.json 的 background 字段（中文+颜色代码混合文本）转为纯英文描述。
+
+        避免中文描述和裸颜色代码被文生图模型当作要渲染的文字。
+
+        示例：
+            "外层白色圆角卡片，内容区红色珊瑚渐变 #FF1744 → #FF6B35" → "white card outer, red-coral gradient (#FF1744 to #FF6B35) inner"
+            "米白色渐变 #FAF6F0" → "cream gradient (#FAF6F0)"
+            "#FFFFFF" → "#FFFFFF"
+        """
+        if not raw or raw.strip().startswith('#') and len(raw.strip()) <= 30 and '，' not in raw:
+            # 纯色值或简短英文，直接返回
+            return raw
+
+        # 提取所有 hex 颜色值
+        colors = re.findall(r'#[0-9A-Fa-f]{6}', raw)
+
+        # 中文颜色词 → 英文映射
+        color_map = {
+            '白色': 'white', '米白': 'cream', '黑色': 'black',
+            '红色': 'red', '珊瑚': 'coral', '橙色': 'orange',
+            '粉色': 'pink', '粉红': 'pink', '蓝色': 'blue',
+            '绿色': 'green', '金色': 'gold', '金棕': 'golden-brown',
+            '灰色': 'gray', '紫色': 'purple', '黄色': 'yellow',
+        }
+
+        # 检测是否有渐变
+        has_gradient = '渐变' in raw
+
+        # 构建英文描述
+        parts = []
+
+        # 检测外层/内层结构
+        if '外层' in raw or '外框' in raw:
+            outer_color = 'white'
+            for cn, en in color_map.items():
+                if cn in raw.split('，')[0] if '，' in raw else raw[:10]:
+                    outer_color = en
+                    break
+            parts.append(f'{outer_color} outer frame')
+
+        # 处理颜色
+        if has_gradient and len(colors) >= 2:
+            parts.append(f'gradient ({colors[0]} to {colors[1]})')
+        elif has_gradient and len(colors) == 1:
+            parts.append(f'gradient ({colors[0]})')
+        elif colors:
+            parts.append(' '.join(colors))
+
+        # 添加颜色描述词
+        for cn, en in color_map.items():
+            if cn in raw and en not in ' '.join(parts):
+                # 避免重复添加已在 outer frame 中出现的
+                if not any(en in p for p in parts):
+                    parts.append(en)
+                break
+
+        if parts:
+            return ', '.join(parts)
+
+        # 回退：如果解析失败，返回提取到的颜色值
+        if colors:
+            return ' to '.join(colors) if has_gradient else ' '.join(colors)
+
+        return 'white'
+
     def _build_ai_prompt_from_meta(
         self,
         meta_semantic: str,
@@ -1967,7 +2419,7 @@ class SemanticDialogGenerator:
         app_style = meta_features.get('app_style', '通用')
         design_language = meta_features.get('design_language', '')
         primary_color = meta_features.get('primary_color', '#1890FF')
-        background = meta_features.get('background', '#FFFFFF')
+        background = self._parse_background_to_english(meta_features.get('background', '#FFFFFF'))
         dialog_position = meta_features.get('dialog_position', 'center')
         corner_style = meta_features.get('corner_radius', 'large')
 
@@ -2072,128 +2524,40 @@ class SemanticDialogGenerator:
         # 绝不回退到 app_style，避免参考图品牌泄漏到生成结果
         display_brand = brand_name if brand_name else ''
 
-        # 根据弹窗类型构建不同的内容描述
-        if is_dropdown_menu and menu_items:
-            # 下拉菜单专用内容描述
-            menu_items_str = '\n'.join([f'  - "{item}"' + (' (selected, show checkmark)' if item == selected_item else '') for item in menu_items])
-            content_section = f"""## 2. DROPDOWN MENU CONTENT ({content_source})
-
-### Menu Structure (CRITICAL - use these EXACT items)
-This is a DROPDOWN MENU / CONTEXT MENU, NOT a dialog.
-
-Menu items (in order):
-{menu_items_str}
-
-### Menu Style
-- List style: {list_style}
-- Selected indicator: {selected_indicator} (pink/red checkmark for selected item)
-- The selected item "{selected_item}" should have a visible checkmark indicator
-- Each menu item should be on its own row
-- Clean, minimal design like a native iOS/Android dropdown
-
-### Layout
-- Small, compact dropdown card (NOT a full dialog)
-- White or light background
-- No title bar, no buttons at bottom
-- Just the menu items in a vertical list
-{f'- Optional small title at top: "{title_text}"' if title_text else ''}
-
-{logo_text_desc}
-
-IMPORTANT: This is a DROPDOWN MENU, not a confirmation dialog. Generate a small, compact menu card with the items listed above."""
-        else:
-            # 标准弹窗内容描述
-            content_section = f"""## 2. CONTENT TO DISPLAY ({content_source})
-
-### Text Content (MUST use these exact texts)
-- Title: "{title_text}"
-- Message: "{message_text}"
-- Main button text: "{button_text}"
-{f'- Subtitle: "{subtitle_text}"' if subtitle_text else ''}
-
-{logo_text_desc}
-
-IMPORTANT: Use the above Chinese text EXACTLY as specified. Do not change or substitute with other content.
-{f'IMPORTANT: This dialog belongs to "{display_brand}" app. DO NOT show any other brand name or logo text.' if display_brand else 'IMPORTANT: Do NOT include any specific app brand name, logo, or brand text in the dialog. Keep the dialog brand-neutral.'}"""
-
-        # 版式形状描述映射 —— 强化 AI 对弹窗空间形态的理解
+        # 版式形状描述映射
         layout_shape_map = {
-            'bottom-fixed': 'CRITICAL LAYOUT: This is a HORIZONTAL BANNER/STRIP fixed to the bottom edge. It must be WIDE and SHORT (like a coupon bar), NOT a centered card or popup. The banner should span the full canvas width.',
-            'bottom-floating': 'CRITICAL LAYOUT: This is a wide, short rounded banner floating near the bottom. It should be a horizontal strip, NOT a tall card.',
-            'bottom-center-floating': 'CRITICAL LAYOUT: This is a small tooltip/bubble near the bottom center. Keep it compact.',
-            'center': 'LAYOUT: This is a centered card dialog, vertically and horizontally centered in the canvas.',
-            'bottom-left-inline': 'CRITICAL LAYOUT: This is a SMALL compact dropdown menu card. Keep it minimal.',
-            'multi-layer': 'LAYOUT: This consists of multiple overlapping layers with a dark semi-transparent overlay.',
+            'bottom-fixed': 'a horizontal banner/strip fixed to the bottom edge, wide and short like a coupon bar',
+            'bottom-floating': 'a wide, short rounded banner floating near the bottom',
+            'bottom-center-floating': 'a small tooltip/bubble near the bottom center',
+            'center': 'a centered card dialog',
+            'bottom-left-inline': 'a small compact dropdown menu card',
+            'multi-layer': 'multiple overlapping layers',
         }
-        layout_shape_hint = layout_shape_map.get(dialog_position, '')
+        layout_desc = layout_shape_map.get(dialog_position, 'a centered card dialog')
 
-        prompt = f"""Generate a mobile app dialog/popup that EXACTLY matches the following specifications.
+        # 关闭按钮：不写入 prompt，由 run_pipeline.py 在最终合成阶段用 PIL 精确绘制
+        # 避免 AI 画一个 + pipeline 再画一个导致重复
+        close_desc = 'Do not draw any close button or X icon.'
 
-## 1. VISUAL STYLE (from reference sample)
-{meta_semantic}
+        # 根据弹窗类型构建不同的简洁 prompt
+        # 文生图模型需要简短的自然语言描述，不能用长结构化文档
+        if is_dropdown_menu and menu_items:
+            menu_items_str = ', '.join([f'"{item}"' for item in menu_items])
+            prompt = f"""A mobile app dropdown menu on pure black background. The menu is a small white card with these items: {menu_items_str}. The item "{selected_item}" has a checkmark. Style: {list_style}, clean minimal design. {close_desc} The area outside the menu must be pure black #000000. Match the visual style of the reference image."""
+        elif dialog_position in ('bottom-floating', 'bottom-fixed', 'bottom-center-floating'):
+            # 底部横幅/浮层类型 — 强调只生成单一横幅，不要额外弹窗元素
+            subtitle_part = f' Subtitle: "{subtitle_text}".' if subtitle_text else ''
+            brand_part = f' The banner belongs to "{display_brand}" app.' if display_brand else ''
+            elements_part = f' Include visual elements: {special_elements_desc}.' if special_elements_desc != '无' else ''
 
-{content_section}
+            prompt = f"""A single mobile app notification banner on pure black background. This is {layout_desc}. IMPORTANT: Generate ONLY ONE banner element, do not add any other popup, dialog, card or UI element. The banner has {corner_style} rounded corners with {background} background and {primary_color} as primary color. Title: "{title_text}". Message: "{message_text}".{f' Button text: "{button_text}".' if button_text else ''}{subtitle_part}{brand_part}{elements_part} {close_desc} The banner must fill at least 90% of the canvas width and be vertically centered on the canvas. The rest of the canvas must be pure black #000000 with absolutely no other elements, shadows, or gradients. Do not draw any overlay, dark mask, or additional popup layers. All text is in Chinese, crisp and readable. Match the visual style of the reference image."""
+        else:
+            # 标准弹窗 — 简洁的自然语言描述
+            subtitle_part = f' Subtitle: "{subtitle_text}".' if subtitle_text else ''
+            brand_part = f' The dialog belongs to "{display_brand}" app.' if display_brand else ''
+            elements_part = f' Include visual elements: {special_elements_desc}.' if special_elements_desc != '无' else ''
 
-## 3. VISUAL STYLE REQUIREMENTS (MUST match precisely)
-
-### App Style
-- Use the reference image ONLY for visual design patterns (card shape, color scheme, layout)
-{f'- The dialog belongs to: "{display_brand}" app' if display_brand else '- Do NOT include any specific brand name or logo text'}
-- DO NOT copy brand-specific text or logos from the reference image
-{f'- Any logo/badge icon should display "{display_brand}" NOT any text from the reference' if display_brand else '- Any logo/badge should use generic visual style without brand identity'}
-
-### Color Scheme (EXACT values)
-- Primary color: {primary_color}
-- Background: {background}
-- Use these exact colors, not approximations
-
-### Layout
-- Dialog position: {dialog_position}
-- Corner style: {corner_style} rounded corners
-{f'- {layout_shape_hint}' if layout_shape_hint else ''}
-
-{close_button_desc}
-
-### Visual elements to include: {special_elements_desc}
-
-### Overlay/Mask
-- Overlay enabled: {overlay_enabled}
-- Overlay opacity: {overlay_opacity}
-
-## 4. TECHNICAL REQUIREMENTS
-
-### Canvas Fill (CRITICAL)
-- The dialog MUST fill the ENTIRE canvas width - do NOT leave empty margins
-- The dialog card should span edge-to-edge horizontally (with only thin black border for post-processing)
-- If the dialog is a banner/strip type: it MUST span the full width of the canvas
-- If the dialog is a card type: it should fill at least 90% of the canvas width
-
-### Background (CRITICAL - MUST FOLLOW)
-- The area OUTSIDE the dialog MUST be pure black (#000000, RGB 0,0,0)
-- NO gray shadows, NO gray borders, NO gray glow effects around the dialog
-- The transition from dialog to background should be SHARP, not gradual
-- Only the dialog card itself has color - everything outside is pure black
-- DO NOT add any shadow or border that extends into the black background area
-- This black background will be removed in post-processing
-
-### Quality
-- High resolution, crisp Chinese text rendering
-- Professional mobile app quality
-- Native look matching {design_language if design_language else 'modern mobile app'} design language
-- Anti-aliased edges and shadows
-
-### Text
-- All Chinese text must be clear and readable
-- Use appropriate font sizes for mobile UI
-- Text should be properly kerned and aligned
-
-## 5. REFERENCE STYLE
-{"- Use the provided reference image as visual style anchor" if reference_path else "- No reference image provided, follow the specifications above"}
-- Match the reference image's design language, color palette, and overall feel
-- The generated dialog should look like it belongs to the same app as the reference
-- BUT use the text content specified in section 2, NOT the text from reference image
-
-Generate the dialog image now, following ALL specifications above."""
+            prompt = f"""A mobile app popup dialog card on pure black background. This is {layout_desc}. IMPORTANT: Generate ONLY ONE dialog element, do not add any other popup or UI element. The dialog card has {corner_style} rounded corners with {background} background and {primary_color} as primary color. Title: "{title_text}". Message: "{message_text}". Button text: "{button_text}".{subtitle_part}{brand_part}{elements_part} {close_desc} The dialog must fill at least 90% of the canvas width. The area outside the dialog must be pure black #000000 with no shadows or gradients. Do not draw any overlay or dark mask. All text is in Chinese, crisp and readable. Match the visual style of the reference image."""
 
         return prompt
 
