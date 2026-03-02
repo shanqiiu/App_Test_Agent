@@ -61,6 +61,7 @@ ui_semantic_patch/
 │   ├── patch_renderer.py        # Stage 3: dialog 弹窗渲染引擎
 │   ├── area_loading_renderer.py # Stage 3: area_loading 区域加载渲染
 │   ├── content_duplicate_renderer.py  # Stage 3: content_duplicate 内容重复渲染
+│   ├── text_overlay_renderer.py # Stage 3: text_overlay 文字覆盖编辑渲染
 │   ├── visualize_omni.py        # 检测结果可视化（标注边界框）
 │   ├── batch_pipeline.py        # 批量生成（原图 × GT 样本笛卡尔积）
 │   ├── generate_meta.py         # VLM 驱动 meta.json 自动生成
@@ -219,6 +220,15 @@ python scripts/run_pipeline.py \
   --output ./output/
 ```
 
+**4. 文字覆盖编辑模式**
+```bash
+python scripts/run_pipeline.py \
+  --screenshot ./携程旅行01.jpg \
+  --instruction "在租车服务卡片中插入优惠信息：订阅该服务，机票满500减200元" \
+  --anomaly-mode text_overlay \
+  --output ./output/
+```
+
 ### 指定 GPU/CPU
 
 ```bash
@@ -354,7 +364,7 @@ bash launch.sh list     # 列出异常类别
 | `--api-url` | VLM API 端点 | 从 `VLM_API_URL` 环境变量读取 |
 | `--structure-model` | 结构提取/语义过滤模型 | 从 `STRUCTURE_MODEL` 环境变量读取 |
 | `--vlm-model` | VLM 模型名称 | 从 `VLM_MODEL` 环境变量读取 |
-| `--anomaly-mode` | 异常模式：`dialog` / `area_loading` / `content_duplicate` | `dialog` |
+| `--anomaly-mode` | 异常模式：`dialog` / `area_loading` / `content_duplicate` / `text_overlay` | `dialog` |
 | `--target-component` | 目标组件 ID（area_loading 模式） | 自动推荐 |
 | `--reference, -r` | 参考弹窗图片路径（dialog 模式） | - |
 | `--reference-icon` | 参考加载图标路径（area_loading 模式，推荐！） | - |
@@ -373,6 +383,7 @@ bash launch.sh list     # 列出异常类别
 | `dialog` | `patch_renderer.py` | VLM 语义分析 + PIL/AI 弹窗合成叠加 |
 | `area_loading` | `area_loading_renderer.py` | VLM 推荐目标区域 + Loading 图标覆盖 |
 | `content_duplicate` | `content_duplicate_renderer.py` | 检测重复区域 + 底部浮层扩展渲染 |
+| `text_overlay` | `text_overlay_renderer.py` | VLM 编辑规划 + PIL 局部文字精确绘制（insert_text / replace_region / modify_text / add_badge） |
 
 每个渲染器接收 Stage 2 输出的 UI-JSON 组件列表和用户指令，直接在原图上进行像素级修改。
 
@@ -416,6 +427,8 @@ bash launch.sh list     # 列出异常类别
 | "模拟列表加载超时" | area_loading | Loading 图标 + 区域遮罩 |
 | "选集控件处显示重复列表" | content_duplicate | 底部浮层 + 扩展内容 |
 | "模拟底部信息重复显示" | content_duplicate | 复制组件到底部浮层 |
+| "在租车卡片中插入优惠信息" | text_overlay | 局部插入文字，区域外像素不变 |
+| "将价格从299修改为199" | text_overlay | 原地替换已有文字 |
 
 ## 语义感知场景支持
 
@@ -449,6 +462,7 @@ bash launch.sh list     # 列出异常类别
 - [x] 中间结果全保存
 - [x] GT 模板驱动生成（meta.json）
 - [x] 内容重复异常模式 (content_duplicate)
+- [x] 文字覆盖编辑模式 (text_overlay)
 - [x] 批量生成流水线 (batch_pipeline)
 - [x] 一键启动脚本 (launch.sh / launch.bat)
 - [x] VLM 驱动 meta.json 自动生成
