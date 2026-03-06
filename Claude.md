@@ -1,7 +1,8 @@
-# Claude.md - AI协作配置
+# CLAUDE.md
 
-本项目专注于AI智能体测试技术研究，特别是异常场景测试的自动化生成。
-打通通过模型生成基本故障模式的链路，当前支持xxx？xxx？等集中模式，已有xx个故障模式可以使用
+This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+
+本项目专注于AI智能体测试技术研究，特别是**异常场景测试的自动化生成**。
 ---
 
 ## 项目定位
@@ -12,230 +13,172 @@
 
 ---
 
+## 环境配置
+
+```bash
+# 1. 复制并填写 API 密钥
+cp .env.example .env
+
+# 2. 安装 ui_semantic_patch 核心依赖
+pip install -r prototypes/ui_semantic_patch/requirements.txt
+
+# 3. 安装 OmniParser 依赖（需要 GPU/CUDA 推荐）
+pip install -r prototypes/ui_semantic_patch/third_party/OmniParser/requirements.txt
+```
+
+`.env` 必需变量：
+- `VLM_API_KEY` — OpenAI 兼容接口密钥（UI 分析/语义理解）
+- `DASHSCOPE_API_KEY` — 阿里云 DashScope 密钥（AI 图像生成，可选）
+
+---
+
+## 运行原型代码
+
+所有脚本从 `prototypes/ui_semantic_patch/scripts/` 目录执行。
+
+### 一键启动（推荐）
+
+```bash
+cd prototypes/ui_semantic_patch/scripts
+bash launch.sh              # 交互式菜单
+bash launch.sh single       # 单图模式（使用脚本内默认配置）
+bash launch.sh batch --run  # 批量模式
+bash launch.sh list         # 列出所有可用异常类别
+```
+
+### 直接调用流水线
+
+```bash
+cd prototypes/ui_semantic_patch/scripts
+
+# 弹窗模式（meta-driven，推荐）
+python run_pipeline.py \
+  --screenshot ../data/原图/app首页类-开屏广告弹窗/携程旅行01.jpg \
+  --instruction "生成优惠券广告弹窗" \
+  --gt-category "弹窗覆盖原UI" \
+  --gt-sample "弹出广告.jpg" \
+  --output ./output/demo
+
+# 区域加载模式
+python run_pipeline.py \
+  --screenshot ../data/原图/影视剧集类-内容歧义、重复/腾讯视频.jpg \
+  --instruction "模拟列表加载超时" \
+  --anomaly-mode area_loading \
+  --output ./output/demo
+
+# 内容重复模式
+python run_pipeline.py \
+  --screenshot ../data/原图/影视剧集类-内容歧义、重复/腾讯视频.jpg \
+  --instruction "模拟底部信息重复显示" \
+  --anomaly-mode content_duplicate \
+  --gt-category "内容歧义、重复" \
+  --gt-sample "部分信息重复.jpg" \
+  --output ./output/demo
+
+# 局部文字覆盖模式
+python run_pipeline.py \
+  --screenshot ../data/原图/app首页类-开屏广告弹窗/携程旅行01.jpg \
+  --instruction "在租车服务卡片中插入优惠信息" \
+  --anomaly-mode text_overlay \
+  --output ./output/demo
+```
+
+### 批量生成
+
+```bash
+cd prototypes/ui_semantic_patch/scripts
+python batch_pipeline.py \
+  --input-dir ../data/原图/app首页类-开屏广告弹窗 \
+  --gt-category "弹窗覆盖原UI" \
+  --output ./batch_output
+  # 加 --run 实际执行，否则为 dry-run
+```
+
+---
+
+## 核心架构
+
+### `ui_semantic_patch` 流水线（三阶段）
+
+```
+截图输入 → Stage 1: OmniParser → Stage 2: VLM 语义分组 → Stage 3: 异常渲染 → 输出图像
+```
+
+**关键模块（均位于 `scripts/`）**:
+
+| 模块 | 职责 |
+|------|------|
+| `run_pipeline.py` | 主流水线入口，三阶段串联执行 |
+| `omni_extractor.py` | 调用 OmniParser（YOLO + PaddleOCR + Florence2）检测 UI 组件 |
+| `omni_vlm_fusion.py` | 将 OmniParser 检测结果传给 VLM 做语义分组，产出结构化 UI-JSON |
+| `patch_renderer.py` | `dialog` 模式弹窗渲染（现被 `semantic_dialog_generator` 驱动） |
+| `area_loading_renderer.py` | `area_loading` 模式：在目标组件中心覆盖加载图标 |
+| `content_duplicate_renderer.py` | `content_duplicate` 模式：底部浮层复制组件 |
+| `batch_pipeline.py` | 批量执行，遍历原图目录 × GT 类别 |
+| `generate_meta.py` | 用 VLM 自动生成 `meta.json`（描述 GT 模板的视觉特征） |
+| `extract_gt_bounds.py` | 精确提取 GT 模板中弹窗的像素边界框 |
+| `utils/semantic_dialog_generator.py` | meta-driven 弹窗生成：读取 meta.json 风格 + VLM 生成文案 + DashScope AI 图像生成 |
+| `utils/meta_loader.py` | 读取 `meta.json`，提供视觉特征和位置信息 |
+| `utils/component_position_resolver.py` | 根据指令关键词匹配 UI-JSON 组件，精确定位弹窗位置 |
+| `utils/reference_analyzer.py` | 分析参考图片风格（颜色、布局） |
+
+**数据流关键数据结构**:
+- Stage 1 输出：`{components: [{index, bounds, text, class}...], componentCount}`
+- Stage 2 输出（UI-JSON）：同上但经过语义过滤和分组合并
+- `meta.json`：每个 GT 模板目录下的视觉特征描述，驱动 dialog 模式生成
+
+**GT 模板数据**（`data/Agent执行遇到的典型异常UI类型/analysis/gt_templates/`）:
+- `弹窗覆盖原UI/` — 8 个弹窗样本（含 `meta.json`）
+- `内容歧义、重复/` — 1 个样本
+- `loading_timeout/` — 1 个样本
+
+**原图数据**（`data/原图/`）:
+- `app首页类-开屏广告弹窗/` — 携程旅行 01、02
+- `个人主页类-控件点击弹窗/` — 抖音原图 01、02
+- `影视剧集类-内容歧义、重复/` — 腾讯视频
+
+---
+
 ## 文档结构
 
 ```
-App_Test_Agent/
-├── README.md                           # 项目概览
-├── Claude.md                           # 本文件：AI协作配置
-├── .env.example                        # 环境变量模板
-├── docs/
-│   ├── research/                       # 📚 调研文档（5篇）
-│   ├── technical/                      # 🔧 技术文档
-│   ├── references/                     # 📖 参考资源
-│   ├── planning/                       # 🗺️ 研究规划
-│   └── setup/                          # 🛠️ 环境配置
-├── prototypes/                         # 💻 原型代码
-│   ├── img2text2html2img/              # UI截图复刻工具链
-│   └── ui_semantic_patch/              # 异常场景语义补丁框架
-└── third_party/                        # 📦 第三方依赖
-    └── GUI-Odyssey/                    # UI数据集
+docs/
+├── research/        # 调研文档（命名：NN_描述.md）
+├── technical/       # 技术栈与工具.md、术语表.md
+├── references/      # 学术研究.md、开源项目.md
+├── planning/        # 研究路线图.md、待研究问题.md
+└── setup/           # 环境搭建指南.md
 ```
 
----
-
-## AI协作指引
-
-### 文档管理原则
-
-1. **保持文档独立性**
-   - 每个文档聚焦单一主题
-   - 避免内容重复和耦合
-   - 使用链接关联相关文档
-
-2. **文档命名规范**
-   - 调研文档：`NN_描述性名称.md`（如 `01_方案可行性分析.md`）
-   - 技术文档：`中文描述.md`（如 `技术栈与工具.md`）
-   - 每个目录包含 `README.md` 作为索引
-
-3. **内容组织结构**
-   - 标题层次清晰（H1 → H2 → H3）
-   - 使用**粗体**标注重要概念
-   - 技术术语使用`代码格式`
-   - 优先级标记：🔥 高 / ⭐ 中 / 💡 探索
-
-### 文档处理任务
-
-当需要处理文档时：
-
-1. **新建调研文档**
-   - 放置在 `docs/research/` 目录
-   - 使用编号前缀（如 `03_`）
-   - 更新 `docs/research/README.md` 索引
-
-2. **更新技术文档**
-   - 新工具 → `docs/technical/技术栈与工具.md`
-   - 新术语 → `docs/technical/术语表.md`
-   - 保持分类清晰
-
-3. **添加参考资源**
-   - 学术论文 → `docs/references/学术研究.md`
-   - 开源项目 → `docs/references/开源项目.md`
-   - 更新统计数据
-
-4. **记录研究问题**
-   - 添加到 `docs/planning/待研究问题.md`
-   - 标注优先级和相关文档链接
-   - 更新问题总数
-
-### 技术调研任务
-
-进行技术调研时：
-
-1. **明确调研目标**
-   - 参考 [研究路线图](./docs/planning/研究路线图.md)
-   - 查看 [待研究问题](./docs/planning/待研究问题.md)
-
-2. **整理调研结果**
-   - 创建独立的调研文档
-   - 引用学术研究和开源项目
-   - 提供可执行的建议
-
-3. **更新相关文档**
-   - 技术栈、术语表、参考资源
-   - 研究路线图和问题清单
-   - README.md（如有重大进展）
-
-### 代码开发任务
-
-创建原型代码时：
-
-1. **目录规范**
-   - 在 `prototypes/` 下创建子目录
-   - 命名：`{技术名称}_poc/` 或 `{功能}_demo/`
-   - 每个原型包含独立的 README
-
-2. **代码注释**
-   - 关键算法需详细注释
-   - 实验性代码标注 `[EXPERIMENTAL]`
-   - 待优化部分标注 `[TODO]`
-
-3. **文档同步**
-   - 更新技术文档说明实现细节
-   - 在研究路线图中标记完成状态
-
----
-
-## 核心术语速查
-
-项目中频繁使用的术语（详见 [术语表](./docs/technical/术语表.md)）：
-
-| 术语 | 英文 | 说明 |
-|------|------|------|
-| 智能体 | AI Agent | 能够感知、决策、执行的AI系统 |
-| 异常场景 | Anomaly Scenario | 偏离正常行为的测试场景 |
-| 上下文感知 | Context-Aware | 理解和利用上下文信息的技术 |
-| UI交互图谱 | UI Interaction Graph | 界面状态转移的图结构 |
-| RAG | Retrieval-Augmented Generation | 检索增强生成 |
-| Shadow Injection | - | 隐蔽的对抗性注入技术 |
-
----
-
-## 常用工作流
-
-### 📚 处理JSON聊天记录
-
-```bash
-# 当收到新的聊天记录导出时
-1. 解析JSON内容
-2. 提取技术要点和讨论结果
-3. 创建结构化的调研文档（放入docs/research/）
-4. 更新相关参考资源
-5. 记录新的研究问题
-```
-
-### 🔬 技术方案分析
-
-```bash
-# 分析新技术方案时
-1. 参考现有调研文档了解背景
-2. 查阅学术研究和开源项目
-3. 评估可行性、优势、挑战
-4. 提供多个备选方案对比
-5. 给出实施建议和优先级
-```
-
-### 📊 更新项目进展
-
-```bash
-# 完成阶段性工作后
-1. 更新研究路线图的完成状态
-2. 标记已解决的问题
-3. 更新README.md的当前进展
-4. 记录新发现的问题和风险
-```
+**文档管理规则**:
+- 新调研文档 → `docs/research/NN_描述.md`，更新 `docs/research/README.md`
+- 新工具/术语 → 对应技术文档，不重复创建
+- 优先级标记：🔥 高 / ⭐ 中 / 💡 探索
 
 ---
 
 ## 提交规范
 
-使用以下前缀标记提交：
-
-- `docs:` - 文档更新（调研、方案、总结）
-- `feat:` - 新功能原型
-- `refactor:` - 代码或文档重构
-- `experiment:` - 实验性代码
-- `chore:` - 其他杂项（配置、依赖等）
-
-示例：
-```
-docs: 添加程序化异常生成调研文档
-feat: 实现基础UI遍历原型
-refactor: 重组文档结构，降低耦合性
-```
+- `docs:` — 文档更新
+- `feat:` — 新功能原型
+- `refactor:` — 代码或文档重构
+- `experiment:` — 实验性代码
+- `chore:` — 配置、依赖等
 
 ---
 
-## 质量标准
+## 核心术语
 
-### 调研文档
-- ✅ 有明确的问题定义和研究目标
-- ✅ 引用可靠的学术研究或开源项目
-- ✅ 提供可执行的技术建议
-- ✅ 标注优先级和实施难度
-
-### 技术方案
-- ✅ 可行性分析充分
-- ✅ 风险评估完整
-- ✅ 实施路径清晰
-- ✅ 提供多个备选方案对比
-
-### 原型代码
-- ✅ 代码可运行
-- ✅ 有README说明用途和使用方法
-- ✅ 核心逻辑有清晰注释
-- ✅ 与文档保持同步
+| 术语 | 英文 | 说明 |
+|------|------|------|
+| 智能体 | AI Agent | 能够感知、决策、执行的AI系统 |
+| 异常场景 | Anomaly Scenario | 偏离正常行为的测试场景 |
+| GT 模板 | Ground Truth Template | 真实异常截图，作为生成参考 |
+| UI-JSON | - | Stage 2 输出的结构化界面表示 |
+| meta-driven | - | 由 meta.json 驱动的精准生成模式 |
+| RAG | Retrieval-Augmented Generation | 检索增强生成 |
 
 ---
 
-## 快速参考
-
-### 📍 核心文档
-- [README.md](./README.md) - 项目概览
-- [环境搭建指南](./docs/setup/环境搭建指南.md) - 开发环境配置
-- [研究路线图](./docs/planning/研究路线图.md) - 整体规划
-- [方案可行性分析](./docs/research/01_方案可行性分析.md) - 核心技术方案
-
-### 🔍 查找信息
-- 环境配置 → [环境搭建指南](./docs/setup/环境搭建指南.md)
-- 技术问题 → [待研究问题清单](./docs/planning/待研究问题.md)
-- 术语定义 → [术语表](./docs/technical/术语表.md)
-- 工具选型 → [技术栈与工具](./docs/technical/技术栈与工具.md)
-- 学术文献 → [学术研究](./docs/references/学术研究.md)
-- 开源工具 → [开源项目](./docs/references/开源项目.md)
-
-### 📝 文档导航
-每个子目录都有 README.md 索引：
-- [调研文档索引](./docs/research/README.md)
-- [技术文档索引](./docs/technical/README.md)
-- [参考资源索引](./docs/references/README.md)
-- [规划文档索引](./docs/planning/README.md)
-
----
-
-**配置版本**: v3.0
-**最后更新**: 2026-02-03
-**重大变更**:
-- Phase 2：新增原型代码（img2text2html2img、ui_semantic_patch）
-- 新增环境搭建指南和 .env.example 配置模板
-- 清理冗余代码和备份目录，统一 API 密钥管理
+**配置版本**: v4.0
+**最后更新**: 2026-03-04
