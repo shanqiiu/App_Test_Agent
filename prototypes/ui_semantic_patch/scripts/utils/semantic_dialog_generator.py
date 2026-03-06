@@ -2628,3 +2628,103 @@ class SemanticDialogGenerator:
             dialog = self.generate_dialog_pil(content, width, height, screen_width, screen_height)
 
         return dialog, content
+
+    # ==================== GT 风格提取（原 style_transfer.py 能力） ====================
+
+    def extract_gt_style(self, sample_path: str, style_type: str = "dialog") -> dict:
+        """
+        从 GT 样本提取视觉风格特征（替代已删除的 StyleTransferPipeline）
+
+        Args:
+            sample_path: GT 样本图片路径
+            style_type: 风格类型，"dialog" 或 "loading"
+
+        Returns:
+            风格特征字典
+        """
+        cache_key = f"{style_type}_{sample_path}"
+        if not hasattr(self, '_style_cache'):
+            self._style_cache = {}
+        if cache_key in self._style_cache:
+            return self._style_cache[cache_key]
+
+        try:
+            with open(sample_path, 'rb') as f:
+                image_base64 = base64.b64encode(f.read()).decode('utf-8')
+
+            if style_type == "dialog":
+                prompt = """分析这个弹窗/提示界面的视觉设计特征，用于风格迁移到新场景。
+
+## 分析维度
+
+### 1. 布局特征
+- position: 弹窗位置 (center/top/bottom/full)
+- width_ratio: 弹窗宽度占屏幕比例 (0.0-1.0)
+- height_ratio: 弹窗高度占屏幕比例 (0.0-1.0)
+- padding: 内边距估计值(px)
+
+### 2. 配色方案
+- background: 弹窗背景色
+- primary: 主色调（按钮、标题）
+- secondary: 辅助色
+- text: 主文字颜色
+- button: 主按钮颜色
+
+### 3. 设计风格
+- corner_radius: none/small/medium/large/circular
+- shadow: none/subtle/prominent
+- border: none/thin/thick
+- style: card（卡片）/fullscreen（全屏）/modal（模态）/toast（轻提示）
+
+### 4. 元素特征
+- has_close_button: 是否有关闭按钮
+- close_position: 关闭按钮位置 (top-right/top-right-outside/top-left/bottom)
+- has_image: 是否有图片
+- has_buttons: 是否有操作按钮
+- button_count: 按钮数量
+
+返回纯JSON格式结果。"""
+                default = {
+                    "layout": {"position": "center", "width_ratio": 0.8, "height_ratio": 0.5, "padding": 20},
+                    "colors": {"background": "#FFFFFF", "primary": "#1890FF", "secondary": "#999999",
+                               "text": "#333333", "button": "#1890FF"},
+                    "design": {"corner_radius": "medium", "shadow": "subtle", "border": "none", "style": "card"},
+                    "elements": {"has_close_button": True, "close_position": "top-right",
+                                 "has_image": False, "has_buttons": True, "button_count": 1}
+                }
+            else:  # loading
+                prompt = """分析这个加载/白屏/错误页面的视觉特征，用于风格迁移。
+
+分析维度：加载类型(white_screen/loading_spinner/skeleton/error_page/partial_loading)、
+配色(background/spinner/text)、元素列表、提示文案。
+
+返回纯JSON格式结果。"""
+                default = {
+                    "type": "white_screen",
+                    "colors": {"background": "#FFFFFF", "spinner": "#1890FF", "text": "#999999"},
+                    "elements": [],
+                    "message": ""
+                }
+
+            headers = {'Content-Type': 'application/json', 'Authorization': f'Bearer {self.api_key}'}
+            payload = {
+                'model': self.vlm_model,
+                'messages': [{'role': 'user', 'content': [
+                    {'type': 'image_url', 'image_url': {'url': f'data:image/png;base64,{image_base64}'}},
+                    {'type': 'text', 'text': prompt}
+                ]}],
+                'temperature': 0.3,
+                'max_tokens': 600
+            }
+            response = requests.post(self.vlm_api_url, headers=headers, json=payload, timeout=60)
+            response.raise_for_status()
+            content_str = response.json()['choices'][0]['message']['content']
+            import re as _re
+            json_match = _re.search(r'\{[\s\S]*\}', content_str)
+            result = json.loads(json_match.group(0)) if json_match else default
+            self._style_cache[cache_key] = result
+            return result
+
+        except Exception as e:
+            print(f"  ⚠ GT 风格提取失败 ({style_type}): {e}")
+            return default

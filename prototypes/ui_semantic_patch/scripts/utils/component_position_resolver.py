@@ -10,6 +10,9 @@ component_position_resolver.py - UI组件精确定位解析器
 
 from typing import Optional, Dict, List, Tuple
 import re
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 class ComponentPositionResolver:
@@ -320,6 +323,11 @@ def resolve_popup_position(
         return result
 
     # 回退到百分比定位
+    logger.warning(
+        "[ComponentPositionResolver] keyword match failed for instruction '%s', "
+        "falling back to percentage-based positioning (dialog_position='%s')",
+        instruction, dialog_position
+    )
     pos_x, pos_y = _calculate_fallback_position(
         dialog_position, dialog_width, dialog_height,
         screen_width, screen_height
@@ -331,7 +339,8 @@ def resolve_popup_position(
         'matched_component': None,
         'match_type': None,
         'keyword': None,
-        'used_fallback': True
+        'used_fallback': True,
+        '_fallback': True
     }
 
 

@@ -22,12 +22,15 @@ import requests
 from typing import Dict, List, Tuple, Optional
 from PIL import Image, ImageDraw, ImageFont, ImageFilter
 from pathlib import Path
+from datetime import datetime
+
+from base_renderer import BaseRenderer, RenderResult
 
 # DashScope API Key（优先使用环境变量）
 DASHSCOPE_API_KEY = os.environ.get('DASHSCOPE_API_KEY')
 
 
-class ContentDuplicateRenderer:
+class ContentDuplicateRenderer(BaseRenderer):
     """内容重复异常渲染器 - 生成底部浮层复制/扩展现有UI组件"""
 
     def __init__(
@@ -1342,6 +1345,50 @@ Requirements:
         return result
 
     # ==================== 主入口 ====================
+
+    def render(
+        self,
+        screenshot: Image.Image,
+        ui_json: dict,
+        instruction: str,
+        output_dir: str,
+        **kwargs,
+    ) -> RenderResult:
+        """
+        BaseRenderer 统一接口。
+
+        kwargs:
+            screenshot_path (str): 截图文件路径（必需，供 VLM 分析使用）
+            meta_features (dict):  meta.json 视觉特征，默认 {}
+            mode (str):            'simple_crop' 或 'expanded_view'，默认 'expanded_view'
+            reference_path (str):  参考图路径（可选）
+        """
+        screenshot_path = kwargs.get('screenshot_path', '')
+        meta_features = kwargs.get('meta_features', {})
+        mode = kwargs.get('mode', 'expanded_view')
+        reference_path = kwargs.get('reference_path')
+
+        result_img = self.render_content_duplicate(
+            screenshot=screenshot,
+            screenshot_path=screenshot_path,
+            ui_json=ui_json,
+            instruction=instruction,
+            meta_features=meta_features,
+            mode=mode,
+            reference_path=reference_path,
+        )
+        if result_img is None:
+            result_img = screenshot
+
+        output_path = Path(output_dir) / f"final_{datetime.now().strftime('%Y%m%d_%H%M%S')}.png"
+        output_path.parent.mkdir(parents=True, exist_ok=True)
+        result_img.save(str(output_path))
+
+        return RenderResult(
+            image=result_img,
+            output_path=str(output_path),
+            metadata={'mode': mode},
+        )
 
     def render_content_duplicate(
         self,

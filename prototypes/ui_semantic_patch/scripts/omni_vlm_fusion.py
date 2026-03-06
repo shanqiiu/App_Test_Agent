@@ -397,6 +397,8 @@ def omni_vlm_fusion(
 
     # Stage 2: VLM 语义分组（单次调用：原图 + 坐标文本）
     print(f"\n[Stage 2] VLM 语义分组（原图 + 坐标文本）...")
+    _stage2_status = "success"
+    _stage2_error = None
     try:
         grouping_result = call_vlm_for_grouping(
             api_key=api_key,
@@ -434,6 +436,7 @@ def omni_vlm_fusion(
         print(f"  回退到 OmniParser 原始结果（共 {len(omni_components)} 个组件）")
         final_components = omni_components
         merge_log = [{'action': 'stage2_failed', 'reason': str(e)}]
+        _stage2_error = str(e)
 
     if merge_log:
         print(f"  处理日志:")
@@ -462,8 +465,11 @@ def omni_vlm_fusion(
             }
         },
         "components": final_components,
-        "componentCount": len(final_components)
+        "componentCount": len(final_components),
+        "_stage2_status": _stage2_status,
     }
+    if _stage2_error:
+        ui_json["_stage2_error"] = _stage2_error
 
     return ui_json
 

@@ -24,12 +24,15 @@ import os
 from typing import Dict, Tuple, Optional
 from PIL import Image, ImageDraw, ImageFilter
 from pathlib import Path
+from datetime import datetime
+
+from base_renderer import BaseRenderer, RenderResult
 
 # DashScope API Key（优先使用环境变量）
 DASHSCOPE_API_KEY = os.environ.get('DASHSCOPE_API_KEY')
 
 
-class AreaLoadingRenderer:
+class AreaLoadingRenderer(BaseRenderer):
     """区域加载异常渲染器 - 风格自适应版本"""
 
     def __init__(
@@ -776,6 +779,60 @@ Generate the icon image now."""
 
     # ==================== 完整渲染流程 ====================
 
+    def render(
+        self,
+        screenshot: Image.Image,
+        ui_json: dict,
+        instruction: str,
+        output_dir: str,
+        **kwargs,
+    ) -> RenderResult:
+        """
+        BaseRenderer 统一接口。
+
+        kwargs:
+            screenshot_path (str): 截图文件路径，用于 VLM 风格提取
+            component (dict):      指定目标组件；若未提供则从 ui_json 自动匹配
+            anomaly_type (str):    timeout/network_error/loading/image_broken/empty_data
+            add_dimming (bool):    是否添加区域暗化，默认 True
+        """
+        from datetime import datetime
+        screenshot_path = kwargs.get('screenshot_path', '')
+        anomaly_type = kwargs.get('anomaly_type', 'loading')
+        add_dimming = kwargs.get('add_dimming', True)
+
+        # 组件选择：优先使用调用方传入，否则选取最大区域组件
+        component = kwargs.get('component')
+        if component is None:
+            components = ui_json.get('components', [])
+            if components:
+                component = max(
+                    components,
+                    key=lambda c: c.get('bounds', {}).get('width', 0) * c.get('bounds', {}).get('height', 0)
+                )
+            else:
+                component = {'class': 'Unknown', 'bounds': {'x': 0, 'y': 0, 'width': screenshot.width, 'height': screenshot.height}}
+
+        result_img = self.render_area_loading(
+            screenshot=screenshot,
+            component=component,
+            anomaly_type=anomaly_type,
+            screenshot_path=screenshot_path,
+            add_dimming=add_dimming,
+        )
+        if result_img is None:
+            result_img = screenshot
+
+        output_path = Path(output_dir) / f"final_{datetime.now().strftime('%Y%m%d_%H%M%S')}.png"
+        output_path.parent.mkdir(parents=True, exist_ok=True)
+        result_img.save(str(output_path))
+
+        return RenderResult(
+            image=result_img,
+            output_path=str(output_path),
+            metadata={'anomaly_type': anomaly_type, 'component_class': component.get('class', 'Unknown')},
+        )
+
     def render_area_loading(
         self,
         screenshot: Image.Image,
@@ -871,8 +928,6 @@ def main():
 
     # 初始化渲染器
     renderer = AreaLoadingRenderer(api_key=api_key)
-
-    # 示例使用（需要真实的截图文件）
     print("区域加载异常渲染器 - 测试模式")
     print("=" * 60)
 

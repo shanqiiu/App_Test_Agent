@@ -55,8 +55,42 @@ class GTManager:
         self.index_path = self.gt_dir / "index.json"
         self.index = self._load_index()
 
+    def _build_index(self) -> dict:
+        """扫描 gt_templates/ 目录自动重建索引，无需手动维护 index.json"""
+        index = {"dialogs": [], "toasts": [], "loadings": []}
+        dir_map = {
+            "dialogs": self.dialogs_dir,
+            "toasts": self.toasts_dir,
+            "loadings": self.loadings_dir,
+        }
+        for key, directory in dir_map.items():
+            if not directory.exists():
+                continue
+            for sample in sorted(directory.glob("*.png")):
+                entry = {
+                    "name": sample.stem,
+                    "style": "default",
+                    "path": str(sample.relative_to(self.gt_dir)),
+                    "size": {"width": 0, "height": 0},
+                }
+                meta_file = sample.with_suffix(".json")
+                if meta_file.exists():
+                    try:
+                        with open(meta_file, "r", encoding="utf-8") as f:
+                            meta = json.load(f)
+                        entry["style"] = meta.get("style", "default")
+                        entry["size"] = meta.get("size", entry["size"])
+                    except Exception:
+                        pass
+                index[key].append(entry)
+        return index
+
     def _load_index(self) -> dict:
-        """加载GT索引"""
+        """加载GT索引（优先自动扫描重建，index.json 作为回退缓存）"""
+        index = self._build_index()
+        if any(index.get(k) for k in ("dialogs", "toasts", "loadings")):
+            return index
+        # 回退：读取 index.json 缓存
         if self.index_path.exists():
             with open(self.index_path, 'r', encoding='utf-8') as f:
                 return json.load(f)

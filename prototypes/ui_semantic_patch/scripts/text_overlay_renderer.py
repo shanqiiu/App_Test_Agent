@@ -24,7 +24,9 @@ from typing import Dict, List, Tuple, Optional, Any
 from pathlib import Path
 from PIL import Image, ImageDraw, ImageFont, ImageFilter
 from dataclasses import dataclass, field, asdict
+from datetime import datetime
 
+from base_renderer import BaseRenderer, RenderResult
 from utils.common import encode_image, get_mime_type, extract_json
 
 
@@ -112,7 +114,7 @@ EDIT_PLAN_PROMPT = """你是一个App UI编辑专家。给定一张App截图和�
 
 # ==================== 渲染器主类 ====================
 
-class TextOverlayRenderer:
+class TextOverlayRenderer(BaseRenderer):
     """文字覆盖编辑渲染器 - 局部精确编辑"""
 
     def __init__(
@@ -1235,6 +1237,64 @@ class TextOverlayRenderer:
         return result
 
     # ==================== 5. 批量执行 + Diff 验证 ====================
+
+    def render(
+        self,
+        screenshot: Image.Image,
+        ui_json: dict,
+        instruction: str,
+        output_dir: str,
+        **kwargs,
+    ) -> RenderResult:
+        """
+        BaseRenderer 统一接口。
+
+        注意：此渲染器内部 render_all() 接受文件路径而非 PIL Image 对象，
+        因此 screenshot 参数不被使用，路径必须通过 kwargs['screenshot_path'] 传递。
+
+        kwargs:
+            screenshot_path (str): 截图文件路径（必需）
+            edit_plan (list):      预设编辑计划（可选）
+        """
+        screenshot_path = kwargs.get('screenshot_path')
+        if not screenshot_path:
+            raise ValueError("TextOverlayRenderer.render() requires kwargs['screenshot_path']")
+
+        edit_plan = kwargs.get('edit_plan')
+        result_img, executed_ops = self.render_all(
+            screenshot_path=screenshot_path,
+            ui_json=ui_json,
+            instruction=instruction,
+            edit_plan=edit_plan,
+        )
+
+        timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+        output_dir_path = Path(output_dir)
+        output_dir_path.mkdir(parents=True, exist_ok=True)
+
+        final_path = output_dir_path / f"final_{timestamp}.png"
+        result_img.convert('RGB').save(str(final_path))
+
+        diff_path = output_dir_path / f"diff_{timestamp}.png"
+        original = Image.open(screenshot_path).convert('RGBA')
+        self.save_diff_visualization(original, result_img, str(diff_path))
+
+        plan_path = output_dir_path / f"edit_plan_{timestamp}.json"
+        plan_path.write_text(
+            __import__('json').dumps([op.__dict__ if hasattr(op, '__dict__') else op for op in executed_ops],
+                                     ensure_ascii=False, indent=2),
+            encoding='utf-8'
+        )
+
+        return RenderResult(
+            image=result_img,
+            output_path=str(final_path),
+            metadata={
+                'edit_count': len(executed_ops),
+                'diff_path': str(diff_path),
+                'edit_plan_path': str(plan_path),
+            },
+        )
 
     def render_all(
         self,

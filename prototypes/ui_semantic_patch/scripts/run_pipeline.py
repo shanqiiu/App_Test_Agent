@@ -261,6 +261,18 @@ def run_pipeline(
     print(f"  ✓ 过滤后: {ui_json['componentCount']} 个组件")
     print(f"  ✓ 保存至: {stage2_path}")
 
+    # 记录 Stage 2 状态（健壮性修复 Step 3.6）
+    stage2_status = ui_json.get('_stage2_status', 'unknown')
+    results['stage2_status'] = stage2_status
+    if stage2_status == 'fallback':
+        warn_msg = f"VLM 语义分组失败，使用 OmniParser 原始结果: {ui_json.get('_stage2_error', '')}"
+        print(f"  [WARN] {warn_msg}")
+        results.setdefault('warnings', []).append({
+            'type': 'stage2_fallback',
+            'error': ui_json.get('_stage2_error', ''),
+            'message': warn_msg,
+        })
+
     # 保存 Stage 2 可视化图片
     if visualize:
         stage2_vis_path = output_dir / f"{screenshot_name}_stage2_annotated_{timestamp}.png"
@@ -272,417 +284,118 @@ def run_pipeline(
         results['outputs']['stage2_annotated'] = str(stage2_vis_path)
         print(f"  ✓ 可视化图片: {stage2_vis_path}")
 
-    # ===== Stage 3: 异常渲染（根据模式选择） =====
+    # ===== Stage 3: 异常渲染（RENDERER_MAP 统一路由） =====
     print("\n" + "=" * 60)
+    print(f"[Stage 3/3] 异常渲染 ({anomaly_mode} 模式)")
+    print("=" * 60)
+    print(f"  异常指令: {instruction}")
 
-    if anomaly_mode == 'area_loading':
-        # 新模式：区域加载图标覆盖
-        print("[Stage 3/3] 区域加载异常渲染")
-        print("=" * 60)
-        print(f"  异常指令: {instruction}")
-        print(f"  模式: area_loading（区域图标覆盖）")
+    try:
+        from base_renderer import RenderResult
+        from area_loading_renderer import AreaLoadingRenderer
+        from content_duplicate_renderer import ContentDuplicateRenderer
+        from text_overlay_renderer import TextOverlayRenderer
+        from patch_renderer import PatchRenderer
+        from PIL import Image
 
-        # 导入区域加载渲染器
-        try:
-            from area_loading_renderer import AreaLoadingRenderer
-            from PIL import Image
+        RENDERER_MAP = {
+            'dialog':            PatchRenderer,
+            'area_loading':      AreaLoadingRenderer,
+            'content_duplicate': ContentDuplicateRenderer,
+            'text_overlay':      TextOverlayRenderer,
+        }
 
-            # 解析异常类型
-            anomaly_type = _parse_anomaly_type(instruction)
+        if anomaly_mode not in RENDERER_MAP:
+            print(f"  ✗ 不支持的 anomaly_mode: {anomaly_mode}")
+            print(f"  支持的模式: {list(RENDERER_MAP.keys())}")
+            return results
 
-            # 选择目标组件
+        renderer_cls = RENDERER_MAP[anomaly_mode]
+
+        # 构造各渲染器通用初始化参数
+        if anomaly_mode == 'area_loading':
+            renderer = renderer_cls(
+                api_key=api_key,
+                vlm_api_url=vlm_api_url,
+                vlm_model=vlm_model,
+            )
+        elif anomaly_mode == 'content_duplicate':
+            renderer = renderer_cls(
+                api_key=api_key,
+                vlm_api_url=vlm_api_url,
+                vlm_model=vlm_model,
+                fonts_dir=fonts_dir,
+            )
+        elif anomaly_mode == 'text_overlay':
+            renderer = renderer_cls(
+                api_key=api_key,
+                vlm_api_url=vlm_api_url,
+                vlm_model=vlm_model,
+                fonts_dir=fonts_dir,
+            )
+        else:  # dialog
+            renderer = renderer_cls(
+                api_key=api_key,
+                vlm_api_url=vlm_api_url,
+                vlm_model=vlm_model,
+                fonts_dir=fonts_dir,
+            )
+
+        # 读取截图 PIL 对象
+        screenshot_img = Image.open(screenshot_path)
+
+        # 构造各模式专有 kwargs
+        extra_kwargs = {'screenshot_path': screenshot_path}
+        if anomaly_mode == 'area_loading':
+            extra_kwargs['anomaly_type'] = _parse_anomaly_type(instruction)
             if target_component:
-                # 用户指定组件ID
                 component = _find_component_by_id(ui_json, target_component)
                 if not component:
-                    print(f"  ⚠ 未找到组件 ID: {target_component}")
-                    # 智能推荐
                     component = _smart_select_component(ui_json, instruction)
-            else:
-                # 智能推荐
-                component = _smart_select_component(ui_json, instruction)
-
-            if not component:
-                print("  ✗ 无法找到合适的目标组件")
-                return results
-
-            print(f"  ✓ 目标组件: [{component.get('index')}] {component.get('class')}")
-
-            # 初始化渲染器
-            renderer = AreaLoadingRenderer(
-                api_key=api_key,
-                vlm_api_url=vlm_api_url,
-                vlm_model=vlm_model,
-                reference_icon_path=reference_icon_path
-            )
-
-            # 渲染区域加载异常
-            screenshot_img = Image.open(screenshot_path)
-            result_img = renderer.render_area_loading(
-                screenshot=screenshot_img,
-                component=component,
-                anomaly_type=anomaly_type,
-                screenshot_path=screenshot_path,
-                add_dimming=True
-            )
-
-            if not result_img:
-                print("  ✗ 区域加载渲染失败")
-                return results
-
-            # 保存最终结果
-            final_output = output_dir / f"{screenshot_name}_final_{timestamp}.png"
-            result_img.save(str(final_output))
-            results['outputs']['final_image'] = str(final_output)
-
-            print(f"  ✓ 保存至: {final_output}")
-
-        except ImportError as e:
-            print(f"  ✗ 区域加载渲染器导入失败: {e}")
-            print("  提示: 请确保 area_loading_renderer.py 和相关依赖已正确安装")
-            return results
-
-    elif anomaly_mode == 'content_duplicate':
-        # 新模式：内容重复/歧义
-        print("[Stage 3/3] 内容重复异常渲染")
-        print("=" * 60)
-        print(f"  异常指令: {instruction}")
-        print(f"  模式: content_duplicate（底部浮层复制组件）")
-
-        try:
-            from content_duplicate_renderer import ContentDuplicateRenderer
-            from PIL import Image
-
-            # 加载meta配置
-            meta_features = {}
-            duplicate_mode = 'expanded_view'  # 默认使用扩展视图模式
-            ref_path = reference_path  # 参考图路径
-
+                extra_kwargs['component'] = component
+        elif anomaly_mode == 'content_duplicate':
+            meta_features_cd = {}
             if gt_category and gt_sample and gt_dir:
                 from utils.meta_loader import MetaLoader
-                meta_loader = MetaLoader(gt_dir)
-                meta_features = meta_loader.extract_visual_features_dict(gt_category, gt_sample) or {}
-                duplicate_mode = meta_features.get('duplicate_mode', 'expanded_view')
-                # 获取参考图路径（用于风格迁移）
-                ref_path = reference_path or meta_loader.get_sample_path(gt_category, gt_sample)
-                print(f"  ✓ 加载meta配置: {gt_category}/{gt_sample}")
-                print(f"  复制模式: {duplicate_mode}")
-                if ref_path:
-                    print(f"  参考图: {ref_path}")
+                meta_loader_cd = MetaLoader(gt_dir)
+                meta_features_cd = meta_loader_cd.extract_visual_features_dict(gt_category, gt_sample) or {}
+            extra_kwargs['meta_features'] = meta_features_cd
+            extra_kwargs['mode'] = 'expanded_view'
+            if reference_path:
+                extra_kwargs['reference_path'] = reference_path
+        elif anomaly_mode == 'dialog':
+            extra_kwargs['gt_category'] = gt_category
+            extra_kwargs['gt_sample'] = gt_sample
+            extra_kwargs['gt_dir'] = gt_dir
+            extra_kwargs['reference_path'] = reference_path
 
-            # 初始化渲染器
-            renderer = ContentDuplicateRenderer(
-                api_key=api_key,
-                vlm_api_url=vlm_api_url,
-                vlm_model=vlm_model,
-                fonts_dir=fonts_dir
-            )
+        # 统一调用
+        render_result: RenderResult = renderer.render(
+            screenshot=screenshot_img,
+            ui_json=ui_json,
+            instruction=instruction,
+            output_dir=str(output_dir),
+            **extra_kwargs,
+        )
 
-            # 渲染内容重复异常
-            screenshot_img = Image.open(screenshot_path)
-            result_img = renderer.render_content_duplicate(
-                screenshot=screenshot_img,
-                screenshot_path=screenshot_path,
-                ui_json=ui_json,
-                instruction=instruction,
-                meta_features=meta_features,
-                mode=duplicate_mode,
-                reference_path=ref_path
-            )
+        # 统一读取结果
+        final_output = render_result.output_path
+        results['outputs']['final_image'] = final_output
+        results['outputs']['meta_driven'] = (anomaly_mode == 'dialog')
 
-            if not result_img:
-                print("  ✗ 内容重复渲染失败")
-                return results
+        # 写入渲染元数据（告警等）
+        if render_result.metadata:
+            results.setdefault('render_metadata', {}).update(render_result.metadata)
+            if render_result.metadata.get('warnings'):
+                results.setdefault('warnings', []).extend(render_result.metadata['warnings'])
 
-            # 保存最终结果
-            final_output = output_dir / f"{screenshot_name}_final_{timestamp}.png"
-            result_img.save(str(final_output))
-            results['outputs']['final_image'] = str(final_output)
-            results['outputs']['anomaly_mode'] = 'content_duplicate'
-            results['outputs']['duplicate_mode'] = duplicate_mode
+        print(f"  ✓ 渲染完成！保存至: {final_output}")
 
-            print(f"  ✓ 内容重复异常渲染完成!")
-            print(f"  ✓ 保存至: {final_output}")
-
-        except ImportError as e:
-            print(f"  ✗ 内容重复渲染器导入失败: {e}")
-            print("  提示: 请确保 content_duplicate_renderer.py 已正确放置")
-            return results
-
-    elif anomaly_mode == 'text_overlay':
-        # 新模式：文字覆盖编辑（局部精确修改）
-        print("[Stage 3/3] 文字覆盖编辑渲染")
-        print("=" * 60)
-        print(f"  编辑指令: {instruction}")
-        print(f"  模式: text_overlay（局部文字编辑，区域外像素不变）")
-
-        try:
-            from text_overlay_renderer import TextOverlayRenderer
-            from PIL import Image
-
-            # 初始化渲染器
-            renderer = TextOverlayRenderer(
-                api_key=api_key,
-                vlm_api_url=vlm_api_url,
-                vlm_model=vlm_model,
-                fonts_dir=fonts_dir
-            )
-
-            # 完整渲染流程：VLM规划 → 逐步执行
-            result_img, executed_ops = renderer.render_all(
-                screenshot_path=screenshot_path,
-                ui_json=ui_json,
-                instruction=instruction
-            )
-
-            if not executed_ops:
-                print("  ⚠ 无编辑操作被执行")
-                return results
-
-            # 保存最终结果
-            final_output = output_dir / f"{screenshot_name}_final_{timestamp}.png"
-            result_img.save(str(final_output))
-            results['outputs']['final_image'] = str(final_output)
-            results['outputs']['anomaly_mode'] = 'text_overlay'
-            results['outputs']['edit_count'] = len(executed_ops)
-
-            # 保存 diff 可视化（标记所有被修改的像素）
-            diff_output = output_dir / f"{screenshot_name}_diff_{timestamp}.png"
-            original_img = Image.open(screenshot_path).convert('RGBA')
-            renderer.save_diff_visualization(original_img, result_img, str(diff_output))
-            results['outputs']['diff_image'] = str(diff_output)
-
-            # 保存编辑计划 JSON
-            edit_plan_output = output_dir / f"{screenshot_name}_edit_plan_{timestamp}.json"
-            plan_data = []
-            for op in executed_ops:
-                plan_data.append({
-                    'action': op.action,
-                    'region': op.region,
-                    'content': op.content,
-                    'target_component': op.target_component,
-                    'reference_component': op.reference_component,
-                    'style_hint': op.style_hint,
-                })
-            with open(edit_plan_output, 'w', encoding='utf-8') as f:
-                json.dump(plan_data, f, ensure_ascii=False, indent=2)
-            results['outputs']['edit_plan'] = str(edit_plan_output)
-
-            print(f"\n  ✓ 文字覆盖编辑完成！共执行 {len(executed_ops)} 个操作")
-            print(f"  ✓ 最终图像: {final_output}")
-            print(f"  ✓ Diff 可视化: {diff_output}")
-            print(f"  ✓ 编辑计划: {edit_plan_output}")
-
-        except ImportError as e:
-            print(f"  ✗ 文字覆盖渲染器导入失败: {e}")
-            print("  提示: 请确保 text_overlay_renderer.py 已正确放置")
-            return results
-        except Exception as e:
-            print(f"  ✗ 文字覆盖渲染失败: {e}")
-            import traceback
-            traceback.print_exc()
-            return results
-
-    else:
-        # dialog 模式：meta-driven 弹窗生成
-        print("[Stage 3/3] 异常弹窗生成与合并（meta-driven）")
-        print("=" * 60)
-        print(f"  异常指令: {instruction}")
-
-        # meta-driven 生成（所有异常参考图片均有 meta.json 描述）
-        if not (gt_category and gt_sample and gt_dir):
-            print("  ✗ dialog 模式需要指定 --gt-category、--gt-sample 和 --gt-dir")
-            print("  提示: 所有异常参考图片均有 meta.json 描述，请使用 meta-driven 生成")
-            return results
-
-        print(f"  生成模式: meta-driven AI (精准语义生成)")
-        print(f"  GT类别: {gt_category}")
-        print(f"  GT样本: {gt_sample}")
-
-        try:
-            from utils.meta_loader import MetaLoader
-            from utils.semantic_dialog_generator import SemanticDialogGenerator
-            from PIL import Image
-
-            # 加载 meta.json
-            meta_loader = MetaLoader(gt_dir)
-
-            # 提取纯视觉风格（不含文字内容）
-            visual_style_prompt = meta_loader.extract_visual_style_prompt(
-                gt_category, gt_sample
-            )
-            meta_features = meta_loader.extract_visual_features_dict(gt_category, gt_sample)
-
-            if not visual_style_prompt or not meta_features:
-                print(f"  ✗ 无法加载meta信息: {gt_category}/{gt_sample}")
-                return results
-
-            if visual_style_prompt and meta_features:
-                # 获取参考图片路径
-                ref_path = reference_path or meta_loader.get_sample_path(gt_category, gt_sample)
-                print(f"  参考图: {ref_path}")
-
-                # 获取屏幕尺寸
-                screenshot_img = Image.open(screenshot_path)
-                screen_width, screen_height = screenshot_img.size
-
-                # 计算弹窗尺寸
-                # 优先使用 dialog_bounds_px（OmniParser 精确提取），否则回退到比例估算
-                bounds_px = meta_features.get('dialog_bounds_px')
-                if bounds_px:
-                    dialog_width = bounds_px['width']
-                    dialog_height = bounds_px['height']
-                    print(f"  弹窗尺寸: {dialog_width}x{dialog_height} (来源: dialog_bounds_px 精确提取)")
-                else:
-                    width_ratio = meta_features.get('dialog_width_ratio', 0.8)
-                    height_ratio = meta_features.get('dialog_height_ratio', 0.5)
-                    dialog_width = int(screen_width * width_ratio)
-                    dialog_height = int(screen_height * height_ratio)
-                    print(f"  弹窗尺寸: {dialog_width}x{dialog_height} (比例: {width_ratio}x{height_ratio})")
-
-                # 使用 meta-driven 生成器
-                generator = SemanticDialogGenerator(
-                    fonts_dir=fonts_dir,
-                    api_key=api_key,
-                    vlm_api_url=vlm_api_url,
-                    vlm_model=vlm_model,
-                    reference_path=ref_path
-                )
-
-                # 使用 VLM 根据目标截图生成语义相关的文案内容
-                print(f"  正在分析目标页面语义...")
-                target_content = generator.generate_content_for_target_page(
-                    screenshot_path=screenshot_path,
-                    instruction=instruction,
-                    anomaly_type=meta_features.get('anomaly_type', 'promotional_dialog'),
-                    app_style=meta_features.get('app_style')
-                )
-                if target_content:
-                    print(f"  ✓ 生成语义内容: {target_content.get('title', '')} - {target_content.get('message', '')[:30]}...")
-                else:
-                    print(f"  ⚠ VLM语义生成失败，使用默认内容")
-
-                # 生成弹窗（视觉风格来自meta，文字内容来自VLM）
-                dialog_img = generator.generate_dialog_ai_from_meta(
-                    meta_semantic=visual_style_prompt,
-                    meta_features=meta_features,
-                    reference_path=ref_path,
-                    width=dialog_width,
-                    height=dialog_height,
-                    target_content=target_content
-                )
-
-                if dialog_img:
-                    # 计算弹窗位置（支持 UI-JSON 精确定位 + meta.json 位置类型）
-                    dialog_position = meta_features.get('dialog_position', 'center')
-
-                    # 尝试使用 UI-JSON 精确定位
-                    from utils.component_position_resolver import resolve_popup_position
-                    position_result = resolve_popup_position(
-                        ui_json=ui_json,
-                        instruction=instruction,
-                        dialog_position=dialog_position,
-                        dialog_width=dialog_width,
-                        dialog_height=dialog_height,
-                        screen_width=screen_width,
-                        screen_height=screen_height
-                    )
-
-                    pos_x = position_result['x']
-                    pos_y = position_result['y']
-
-                    # 输出定位方式
-                    if position_result.get('matched_component'):
-                        matched_comp = position_result['matched_component']
-                        print(f"  ✓ 精确定位: 匹配到组件 [{matched_comp.get('index')}] \"{matched_comp.get('text', '')[:20]}\"")
-                        print(f"    关键词: \"{position_result.get('keyword')}\" ({position_result.get('match_type')})")
-                        print(f"    位置: ({pos_x}, {pos_y})")
-                    else:
-                        print(f"  ℹ 使用百分比定位: {dialog_position} → ({pos_x}, {pos_y})")
-
-                    # 合成图像
-                    result_img = screenshot_img.convert('RGBA')
-
-                    # 添加遮罩层（如果需要）
-                    if meta_features.get('overlay_enabled', True):
-                        overlay_opacity = int(meta_features.get('overlay_opacity', 0.7) * 255)
-                        overlay = Image.new('RGBA', result_img.size, (0, 0, 0, overlay_opacity))
-                        result_img = Image.alpha_composite(result_img, overlay)
-
-                    # 粘贴弹窗
-                    result_img.paste(dialog_img, (pos_x, pos_y), dialog_img)
-
-                    # 绘制关闭按钮（在最终合成图上，确保位置正确）
-                    close_button_pos = meta_features.get('close_button_position', 'none')
-                    close_button_style = meta_features.get('close_button_style', 'gray_circle_x')
-                    if close_button_pos != 'none':
-                        from PIL import ImageDraw
-                        # 计算按钮大小（约为弹窗宽度的7%）
-                        button_size = max(36, min(50, dialog_width // 14))
-
-                        # 根据位置计算关闭按钮在屏幕上的坐标
-                        if close_button_pos == 'bottom-center':
-                            # 在弹窗下方居中
-                            btn_x = pos_x + dialog_width // 2 - button_size // 2
-                            btn_y = pos_y + dialog_height + 15  # 弹窗下方15px
-                        elif close_button_pos == 'top-right':
-                            btn_x = pos_x + dialog_width - button_size // 2
-                            btn_y = pos_y - button_size // 2
-                        elif close_button_pos == 'top-left':
-                            btn_x = pos_x - button_size // 2
-                            btn_y = pos_y - button_size // 2
-                        else:
-                            # 默认底部居中
-                            btn_x = pos_x + dialog_width // 2 - button_size // 2
-                            btn_y = pos_y + dialog_height + 15
-
-                        # 创建关闭按钮图层
-                        button_layer = Image.new('RGBA', result_img.size, (0, 0, 0, 0))
-                        draw = ImageDraw.Draw(button_layer)
-
-                        # 根据样式设置颜色
-                        if 'white' in close_button_style:
-                            bg_color = (255, 255, 255, 230)
-                            x_color = (150, 150, 150, 255)
-                        else:  # gray_circle_x 或默认
-                            bg_color = (80, 80, 80, 220)
-                            x_color = (255, 255, 255, 255)
-
-                        # 绘制圆形背景
-                        draw.ellipse(
-                            [btn_x, btn_y, btn_x + button_size, btn_y + button_size],
-                            fill=bg_color
-                        )
-
-                        # 绘制 X 符号
-                        margin = button_size // 4
-                        line_width = max(2, button_size // 12)
-                        x1, y1 = btn_x + margin, btn_y + margin
-                        x2, y2 = btn_x + button_size - margin, btn_y + button_size - margin
-                        draw.line([(x1, y1), (x2, y2)], fill=x_color, width=line_width)
-                        draw.line([(x1, y2), (x2, y1)], fill=x_color, width=line_width)
-
-                        # 合并图层
-                        result_img = Image.alpha_composite(result_img, button_layer)
-                        print(f"  ✓ 添加关闭按钮: {close_button_pos}, 位置=({btn_x}, {btn_y}), 尺寸={button_size}px")
-
-                    # 保存最终结果
-                    final_output = output_dir / f"{screenshot_name}_final_{timestamp}.png"
-                    result_img.save(str(final_output))
-                    results['outputs']['final_image'] = str(final_output)
-                    results['outputs']['meta_driven'] = True
-                    results['outputs']['gt_category'] = gt_category
-                    results['outputs']['gt_sample'] = gt_sample
-
-                    print(f"  ✓ Meta-driven 生成完成!")
-                    print(f"  ✓ 保存至: {final_output}")
-
-        except Exception as e:
-            print(f"  ✗ Meta-driven 生成失败: {e}")
-            import traceback
-            traceback.print_exc()
-            return results
-
+    except Exception as e:
+        print(f"  ✗ Stage 3 渲染失败: {e}")
+        import traceback
+        traceback.print_exc()
+        return results
     # ===== 保存流水线元数据 =====
     meta_path = output_dir / f"{screenshot_name}_pipeline_meta_{timestamp}.json"
     with open(meta_path, 'w', encoding='utf-8') as f:

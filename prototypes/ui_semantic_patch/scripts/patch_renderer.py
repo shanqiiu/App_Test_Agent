@@ -12,11 +12,12 @@ from datetime import datetime
 from PIL import Image, ImageDraw, ImageFilter
 from typing import Optional, Tuple
 
+from base_renderer import BaseRenderer, RenderResult
 from utils.gt_manager import GTManager
 from utils.semantic_dialog_generator import SemanticDialogGenerator
 
 
-class PatchRenderer:
+class PatchRenderer(BaseRenderer):
     """
     Patch 渲染引擎
 
@@ -25,8 +26,8 @@ class PatchRenderer:
 
     def __init__(
         self,
-        screenshot_path: str,
-        ui_json_path: str,
+        screenshot_path: Optional[str] = None,
+        ui_json_path: Optional[str] = None,
         fonts_dir: Optional[str] = None,
         render_mode: str = 'semantic_ai',
         api_key: Optional[str] = None,
@@ -39,27 +40,34 @@ class PatchRenderer:
         初始化渲染引擎
 
         Args:
-            screenshot_path: 原始截图路径
-            ui_json_path: UI-JSON 文件路径
-            fonts_dir: 字体目录（可选）
-            render_mode: 渲染模式（semantic_ai / semantic_pil）
-            api_key: VLM API 密钥
-            gt_dir: GT样本目录
-            vlm_api_url: VLM API 端点
-            vlm_model: VLM 模型名称
-            reference_path: 参考弹窗图片路径
+            screenshot_path: 原始截图路径（可选，render() 会通过 screenshot 参数传入）
+            ui_json_path:    UI-JSON 文件路径（可选，render() 会通过 ui_json 参数传入）
+            fonts_dir:       字体目录（可选）
+            render_mode:     渲染模式（semantic_ai / semantic_pil）
+            api_key:         VLM API 密钥
+            gt_dir:          GT样本目录
+            vlm_api_url:     VLM API 端点
+            vlm_model:       VLM 模型名称
+            reference_path:  参考弹窗图片路径
 
         Note:
             AI 图像生成使用 DashScope API，Key 从环境变量 DASHSCOPE_API_KEY 获取
+            当通过 BaseRenderer.render() 接口调用时，screenshot_path/ui_json_path 可为 None
         """
         self.screenshot_path = screenshot_path
-        self.screenshot = Image.open(screenshot_path).convert('RGBA')
-        self.width, self.height = self.screenshot.size
+        self.screenshot = Image.open(screenshot_path).convert('RGBA') if screenshot_path else None
+        self.width, self.height = self.screenshot.size if self.screenshot else (0, 0)
         self.render_mode = render_mode
         self.api_key = api_key
+        self.fonts_dir = fonts_dir
+        self.vlm_api_url = vlm_api_url
+        self.vlm_model = vlm_model
 
-        with open(ui_json_path, 'r', encoding='utf-8') as f:
-            self.ui_json = json.load(f)
+        if ui_json_path:
+            with open(ui_json_path, 'r', encoding='utf-8') as f:
+                self.ui_json = json.load(f)
+        else:
+            self.ui_json = {}
 
         self.components = {
             comp.get('id', str(comp.get('index'))): comp
@@ -101,6 +109,214 @@ class PatchRenderer:
             pass
 
         return None
+
+    # ==================== BaseRenderer 统一接口 ====================
+
+    def render(
+        self,
+        screenshot: Image.Image,
+        ui_json: dict,
+        instruction: str,
+        output_dir: str,
+        **kwargs,
+    ) -> RenderResult:
+        """
+        BaseRenderer 统一接口（dialog 模式 meta-driven 弹窗生成）。
+
+        kwargs:
+            screenshot_path (str): 截图文件路径（必需，供 VLM 分析使用）
+            gt_category (str):     GT 异常类别（必需）
+            gt_sample (str):       GT 样本文件名（必需）
+            gt_dir (str):          GT 模板根目录
+            reference_path (str):  参考图路径（可选）
+        """
+        screenshot_path = kwargs.get('screenshot_path', '')
+        gt_category = kwargs.get('gt_category')
+        gt_sample = kwargs.get('gt_sample')
+        gt_dir = kwargs.get('gt_dir')
+        reference_path = kwargs.get('reference_path')
+
+        result_img, warnings = self._render_dialog_meta_driven(
+            screenshot=screenshot,
+            screenshot_path=screenshot_path,
+            ui_json=ui_json,
+            instruction=instruction,
+            gt_category=gt_category,
+            gt_sample=gt_sample,
+            gt_dir=gt_dir,
+            reference_path=reference_path,
+        )
+
+        output_path = Path(output_dir) / f"final_{datetime.now().strftime('%Y%m%d_%H%M%S')}.png"
+        output_path.parent.mkdir(parents=True, exist_ok=True)
+        result_img.save(str(output_path))
+
+        metadata = {'gt_category': gt_category, 'gt_sample': gt_sample, 'meta_driven': True}
+        if warnings:
+            metadata['warnings'] = warnings
+
+        return RenderResult(image=result_img, output_path=str(output_path), metadata=metadata)
+
+    def _render_dialog_meta_driven(
+        self,
+        screenshot: Image.Image,
+        screenshot_path: str,
+        ui_json: dict,
+        instruction: str,
+        gt_category: str,
+        gt_sample: str,
+        gt_dir: str,
+        reference_path: Optional[str] = None,
+    ) -> Tuple[Image.Image, list]:
+        """
+        Meta-driven 弹窗生成核心逻辑（从 run_pipeline.py 迁移）。
+
+        Returns:
+            (合成后截图, 告警列表)
+        """
+        from utils.meta_loader import MetaLoader
+        from utils.component_position_resolver import resolve_popup_position
+        import logging
+        logger = logging.getLogger(__name__)
+        warnings = []
+
+        if not (gt_category and gt_sample and gt_dir):
+            logger.error("dialog 模式需要指定 gt_category、gt_sample 和 gt_dir")
+            return screenshot.convert('RGB'), warnings
+
+        meta_loader = MetaLoader(gt_dir)
+        visual_style_prompt = meta_loader.extract_visual_style_prompt(gt_category, gt_sample)
+        meta_features = meta_loader.extract_visual_features_dict(gt_category, gt_sample)
+
+        if not visual_style_prompt or not meta_features:
+            logger.error(f"无法加载 meta 信息: {gt_category}/{gt_sample}")
+            return screenshot.convert('RGB'), warnings
+
+        screen_width, screen_height = screenshot.size
+        ref_path = reference_path or meta_loader.get_sample_path(gt_category, gt_sample)
+        print(f"  参考图: {ref_path}")
+
+        # 计算弹窗尺寸
+        bounds_px = meta_features.get('dialog_bounds_px')
+        if bounds_px:
+            dialog_width = bounds_px['width']
+            dialog_height = bounds_px['height']
+            print(f"  弹窗尺寸: {dialog_width}x{dialog_height} (来源: dialog_bounds_px)")
+        else:
+            width_ratio = meta_features.get('dialog_width_ratio', 0.8)
+            height_ratio = meta_features.get('dialog_height_ratio', 0.5)
+            dialog_width = int(screen_width * width_ratio)
+            dialog_height = int(screen_height * height_ratio)
+            print(f"  弹窗尺寸: {dialog_width}x{dialog_height} (比例: {width_ratio}x{height_ratio})")
+
+        # 初始化生成器
+        generator = SemanticDialogGenerator(
+            fonts_dir=self.fonts_dir,
+            api_key=self.api_key,
+            vlm_api_url=self.vlm_api_url,
+            vlm_model=self.vlm_model,
+            reference_path=ref_path,
+        )
+
+        # 生成语义文案
+        print("  正在分析目标页面语义...")
+        target_content = generator.generate_content_for_target_page(
+            screenshot_path=screenshot_path,
+            instruction=instruction,
+            anomaly_type=meta_features.get('anomaly_type', 'promotional_dialog'),
+            app_style=meta_features.get('app_style'),
+        )
+        if target_content:
+            print(f"  ✓ 语义内容: {target_content.get('title', '')} - {target_content.get('message', '')[:30]}...")
+        else:
+            print("  ⚠ VLM 语义生成失败，使用默认内容")
+
+        # 生成弹窗图像
+        dialog_img = generator.generate_dialog_ai_from_meta(
+            meta_semantic=visual_style_prompt,
+            meta_features=meta_features,
+            reference_path=ref_path,
+            width=dialog_width,
+            height=dialog_height,
+            target_content=target_content,
+        )
+
+        if not dialog_img:
+            logger.warning("弹窗图像生成失败，返回原始截图")
+            return screenshot.convert('RGB'), warnings
+
+        # 计算位置
+        dialog_position = meta_features.get('dialog_position', 'center')
+        position_result = resolve_popup_position(
+            ui_json=ui_json,
+            instruction=instruction,
+            dialog_position=dialog_position,
+            dialog_width=dialog_width,
+            dialog_height=dialog_height,
+            screen_width=screen_width,
+            screen_height=screen_height,
+        )
+
+        pos_x, pos_y = position_result['x'], position_result['y']
+
+        if position_result.get('_fallback'):
+            warn_msg = f"位置回退：未找到关键词对应组件，使用百分比定位 ({pos_x}, {pos_y})"
+            logger.warning(warn_msg)
+            warnings.append({'type': 'position_fallback', 'message': warn_msg})
+        elif position_result.get('matched_component'):
+            matched = position_result['matched_component']
+            print(f"  ✓ 精确定位: [{matched.get('index')}] \"{matched.get('text', '')[:20]}\" → ({pos_x}, {pos_y})")
+        else:
+            print(f"  ℹ 百分比定位: {dialog_position} → ({pos_x}, {pos_y})")
+
+        # 合成图像
+        result_img = screenshot.convert('RGBA')
+
+        # 遮罩层
+        if meta_features.get('overlay_enabled', True):
+            overlay_opacity = int(meta_features.get('overlay_opacity', 0.7) * 255)
+            overlay = Image.new('RGBA', result_img.size, (0, 0, 0, overlay_opacity))
+            result_img = Image.alpha_composite(result_img, overlay)
+
+        # 粘贴弹窗
+        result_img.paste(dialog_img, (pos_x, pos_y), dialog_img)
+
+        # 关闭按钮
+        close_button_pos = meta_features.get('close_button_position', 'none')
+        close_button_style = meta_features.get('close_button_style', 'gray_circle_x')
+        if close_button_pos != 'none':
+            button_size = max(36, min(50, dialog_width // 14))
+            if close_button_pos == 'bottom-center':
+                btn_x = pos_x + dialog_width // 2 - button_size // 2
+                btn_y = pos_y + dialog_height + 15
+            elif close_button_pos == 'top-right':
+                btn_x = pos_x + dialog_width - button_size // 2
+                btn_y = pos_y - button_size // 2
+            elif close_button_pos == 'top-left':
+                btn_x = pos_x - button_size // 2
+                btn_y = pos_y - button_size // 2
+            else:
+                btn_x = pos_x + dialog_width // 2 - button_size // 2
+                btn_y = pos_y + dialog_height + 15
+
+            button_layer = Image.new('RGBA', result_img.size, (0, 0, 0, 0))
+            draw = ImageDraw.Draw(button_layer)
+            bg_color = (255, 255, 255, 230) if 'white' in close_button_style else (80, 80, 80, 220)
+            x_color = (150, 150, 150, 255) if 'white' in close_button_style else (255, 255, 255, 255)
+            draw.ellipse([btn_x, btn_y, btn_x + button_size, btn_y + button_size], fill=bg_color)
+            margin = button_size // 4
+            line_width = max(2, button_size // 12)
+            draw.line([(btn_x + margin, btn_y + margin), (btn_x + button_size - margin, btn_y + button_size - margin)],
+                      fill=x_color, width=line_width)
+            draw.line([(btn_x + margin, btn_y + button_size - margin), (btn_x + button_size - margin, btn_y + margin)],
+                      fill=x_color, width=line_width)
+            result_img = Image.alpha_composite(result_img, button_layer)
+            print(f"  ✓ 关闭按钮: {close_button_pos} → ({btn_x}, {btn_y}), {button_size}px")
+
+        print("  ✓ Meta-driven 弹窗合成完成")
+        return result_img, warnings
+
+    # ==================== 原有方法（保留不删） ====================
 
     def apply_add(self, action: dict, instruction: str = None) -> None:
         """
