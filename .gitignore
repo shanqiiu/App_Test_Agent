@@ -89,3 +89,4 @@ prototypes/ui_semantic_patch/scripts/debug_dialog_output/
 prototypes/ui_semantic_patch/data/stage*.json
 prototypes/ui_semantic_patch/data/final_*.png
 
+.worktrees/
