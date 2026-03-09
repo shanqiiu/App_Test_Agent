@@ -34,7 +34,7 @@ VLM_API_URL = os.environ.get('VLM_API_URL', 'https://api.openai-next.com/v1/chat
 VLM_MODEL = os.environ.get('VLM_MODEL', 'gpt-4o')
 STRUCTURE_MODEL = os.environ.get('STRUCTURE_MODEL', 'qwen-vl-max')
 
-from visualize_omni import visualize_components
+from analysis.visualize import visualize_components
 
 
 # ==================== 辅助函数 ====================
@@ -114,8 +114,8 @@ def _smart_select_component(ui_json: dict, instruction: str) -> Optional[dict]:
 
 # OmniParser 融合模块
 try:
-    from omni_vlm_fusion import omni_vlm_fusion
-    from omni_extractor import omni_to_ui_json
+    from analysis.omni_vlm_fusion import omni_vlm_fusion
+    from analysis.omni_extractor import omni_to_ui_json
     OMNIPARSER_AVAILABLE = True
 except ImportError as e:
     print(f"[WARN] OmniParser 导入失败: {e}")
@@ -291,11 +291,11 @@ def run_pipeline(
     print(f"  异常指令: {instruction}")
 
     try:
-        from base_renderer import RenderResult
-        from area_loading_renderer import AreaLoadingRenderer
-        from content_duplicate_renderer import ContentDuplicateRenderer
-        from text_overlay_renderer import TextOverlayRenderer
-        from patch_renderer import PatchRenderer
+        from renderers.base import RenderResult
+        from renderers.area_loading import AreaLoadingRenderer
+        from renderers.content_duplicate import ContentDuplicateRenderer
+        from renderers.text_overlay import TextOverlayRenderer
+        from renderers.patch import PatchRenderer
         from PIL import Image
 
         RENDERER_MAP = {

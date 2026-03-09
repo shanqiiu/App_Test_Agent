@@ -12,7 +12,7 @@ from datetime import datetime
 from PIL import Image, ImageDraw, ImageFilter
 from typing import Optional, Tuple
 
-from base_renderer import BaseRenderer, RenderResult
+from .base import BaseRenderer, RenderResult
 from utils.gt_manager import GTManager
 from utils.semantic_dialog_generator import SemanticDialogGenerator
 
@@ -136,7 +136,7 @@ class PatchRenderer(BaseRenderer):
         gt_dir = kwargs.get('gt_dir')
         reference_path = kwargs.get('reference_path')
 
-        result_img, warnings = self._render_dialog_meta_driven(
+        result_img, warnings, render_info = self._render_dialog_meta_driven(
             screenshot=screenshot,
             screenshot_path=screenshot_path,
             ui_json=ui_json,
@@ -154,6 +154,8 @@ class PatchRenderer(BaseRenderer):
         metadata = {'gt_category': gt_category, 'gt_sample': gt_sample, 'meta_driven': True}
         if warnings:
             metadata['warnings'] = warnings
+        if render_info:
+            metadata['render_info'] = render_info  # 弹窗位置/尺寸信息用于人工校验
 
         return RenderResult(image=result_img, output_path=str(output_path), metadata=metadata)
 
@@ -167,22 +169,24 @@ class PatchRenderer(BaseRenderer):
         gt_sample: str,
         gt_dir: str,
         reference_path: Optional[str] = None,
-    ) -> Tuple[Image.Image, list]:
+    ) -> Tuple[Image.Image, list, dict]:
         """
         Meta-driven 弹窗生成核心逻辑（从 run_pipeline.py 迁移）。
 
         Returns:
-            (合成后截图, 告警列表)
+            (合成后截图, 告警列表, 渲染信息dict)
+            渲染信息包含: dialog_bounds, matched_component, position_method 等
         """
         from utils.meta_loader import MetaLoader
         from utils.component_position_resolver import resolve_popup_position
         import logging
         logger = logging.getLogger(__name__)
         warnings = []
+        render_info = {}  # 收集渲染位置/尺寸信息用于人工校验
 
         if not (gt_category and gt_sample and gt_dir):
             logger.error("dialog 模式需要指定 gt_category、gt_sample 和 gt_dir")
-            return screenshot.convert('RGB'), warnings
+            return screenshot.convert('RGB'), warnings, render_info
 
         meta_loader = MetaLoader(gt_dir)
         visual_style_prompt = meta_loader.extract_visual_style_prompt(gt_category, gt_sample)
@@ -190,7 +194,7 @@ class PatchRenderer(BaseRenderer):
 
         if not visual_style_prompt or not meta_features:
             logger.error(f"无法加载 meta 信息: {gt_category}/{gt_sample}")
-            return screenshot.convert('RGB'), warnings
+            return screenshot.convert('RGB'), warnings, render_info
 
         screen_width, screen_height = screenshot.size
         ref_path = reference_path or meta_loader.get_sample_path(gt_category, gt_sample)
@@ -243,7 +247,7 @@ class PatchRenderer(BaseRenderer):
 
         if not dialog_img:
             logger.warning("弹窗图像生成失败，返回原始截图")
-            return screenshot.convert('RGB'), warnings
+            return screenshot.convert('RGB'), warnings, render_info
 
         # 计算位置
         dialog_position = meta_features.get('dialog_position', 'center')
@@ -313,8 +317,41 @@ class PatchRenderer(BaseRenderer):
             result_img = Image.alpha_composite(result_img, button_layer)
             print(f"  ✓ 关闭按钮: {close_button_pos} → ({btn_x}, {btn_y}), {button_size}px")
 
+        # 收集渲染信息用于人工校验
+        render_info = {
+            'dialog_bounds': {
+                'x': pos_x,
+                'y': pos_y,
+                'width': dialog_width,
+                'height': dialog_height,
+            },
+            'screen_size': {
+                'width': screen_width,
+                'height': screen_height,
+            },
+            'position_method': 'fallback' if position_result.get('_fallback') else (
+                'component_match' if position_result.get('matched_component') else 'percentage'
+            ),
+            'dialog_position_type': dialog_position,
+            'ui_components_count': len(ui_json.get('components', [])),
+        }
+        if position_result.get('matched_component'):
+            matched = position_result['matched_component']
+            render_info['matched_component'] = {
+                'index': matched.get('index'),
+                'class': matched.get('class'),
+                'text': matched.get('text', '')[:50],
+                'bounds': matched.get('bounds'),
+            }
+        # 添加 UI 组件摘要（前5个）便于快速校验
+        components = ui_json.get('components', [])[:5]
+        render_info['ui_components_preview'] = [
+            {'index': c.get('index'), 'class': c.get('class'), 'bounds': c.get('bounds')}
+            for c in components
+        ]
+
         print("  ✓ Meta-driven 弹窗合成完成")
-        return result_img, warnings
+        return result_img, warnings, render_info
 
     # ==================== 原有方法（保留不删） ====================
 

@@ -1,540 +1,229 @@
-# UI 异常场景生成流水线 - 脚本文档
+# 脚本文档
 
-完整的 3 阶段 UI 异常场景自动生成流水线。
+UI 异常场景生成流水线的完整脚本参考。
 
-## 快速开始
+---
+
+## 快速命令
 
 ```bash
-# 基本用法
+# 单图生成（弹窗模式）
 python run_pipeline.py \
-  --screenshot ./screenshot.png \
-  --instruction "模拟网络超时弹窗" \
-  --output ./output/
+  --screenshot ../data/原图/app首页类-开屏广告弹窗/携程旅行01.jpg \
+  --instruction "生成优惠券广告弹窗" \
+  --gt-category "弹窗覆盖原UI" --gt-sample "弹出广告.jpg" \
+  --output ./output/demo
 
-# 完整示例（指定所有参数）
-python run_pipeline.py \
-  --screenshot ./screenshot.png \
-  --instruction "库存不足提示" \
-  --output ./output/ \
-  --api-key sk-xxx \
-  --vlm-model gpt-4o \
-  --fonts-dir ./fonts/ \
-  --omni-device cuda
+# 批量生成
+python batch_pipeline.py \
+  --input-dir ../data/原图/app首页类-开屏广告弹窗 \
+  --gt-category "弹窗覆盖原UI" --output ./batch_output --run
 
-# GT 模板驱动生成（推荐，精准控制弹窗样式和位置）
-# --gt-dir 可省略，自动使用默认路径
-python run_pipeline.py \
-  --screenshot ./screenshot.png \
-  --instruction "显示下拉菜单" \
-  --output ./output/ \
-  --gt-category "弹窗覆盖原UI" \
-  --gt-sample "弹出提示.jpg"
+# 注入决策流水线
+python injection_pipeline.py \
+  --input-dir examples/injection_demo \
+  --output-dir output/injected --interactive
+
+# 一键启动
+bash launch.sh              # 交互式菜单
+bash launch.sh single       # 单图模式
+bash launch.sh list         # 列出异常类别
 ```
 
-## 核心脚本
+---
 
-### 1. `run_pipeline.py` - 主流水线
+## 子模块架构
 
-执行完整的 3 阶段流水线：
+### analysis/ — AI 感知层
 
-**Stage 1: OmniParser 粗检测**
-- 使用 YOLO + PaddleOCR + Florence2 检测 UI 组件
-- 获得精确的边界框和文本内容
-- 输出: `*_stage1_omni_raw_*.json`
+| 模块 | 职责 |
+|------|------|
+| `omni_extractor.py` | OmniParser 本地推理（YOLO + PaddleOCR + Florence2） |
+| `omni_vlm_fusion.py` | VLM 语义分组：合并/过滤/去重 |
+| `gt_bounds.py` | GT 模板精确边界框提取 |
+| `visualize.py` | 检测结果可视化（边界框标注） |
 
-**Stage 2: VLM 语义过滤**
-- 使用大模型分析截图内容
-- 合并属于同一组件的多个检测框
-- 删除冗余和错误的检测框
-- 输出: `*_stage2_filtered_*.json`
+### renderers/ — 异常渲染层
 
-**Stage 3: 异常弹窗生成与合并**
-- 直接调用语义弹窗生成器
-- 根据页面内容生成上下文相关的异常弹窗
-- 支持 GT 模板驱动：通过 `--gt-category` + `--gt-sample` 从 `meta.json` 读取精确的样式和位置参数
-- 支持多种弹窗位置类型（见下方 [弹窗位置类型](#弹窗位置类型)）
-- 将弹窗合并到原截图上
-- 输出: `*_final_*.png`
+| 模块 | 对应模式 | 机制 |
+|------|---------|------|
+| `base.py` | - | 渲染器统一基类 |
+| `patch.py` | `dialog` | VLM 语义分析 + PIL/AI 弹窗合成叠加 |
+| `area_loading.py` | `area_loading` | VLM 推荐目标区域 + Loading 图标覆盖 |
+| `content_duplicate.py` | `content_duplicate` | 组件裁剪 + 底部浮层扩展渲染 |
+| `text_overlay.py` | `text_overlay` | VLM 编辑规划 + PIL 局部文字精确绘制 |
 
-```bash
-python run_pipeline.py -h  # 查看所有参数
-```
+### generators/ — 元数据生成层
 
-### 2. `omni_extractor.py` - OmniParser 检测工具
+| 模块 | 职责 |
+|------|------|
+| `meta.py` | VLM 驱动 meta.json 自动生成（GT 模板视觉特征描述） |
+| `filename_descriptions.py` | 基于文件名的异常描述生成 |
 
-单独运行 OmniParser 进行 UI 结构提取。
+### injection/ — 注入决策层
 
-```bash
-# 基本用法
-python omni_extractor.py --image ./screenshot.png
+| 模块 | 职责 |
+|------|------|
+| `sequence_analyzer.py` | 增量式操作序列语义分析 |
+| `anomaly_recommender.py` | 基于语义上下文的异常推荐决策 |
+| `sequence_rewriter.py` | 将推荐转化为修改后的操作序列 |
+| `prompts.py` | VLM 提示词模板 |
 
-# 保存到指定路径
-python omni_extractor.py \
-  --image ./screenshot.png \
-  --output ./structure.json
+### utils/ — 工具库
 
-# 使用 CPU（默认自动选择）
-python omni_extractor.py \
-  --image ./screenshot.png \
-  --device cpu
+| 模块 | 职责 |
+|------|------|
+| `common.py` | 图片编码（base64）、JSON 提取、颜色解析 |
+| `semantic_dialog_generator.py` | 语义感知弹窗生成（DashScope AI + PIL） |
+| `meta_loader.py` | GT 元数据加载与管理 |
+| `gt_manager.py` | GT 模板提取、风格分析、Few-shot 参考 |
+| `component_position_resolver.py` | UI-JSON 精确组件定位（多级匹配 + 百分比回退） |
+| `reference_analyzer.py` | 参考图片风格分析 |
+| `anomaly_sample_manager.py` | 异常样本聚类与导出 |
+| `history_manager.py` | 注入历史记录管理 |
 
-# 调整检测阈值
-python omni_extractor.py \
-  --image ./screenshot.png \
-  --box-threshold 0.1 \
-  --iou-threshold 0.5
-```
+---
 
-输出: UI-JSON 格式的组件列表
+## 完整参数说明
 
-### 3. `omni_vlm_fusion.py` - OmniParser + VLM 融合
+### run_pipeline.py
 
-使用 OmniParser 检测 + VLM 语义过滤进行UI 结构提取。
+| 参数 | 说明 | 默认值 |
+|------|------|--------|
+| `--screenshot, -s` | 原始截图路径 | 必需 |
+| `--instruction, -i` | 异常指令 | 必需 |
+| `--output, -o` | 输出目录 | `./output` |
+| `--anomaly-mode` | `dialog` / `area_loading` / `content_duplicate` / `text_overlay` | `dialog` |
+| `--gt-category` | GT 模板类别名 | - |
+| `--gt-sample` | GT 模板样本文件名 | - |
+| `--gt-dir` | GT 样本目录（可选，默认自动检测） | - |
+| `--reference, -r` | 参考弹窗图片（dialog 模式） | - |
+| `--reference-icon` | 参考加载图标（area_loading 模式） | - |
+| `--target-component` | 目标组件 ID（area_loading 模式） | 自动推荐 |
+| `--api-key` | VLM API 密钥 | `VLM_API_KEY` 环境变量 |
+| `--api-url` | VLM API 端点 | `VLM_API_URL` 环境变量 |
+| `--structure-model` | 结构提取模型 | `STRUCTURE_MODEL` 环境变量 |
+| `--vlm-model` | VLM 模型名称 | `VLM_MODEL` 环境变量 |
+| `--omni-device` | OmniParser 设备 (`cuda`/`cpu`) | `OMNIPARSER_DEVICE` 环境变量 |
+| `--no-visualize` | 禁用检测结果可视化 | False |
 
-```bash
-# 基本用法
-python omni_vlm_fusion.py \
-  --image ./screenshot.png \
-  --api-key sk-xxx \
-  --vlm-model gpt-4o
+### injection_pipeline.py
 
-# 保存到指定路径
-python omni_vlm_fusion.py \
-  --image ./screenshot.png \
-  --api-key sk-xxx \
-  --output ./filtered.json
-```
+| 参数 | 说明 | 默认值 |
+|------|------|--------|
+| `--input-dir` | 输入目录（含 task.json + screenshots/） | 必需 |
+| `--output-dir` | 输出目录 | 必需 |
+| `--interactive` | 启用用户确认流程 | False |
 
-输出: 语义正确的 UI-JSON（处理后的组件列表）
+### batch_pipeline.py
 
-### 4. `vlm_patch.py` - VLM 推理生成 JSON Patch
+| 参数 | 说明 | 默认值 |
+|------|------|--------|
+| `--input-dir` | 原图目录 | 必需 |
+| `--gt-category` | GT 模板类别 | 必需 |
+| `--output` | 输出目录 | `./batch_output` |
+| `--run` | 实际执行（默认 dry-run） | False |
 
-⚠️ **已弃用** - 在简化的 3 阶段流水线中不再使用此脚本。
-
-原用途：根据截图和异常指令生成 UI 修改操作（add/modify/delete）。
-现在由 `semantic_dialog_generator.py` 直接生成弹窗代替。
-
-## 辅助工具
-
-### 5. `visualize_omni.py` - 通用可视化工具
-
-将 UI-JSON 的检测结果可视化到截图上。
-
-```bash
-# 基本用法
-python visualize_omni.py \
-  --screenshot ./screenshot.png \
-  --ui-json ./structure.json \
-  --output ./annotated.png
-
-# 自定义样式
-python visualize_omni.py \
-  --screenshot ./screenshot.png \
-  --ui-json ./structure.json \
-  --output ./annotated.png \
-  --font-size 12 \
-  --border-width 3
-
-# 仅显示边界框，不显示文本
-python visualize_omni.py \
-  --screenshot ./screenshot.png \
-  --ui-json ./structure.json \
-  --output ./annotated.png \
-  --no-text
-```
-
-输出: PNG 图片，显示所有检测到的 UI 组件的边界框和标签
-
-### 6. `visualize_pipeline_stage1.py` - Pipeline 快速可视化
-
-快速可视化 `run_pipeline.py` 的 Stage 1 输出。
-
-```bash
-# 运行 pipeline
-python run_pipeline.py \
-  --screenshot ./test.png \
-  --instruction "..." \
-  --output ./output/
-
-# 可视化 Stage 1 检测结果
-python visualize_pipeline_stage1.py \
-  --screenshot ./test.png \
-  --stage1-json ./output/test_stage1_omni_raw_*.json
-```
-
-输出: PNG 图片，显示 OmniParser 的原始检测结果
-
-### 7. `patch_renderer.py` - 弹窗渲染和合并
-
-处理弹窗图片和原截图的合并逻辑（由 `run_pipeline.py` 调用）。
-
-类关键方法：
-- `apply_patch()` - 应用修改操作（仅执行 add 操作）
-- `generate_dialog_and_merge()` - 生成异常弹窗并合并到截图
-- `save()` - 保存最终结果
-
-### 8. `semantic_dialog_generator.py` - 语义弹窗生成
-
-使用 AI 生成上下文相关的异常弹窗（由 `patch_renderer.py` 调用）。
-
-关键方法：
-- `generate()` - 根据页面内容和异常指令生成弹窗
-
-特性：
-- 自动背景移除（纯黑色背景）
-- 边界平滑（alpha 阈值处理）
-- DashScope AI 图像生成
-
-### 9. `component_position_resolver.py` - UI组件精确定位
-
-基于 Stage 2 UI-JSON 实现弹窗精确定位（由 `run_pipeline.py` 调用）。
-
-关键方法：
-- `extract_target_keyword(instruction)` - 从指令中提取目标组件关键词
-- `find_component_by_text(keyword)` - 在 UI-JSON 中搜索匹配组件
-- `calculate_position_relative_to_component()` - 计算相对于组件的弹窗位置
-- `resolve_popup_position()` - 主入口，带百分比定位回退
-
-特性：
-- 支持多种关键词模式（控件处、处增加、旁边、点击后等）
-- 多级组件匹配（精确匹配 → 开头匹配 → 包含匹配 → 类型匹配）
-- 自动边界约束（确保弹窗不超出屏幕）
-- 兼容 meta.json 的 dialog_position 类型
-
-### 10. `content_duplicate_renderer.py` - 内容重复异常渲染
-
-生成"内容歧义/重复"类型异常，将现有UI组件复制到底部浮层中（由 `run_pipeline.py` 调用）。
-
-关键方法：
-- `find_duplicatable_component()` - 从 UI-JSON 中查找目标组件
-- `render_simple_crop()` - 简单裁剪模式：直接截取组件放入浮层
-- `render_expanded_view()` - 扩展视图模式：AI生成更详细的组件视图
-- `render_content_duplicate()` - 主入口
-
-特性：
-- 两种渲染模式：`simple_crop`（快速）和 `expanded_view`（AI增强）
-- 自动创建底部浮层（圆角、深色背景、关闭按钮）
-- 半透明遮罩保留原组件可见性
-- VLM组件分析 + PIL回退
-
-使用示例：
-```bash
-python run_pipeline.py \
-  --screenshot ./video_page.png \
-  --instruction "选集控件处显示重复列表" \
-  --anomaly-mode content_duplicate \
-  --gt-category "内容歧义、重复" \
-  --gt-sample "部分信息重复.jpg" \
-  --output ./output/
-```
-
-### 11. `img2xml.py` - VLM UI 结构提取（已弃用）
-
-原来的 VLM 方案，已被 OmniParser + VLM 融合替代。
+---
 
 ## 工作流示例
 
-### 工作流 1: 完整 Pipeline（推荐）
+### 工作流 1: 完整 Pipeline
 
 ```bash
-# 一条命令完成所有工作
 python run_pipeline.py \
   --screenshot ./test.png \
   --instruction "网络超时错误" \
   --output ./output/
 
 # 输出：
-# - test_stage1_omni_raw_*.json (OmniParser 原始检测)
-# - test_stage2_filtered_*.json (VLM 语义过滤)
-# - test_final_*.png (最终异常截图)
-# - test_pipeline_meta_*.json (元数据)
+# - test_stage1_omni_raw_*.json      (OmniParser 检测)
+# - test_stage2_filtered_*.json      (VLM 过滤)
+# - test_final_*.png                 (最终异常截图)
+# - test_pipeline_meta_*.json        (元数据)
 ```
 
-### 工作流 2: 单独使用 OmniParser
+### 工作流 2: GT 模板驱动生成
 
 ```bash
-# 仅提取 UI 结构（不生成异常弹窗）
-python omni_extractor.py \
-  --image ./test.png \
-  --output ./structure.json
-
-# 可视化检测结果
-python visualize_omni.py \
-  --screenshot ./test.png \
-  --ui-json ./structure.json \
-  --output ./annotated.png
-```
-
-### 工作流 3: GT 模板驱动生成
-
-```bash
-# 查看可用的 GT 类别和样本
-ls ../data/Agent执行遇到的典型异常UI类型/analysis/gt_templates/
-
-# 使用 GT 模板驱动生成（--gt-dir 自动检测，无需手动指定）
 python run_pipeline.py \
   --screenshot ./test.png \
   --instruction "生成下拉菜单弹窗" \
-  --output ./output/ \
   --gt-category "弹窗覆盖原UI" \
-  --gt-sample "弹出提示.jpg"
+  --gt-sample "弹出提示.jpg" \
+  --output ./output/
 
-# 输出同工作流 1，但弹窗样式和位置精确匹配 GT 样本
-# 位置由 meta.json 中的 dialog_position 字段控制
+# 弹窗样式和位置精确匹配 GT 样本
+```
+
+### 工作流 3: 注入决策
+
+```bash
+# 准备输入目录
+# input/
+# ├── task.json           # {"description": "购物流程"}
+# └── screenshots/
+#     ├── step_00.png
+#     ├── step_01.png
+#     └── ...
+
+python injection_pipeline.py \
+  --input-dir ./input \
+  --output-dir ./output/injected \
+  --interactive
 ```
 
 ### 工作流 4: 调试和验证
 
 ```bash
-# 第 1 步：运行 pipeline
-python run_pipeline.py \
-  --screenshot ./test.png \
-  --instruction "..." \
-  --output ./output/
+# 运行 pipeline
+python run_pipeline.py --screenshot ./test.png --instruction "..." --output ./output/
 
-# 第 2 步：可视化 Stage 1
-python visualize_pipeline_stage1.py \
-  --screenshot ./test.png \
-  --stage1-json ./output/test_stage1_omni_raw_*.json
-
-# 第 3 步：可视化 Stage 2（VLM 过滤后）
-python visualize_omni.py \
-  --screenshot ./test.png \
-  --ui-json ./output/test_stage2_filtered_*.json \
-  --output ./output/test_stage2_annotated.png
-
-# 第 4 步：比较两个可视化，验证 VLM 是否正确过滤了检测结果
+# 对比 Stage 1 和 Stage 2 可视化结果，验证 VLM 过滤效果
+# 查看 output/ 目录下的 *_stage1_annotated_*.png 和 *_stage2_annotated_*.png
 ```
 
-## 环境变量
-
-关键环境变量（可选）：
-
-```bash
-# VLM API 密钥（run_pipeline.py 的默认值）
-export VLM_API_KEY=sk-xxx
-
-# DashScope API 密钥（用于语义弹窗生成）
-export DASHSCOPE_API_KEY=sk-xxx
-```
-
-## 弹窗位置类型
-
-Stage 3 支持两种定位方式：
-
-### 1. UI-JSON 精确定位（推荐）
-
-当 `--instruction` 中包含目标组件关键词时，系统会自动从 Stage 2 的 UI-JSON 中查找匹配的组件，并将弹窗精确放置在该组件附近。
-
-**支持的关键词模式：**
-- `X控件处` → 如 "作品控件处增加下拉弹窗" → 匹配 "作品 15773" 组件
-- `X处增加/添加/显示`
-- `在X旁边/附近/下方/上方`
-- `点击X后`
-- `X按钮/标签/文本`
-
-**组件匹配优先级：**
-1. 精确匹配 text 字段
-2. text 以关键词开头
-3. text 包含关键词
-4. class 类型名匹配
-
-**示例：**
-```bash
-python run_pipeline.py \
-  --screenshot ./抖音原图01.jpg \
-  --instruction "作品控件处增加下拉弹窗，内容列表包含最新、最热两个选项" \
-  --output ./output/ \
-  --gt-category "弹窗覆盖原UI" \
-  --gt-sample "弹出提示.jpg"
-
-# 输出：
-# ✓ 精确定位: 匹配到组件 [9] "作品 15773"
-#   关键词: "作品" (text_contains)
-#   位置: (48, 1506)
-```
-
-### 2. 百分比定位（回退）
-
-当无法从 instruction 中提取目标组件时，回退到基于 `dialog_position` 的百分比定位：
-
-| `dialog_position` 值 | 说明 | 典型场景 |
-|---|---|---|
-| `center` | 屏幕正中央 | 奖励弹窗、权限请求 |
-| `bottom-left-inline` | 左下角内联，紧贴触发元素 | 排序下拉菜单 |
-| `bottom-center-floating` | 底部居中浮动 | 提示气泡 |
-| `bottom-fixed` | 底部固定，贴底 | 优惠券弹窗 |
-| `bottom-floating` | 底部浮动，有边距 | 横幅提示 |
-| `top` | 顶部 | 顶部通知 |
-| `multi-layer` | 多层叠加 | 引导教程 |
-
-## 输出文件说明
-
-| 文件模式 | 说明 | 生成阶段 |
-|---------|------|--------|
-| `*_stage1_omni_raw_*.json` | OmniParser 原始检测结果 | Stage 1 |
-| `*_stage2_filtered_*.json` | VLM 语义过滤后的结果 | Stage 2 |
-| `*_final_*.png` | 最终异常场景截图 | Stage 3 |
-| `*_pipeline_meta_*.json` | 流水线元数据 | 完成时 |
-
-## 常见参数
-
-### VLM API 参数
-
-```bash
-# 更改 VLM 模型（默认 qwen-vl-max）
---structure-model gpt-4o
-
-# 更改 API 端点
---api-url https://api.openai.com/v1/chat/completions
-
-# 使用自定义 API 密钥
---api-key sk-custom-xxx
-```
-
-### 生成器参数
-
-```bash
-# 指定字体目录
---fonts-dir ./fonts/
-
-# 指定 GT 样本目录（可选，默认自动检测）
---gt-dir ./reference_dialogs/
-
-# GT 模板驱动生成（从 meta.json 读取样式/位置）
---gt-category "弹窗覆盖原UI"
---gt-sample "弹出提示.jpg"
-
-# 异常模式选择
---anomaly-mode dialog              # 全屏弹窗（默认）
---anomaly-mode area_loading        # 区域加载图标
---anomaly-mode content_duplicate   # 内容重复/歧义（底部浮层复制组件）
-
-# 为弹窗模型指定不同的 API 端点和模型
---vlm-api-url https://xxx
---vlm-model gpt-4o
-
-# 指定参考弹窗图片（用于样式学习）
---reference ./reference_dialog.png
-
-# 指定参考加载图标（area_loading 模式）
---reference-icon ./loading_icon.png
-
-# 目标组件ID（area_loading 模式）
---target-component 5
-```
-
-### 硬件参数
-
-```bash
-# 指定 OmniParser 运行设备
---omni-device cuda    # 使用 GPU
---omni-device cpu     # 使用 CPU
-```
+---
 
 ## 性能指标
 
 | 阶段 | 耗时 | 主要成本 |
 |-----|------|--------|
 | Stage 1 (OmniParser) | 10-30s | YOLO + OCR 推理 |
-| Stage 2 (VLM 过滤) | 30-60s | API 调用 + 网络延迟 |
+| Stage 2 (VLM 过滤) | 30-60s | API 调用 |
 | Stage 3 (弹窗生成) | 20-40s | AI 图像生成 |
 | Stage 3 (内容重复) | 10-30s | 组件裁剪 + 浮层合成 |
 | **总计** | **60-130s** | - |
 
 优化建议：
-- 使用 GPU 加速 Stage 1 (通过 `--omni-device cuda`)
+- 使用 GPU 加速 Stage 1（`--omni-device cuda`）
 - 缓存 Stage 1 结果，避免重复检测
-- 批量处理多张图片时，共享 VLM 连接
+- 批量处理时共享 VLM 连接
+
+---
 
 ## 故障排查
 
-### 问题 1: OmniParser 模块导入失败
+| 问题 | 解决方案 |
+|------|----------|
+| OmniParser 导入失败 | `cd ../third_party/OmniParser && pip install -r requirements.txt` |
+| VLM API 超时 | 检查网络连接，增加脚本中的 `timeout=180` |
+| CUDA 内存不足 | 使用 `--omni-device cpu` |
+| 弹窗背景不是纯黑色 | 检查 `utils/semantic_dialog_generator.py` 提示词 |
 
-```
-[WARN] OmniParser 导入失败
-```
+---
 
-**解决：**
+## 环境变量
+
 ```bash
-cd ../OmniParser
-pip install -r requirements.txt
-```
-
-### 问题 2: VLM API 超时
-
-```
-⚠ 网络连接错误: Timeout
-```
-
-**解决：**
-- 检查网络连接
-- 增加 API 超时时间（修改脚本中的 `timeout=180`）
-- 使用国内镜像或代理
-
-### 问题 3: CUDA 内存不足
-
-```
-RuntimeError: CUDA out of memory
-```
-
-**解决：**
-```bash
-python run_pipeline.py ... --omni-device cpu  # 使用 CPU
-```
-
-### 问题 4: 生成的弹窗背景不是纯黑色
-
-**原因：** AI 图像生成模型没有遵循提示
-
-**解决：** 检查 `semantic_dialog_generator.py:1538-1570` 的提示词
-
-## 扩展和定制
-
-### 添加新的组件类型
-
-编辑 `omni_extractor.py:140-188` 的 `map_element_type()` 函数
-
-### 修改可视化颜色
-
-编辑 `visualize_omni.py:15-30` 的 `CLASS_COLORS` 字典
-
-### 自定义异常弹窗内容
-
-编辑 `semantic_dialog_generator.py` 中的提示词和生成逻辑
-
-## 相关文档
-
-- [可视化指南](./VISUALIZATION_GUIDE.md) - 详细的可视化工具使用说明
-- [Pipeline 设计](../../docs/) - 技术设计文档
-
-## 文件树
-
-```
-scripts/
-├── run_pipeline.py                    # 主流水线
-├── omni_extractor.py                  # OmniParser 工具
-├── omni_vlm_fusion.py                 # OmniParser + VLM
-├── vlm_patch.py                       # (已弃用) JSON Patch 生成
-├── patch_renderer.py                  # 弹窗渲染
-├── area_loading_renderer.py           # 区域加载图标渲染
-├── utils/
-│   ├── semantic_dialog_generator.py   # 弹窗生成
-│   ├── component_position_resolver.py # UI组件精确定位解析器
-│   ├── content_duplicate_renderer.py  # 内容重复异常渲染器
-│   ├── meta_loader.py                 # GT 模板元数据加载
-│   ├── gt_manager.py                  # GT 模板管理
-│   ├── reference_analyzer.py          # 参考图分析
-│   ├── common.py                      # 通用工具函数
-│   └── ...
-├── visualize_omni.py                  # ✨ 通用可视化
-├── visualize_pipeline_stage1.py        # ✨ Pipeline 可视化
-├── VISUALIZATION_GUIDE.md             # ✨ 可视化文档
-├── README.md                          # 本文件
-└── ...
+VLM_API_KEY=sk-xxx           # VLM API 密钥（必需）
+VLM_API_URL=https://...      # VLM API 端点
+VLM_MODEL=gpt-4o             # VLM 模型名称
+STRUCTURE_MODEL=qwen-vl-max  # 结构提取模型
+DASHSCOPE_API_KEY=sk-xxx     # DashScope（可选，用于 AI 图像生成）
+OMNIPARSER_DEVICE=cuda       # OmniParser 设备
 ```
 
 ---
 
-**最后更新**: 2026-02-09
-**Pipeline 版本**: 3.3 (新增内容重复异常模式 content_duplicate)
+**最后更新**: 2026-03-09

@@ -36,7 +36,7 @@ from datetime import datetime
 # 自动加载项目根目录的 .env 文件
 try:
     from dotenv import load_dotenv
-    env_path = Path(__file__).resolve().parents[3] / '.env'
+    env_path = Path(__file__).resolve().parents[4] / '.env'
     if env_path.exists():
         load_dotenv(env_path)
 except ImportError:

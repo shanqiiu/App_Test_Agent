@@ -1,169 +1,73 @@
 # App_Test_Agent
 
-**AI智能体测试技术研究与实践项目**
+**AI智能体测试技术研究 — 异常场景自动生成平台**
 
 [![Project Status](https://img.shields.io/badge/status-prototype-blue)]()
 [![Phase](https://img.shields.io/badge/phase-2_prototype-green)]()
-[![Last Updated](https://img.shields.io/badge/updated-2026--02--25-brightgreen)]()
+[![Last Updated](https://img.shields.io/badge/updated-2026--03--09-brightgreen)]()
 
 ---
 
 ## 项目简介
 
-本项目专注于**AI智能体（AI Agent）异常测试场景自动生成**的研究与探索，旨在构建一套完整的智能体测试体系，提升AI应用的可靠性和鲁棒性。
+本项目专注于**AI智能体（AI Agent）异常测试场景自动生成**，通过对真实 APP 截图进行语义理解和程序化异常注入，批量生成高仿真的异常 UI 测试数据。
 
 ### 核心问题
 
-当前AI智能体测试对**异常场景的覆盖能力极度匮乏**，我们需要实现异常测试场景的批量生成。
+当前 AI 智能体测试对**异常场景的覆盖能力极度匮乏** — 异常 UI 截图获取成本高、种类单一、难以规模化。
 
 ### 解决方案
 
-通过**正常行为采集 → 程序化异常生成 → 动态场景注入**三阶段流程，构建能够自动生成高仿真、上下文相关的异常测试场景的平台。
-
 ```
-┌─────────────────┐      ┌─────────────────┐      ┌─────────────────┐
-│ 正常行为采集    │  →   │ 程序化异常生成  │  →   │ 动态场景注入    │
-└─────────────────┘      └─────────────────┘      └─────────────────┘
-  • UI自主遍历          • 界面风格提取         • 注入点决策
-  • 状态结构化表征      • 约束-生成架构        • 运行时注入
-  • 交互图谱构建        • 上下文感知合成       • 状态一致性维护
+原始截图 → [Stage 1] OmniParser UI检测 → [Stage 2] VLM 语义分组 → [Stage 3] 异常渲染 → 异常截图
 ```
 
 ---
 
-## 文档导航
+## 核心能力
 
-### 📚 调研文档 ([docs/research/](./docs/research/))
+| 异常模式 | 说明 | 典型场景 |
+|----------|------|----------|
+| `dialog` | 弹窗覆盖注入 | 优惠券弹窗、广告弹窗、权限请求 |
+| `area_loading` | 区域加载异常 | 列表加载超时、网络错误 |
+| `content_duplicate` | 内容重复/歧义 | 底部浮层重复、信息冗余 |
+| `text_overlay` | 局部文字覆盖 | 价格篡改、文案异常 |
 
-深入的技术调研和方案分析
-
-- [方案可行性分析](./docs/research/01_方案可行性分析.md) - 三阶段方案的详细评估
-- [程序化异常生成调研](./docs/research/02_程序化异常生成调研.md) - 核心环节的调研方向
-- [调研文档索引](./docs/research/README.md) - 完整调研文档列表
-
-### 🔧 技术文档 ([docs/technical/](./docs/technical/))
-
-技术栈、工具和术语说明
-
-- [技术栈与工具](./docs/technical/技术栈与工具.md) - 使用的技术和工具详解
-- [术语表](./docs/technical/术语表.md) - 核心概念和术语定义
-- [技术文档索引](./docs/technical/README.md) - 技术文档导航
-
-### 📖 参考资源 ([docs/references/](./docs/references/))
-
-学术研究和开源项目资源
-
-- [学术研究资源](./docs/references/学术研究.md) - 相关论文和文献（15篇）
-- [开源项目资源](./docs/references/开源项目.md) - 工具和框架（12个）
-- [资源索引](./docs/references/README.md) - 资源分类导航
-
-### 🗺️ 研究规划 ([docs/planning/](./docs/planning/))
-
-项目规划和任务清单
-
-- [研究路线图](./docs/planning/研究路线图.md) - 整体规划和实施路线
-- [待研究问题清单](./docs/planning/待研究问题.md) - 待解决的技术问题（12个）
-- [规划文档索引](./docs/planning/README.md) - 当前状态和任务清单
+此外，**注入决策流水线**（`injection_pipeline.py`）可基于操作序列自动分析注入点并推荐异常类型。
 
 ---
 
 ## 快速开始
 
-### 了解项目
-1. 阅读本文档了解项目概况
-2. 查看 [方案可行性分析](./docs/research/01_方案可行性分析.md) 理解技术方案
-3. 浏览 [研究路线图](./docs/planning/研究路线图.md) 把握整体规划
+### 1. 环境准备
 
-### 环境搭建
-1. 查看 [环境搭建指南](./docs/setup/环境搭建指南.md) 配置开发环境
-2. 复制 `.env.example` 为 `.env` 并配置 API 密钥
-3. 运行测试用例验证安装
+```bash
+cp .env.example .env                                          # 填写 VLM_API_KEY
+pip install -r prototypes/ui_semantic_patch/requirements.txt  # 安装核心依赖
+```
 
-### 使用原型
-1. **异常场景生成**: 查看 [ui_semantic_patch README](./prototypes/ui_semantic_patch/README.md)
-   - 一键启动: `cd prototypes/ui_semantic_patch/scripts && launch.bat` (Windows) 或 `bash launch.sh` (Linux)
-2. **技术实现详情**: 查看 [技术实现文档](./prototypes/ui_semantic_patch/docs/技术实现文档.md)
+### 2. 运行示例
 
-### 技术调研
-1. 参考 [技术栈与工具](./docs/technical/技术栈与工具.md) 了解技术选型
-2. 查阅 [学术研究资源](./docs/references/学术研究.md) 获取理论基础
-3. 探索 [开源项目资源](./docs/references/开源项目.md) 寻找实现参考
+```bash
+cd prototypes/ui_semantic_patch/scripts
 
----
+# 一键启动（交互式菜单）
+bash launch.sh
 
-## 当前进展
+# 或直接运行单图生成
+python run_pipeline.py \
+  --screenshot ../data/原图/app首页类-开屏广告弹窗/携程旅行01.jpg \
+  --instruction "生成优惠券广告弹窗" \
+  --gt-category "弹窗覆盖原UI" \
+  --gt-sample "弹出广告.jpg" \
+  --output ./output/demo
+```
 
-### 项目阶段
-**Phase 2: 原型开发与优化** 🔬 进行中
+### 3. 探索更多
 
-### 最新里程碑
-🔬 **Milestone 3: 辅助工具链完善** (2026-02-25)
-- 新增批量生成流水线 (`batch_pipeline.py`)
-- 新增一键启动脚本 (`launch.sh` / `launch.bat`)
-- 新增 VLM 驱动 meta.json 自动生成 (`generate_meta.py`)
-- 新增精确边界框提取 (`extract_gt_bounds.py`)
-- 新增风格迁移与样本管理工具
-- 扩展 GT 模板数据集（弹窗覆盖原UI 8 个样本、内容重复 1 个、loading 1 个）
-- 新增 4 类原图数据集（携程、抖音、饿了么、腾讯视频）
-
-✅ **Milestone 2: 原型开发** (2026-02-03)
-- 完成 `ui_semantic_patch` 异常场景生成框架
-- 集成 OmniParser + VLM 融合方案
-- 实现三种异常模式: dialog / area_loading / content_duplicate
-- 实现语义感知弹窗生成与参考图风格学习
-
-✅ **Milestone 1: POC完成** (2024-12-30)
-- 完成技术调研
-- 确定技术路线
-- 验证关键技术可行性
-
-### 下一步工作
-- [ ] 实现 ControlNet 精细控制
-- [ ] 构建异常场景样式库
-- [ ] 建立闭环验证体系
-- [ ] 性能优化和工程化
-
-详见 [研究路线图](./docs/planning/研究路线图.md)
-
----
-
-## 核心技术
-
-### 测试技术
-- **UI自动化**: Appium, Espresso, Detox
-- **测试方法**: Model-based Testing, Visual Testing
-
-### AI技术
-- **生成式AI**: LLM, Diffusion Models, GAN
-- **异常检测**: Context-Aware Anomaly Detection
-- **对抗性测试**: Adversarial UI Generation, Shadow Injection
-
-### 评估方法
-- **质量指标**: Synthetic AUC, Fidelity/Utility Metrics
-- **相似度**: Cosine Similarity, LPIPS, FID
-
-详见 [技术栈与工具](./docs/technical/技术栈与工具.md)
-
----
-
-## 研究方向
-
-### 🔥 高优先级
-- 语义一致性建模
-- UI交互图谱构建
-- 异常生成质量评估体系
-
-### ⭐ 中优先级
-- 生成式模型应用
-- RAG架构集成
-- 工程验证与原型
-
-### 💡 探索性
-- 对抗性UI生成
-- 多模态状态表征
-- 真实用户异常挖掘
-
-详见 [待研究问题清单](./docs/planning/待研究问题.md)
+- 四种异常模式详解 → [ui_semantic_patch README](./prototypes/ui_semantic_patch/README.md)
+- 脚本命令行参数速查 → [scripts README](./prototypes/ui_semantic_patch/scripts/README.md)
+- 模块架构与接口文档 → [代码手册](./docs/plans/2026-03-06-code-manual.md)
 
 ---
 
@@ -171,86 +75,96 @@
 
 ```
 App_Test_Agent/
-├── README.md                           # 项目概览（本文件）
-├── Claude.md                           # AI协作配置
-├── .env.example                        # 环境变量模板
+├── README.md                              # 项目概览（本文件）
+├── CLAUDE.md                              # AI 协作配置
+├── .env.example                           # 环境变量模板
 │
-├── docs/                               # 📚 文档目录
-│   ├── research/                       # 调研文档（5篇）
-│   │   ├── 01_方案可行性分析.md
-│   │   ├── 02_程序化异常生成调研.md
-│   │   ├── 03_异常界面生成技术路线分析.md
-│   │   ├── 04_模型选型与工程实施方案.md
-│   │   ├── 05_移动UI异常截图生成技术调研.md
-│   │   └── README.md
-│   ├── technical/                      # 技术文档
-│   │   ├── 技术栈与工具.md
-│   │   ├── 术语表.md
-│   │   └── README.md
-│   ├── references/                     # 参考资源
-│   │   ├── 学术研究.md
-│   │   ├── 开源项目.md
-│   │   └── README.md
-│   ├── planning/                       # 研究规划
-│   │   ├── 研究路线图.md
-│   │   ├── 待研究问题.md
-│   │   └── README.md
-│   └── setup/                          # 环境配置
-│       └── 环境搭建指南.md
+├── prototypes/ui_semantic_patch/          # 核心原型框架
+│   ├── scripts/
+│   │   ├── run_pipeline.py                # 三阶段主流水线
+│   │   ├── batch_pipeline.py              # 批量生成
+│   │   ├── injection_pipeline.py          # 注入决策流水线
+│   │   ├── launch.sh                      # 一键启动
+│   │   ├── analysis/                      # AI 感知层（OmniParser + VLM）
+│   │   ├── renderers/                     # 异常渲染层（4 种模式）
+│   │   ├── generators/                    # 元数据生成层
+│   │   ├── injection/                     # 注入决策层
+│   │   ├── utils/                         # 工具库
+│   │   └── tests/                         # 测试
+│   ├── data/                              # GT 模板与原图数据
+│   └── third_party/OmniParser/            # 本地集成
 │
-├── prototypes/                         # 💻 原型代码
-│   └── ui_semantic_patch/              # 异常场景语义补丁框架（核心）
-│       ├── README.md                   # 架构文档
-│       ├── docs/
-│       │   └── 技术实现文档.md         # 详细技术实现
-│       ├── scripts/
-│       │   ├── run_pipeline.py         # 主流水线入口
-│       │   ├── omni_extractor.py       # OmniParser UI 检测
-│       │   ├── omni_vlm_fusion.py      # OmniParser + VLM 融合
-│       │   ├── patch_renderer.py       # 弹窗渲染引擎
-│       │   ├── area_loading_renderer.py  # 区域加载渲染
-│       │   ├── content_duplicate_renderer.py  # 内容重复渲染
-│       │   ├── batch_pipeline.py       # 批量生成
-│       │   ├── generate_meta.py        # meta.json 自动生成
-│       │   ├── extract_gt_bounds.py    # 精确边界框提取
-│       │   ├── launch.sh / launch.bat  # 一键启动
-│       │   └── utils/                  # 工具模块
-│       │       ├── common.py           # 公共工具函数
-│       │       ├── semantic_dialog_generator.py  # 语义弹窗生成
-│       │       ├── meta_loader.py      # GT 元数据加载
-│       │       ├── gt_manager.py       # GT 模板管理
-│       │       ├── component_position_resolver.py  # 组件定位
-│       │       └── reference_analyzer.py  # 参考图风格分析
-│       ├── data/                       # GT 模板与原图数据
-│       │   ├── 原图/                   # 原始 APP 截图（4 类 6 张）
-│       │   └── Agent执行遇到的典型异常UI类型/  # GT 模板
-│       └── third_party/
-│           └── OmniParser/             # 本地集成
+├── docs/
+│   ├── research/                          # 调研文档（5 篇）
+│   ├── technical/                         # 技术栈、术语表
+│   ├── references/                        # 学术研究、开源项目
+│   ├── planning/                          # 研究路线图、待研究问题
+│   ├── plans/                             # 设计文档与实施计划
+│   └── setup/                             # 环境搭建指南
 │
-└── third_party/                        # 📦 第三方依赖
-    └── GUI-Odyssey/                    # UI数据集
+└── third_party/GUI-Odyssey/               # UI 数据集
 ```
 
 ---
 
-## 贡献方式
+## 文档导航
 
-本项目目前处于研究阶段，欢迎：
-
-- 📚 分享相关技术资料和研究论文
-- 💡 提供实际测试场景和需求建议
-- 🔬 参与技术方案讨论和评审
-- 🐛 报告问题和提出改进建议
-
-通过 [Issues](../../issues) 参与讨论。
+| 类别 | 链接 | 说明 |
+|------|------|------|
+| 调研文档 | [docs/research/](./docs/research/) | 方案可行性分析、异常生成技术调研（5 篇） |
+| 技术文档 | [docs/technical/](./docs/technical/) | 技术栈与工具、术语表 |
+| 参考资源 | [docs/references/](./docs/references/) | 学术论文（15 篇）、开源项目（12 个） |
+| 研究规划 | [docs/planning/](./docs/planning/) | 路线图、待研究问题清单 |
+| 设计文档 | [docs/plans/](./docs/plans/) | 重构设计、注入决策模块设计、代码手册 |
+| 原型代码 | [prototypes/ui_semantic_patch/](./prototypes/ui_semantic_patch/) | 框架架构、使用说明 |
+| 环境搭建 | [docs/setup/环境搭建指南.md](./docs/setup/环境搭建指南.md) | 开发环境配置 |
 
 ---
 
-## 联系方式
+## 当前进展
 
-- **项目类型**: 技术研究
-- **当前状态**: 🔬 研究阶段
-- **讨论方式**: GitHub Issues
+### 项目阶段
+**Phase 2: 原型开发与优化** — 进行中
+
+### 最新里程碑
+
+**Milestone 4: 架构重构与注入决策** (2026-03-09)
+- 完成脚本层重构：拆分为 `analysis/`、`renderers/`、`generators/`、`injection/` 四个子包
+- 实现渲染器统一基类（`renderers/base.py`）
+- 新增 `text_overlay` 文字覆盖异常模式
+- 实现异常注入决策模块：操作序列分析 → 异常推荐 → 序列改写
+- 新增 `injection_pipeline.py` 注入决策流水线
+
+**Milestone 3: 辅助工具链完善** (2026-02-25)
+- 批量生成流水线、一键启动脚本
+- VLM 驱动 meta.json 自动生成
+- 精确边界框提取、风格迁移工具
+- 扩展 GT 模板数据集
+
+**Milestone 2: 原型开发** (2026-02-03)
+- 完成三阶段流水线（OmniParser → VLM 融合 → 异常渲染）
+- 实现 dialog / area_loading / content_duplicate 三种模式
+
+**Milestone 1: POC 完成** (2024-12-30)
+- 技术调研与可行性验证
+
+### 下一步工作
+- [ ] 端到端测试完善
+- [ ] ControlNet 精细控制
+- [ ] 异常场景样式库
+- [ ] 闭环验证体系
+
+---
+
+## 技术栈速览
+
+**AI 感知**: OmniParser (YOLO + PaddleOCR + Florence2) · VLM (qwen-vl-max / GPT-4o)
+
+**图像生成**: DashScope AI · PIL/Pillow
+
+**异常渲染**: 程序化合成 · Alpha 混合 · 组件裁剪
+
+**注入决策**: VLM 语义分析 · GT 模板匹配 · 操作序列建模
 
 ---
 
@@ -260,6 +174,6 @@ App_Test_Agent/
 
 ---
 
-**最后更新**: 2026-02-25
-**项目状态**: Phase 2 进行中 🔬
-**里程碑**: Milestone 3 进行中
+**最后更新**: 2026-03-09
+**项目状态**: Phase 2 进行中
+**里程碑**: Milestone 4 完成

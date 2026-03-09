@@ -26,7 +26,7 @@ from PIL import Image, ImageDraw, ImageFont, ImageFilter
 from dataclasses import dataclass, field, asdict
 from datetime import datetime
 
-from base_renderer import BaseRenderer, RenderResult
+from .base import BaseRenderer, RenderResult
 from utils.common import encode_image, get_mime_type, extract_json
 
 

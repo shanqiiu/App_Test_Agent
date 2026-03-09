@@ -26,7 +26,7 @@ from PIL import Image, ImageDraw, ImageFilter
 from pathlib import Path
 from datetime import datetime
 
-from base_renderer import BaseRenderer, RenderResult
+from .base import BaseRenderer, RenderResult
 
 # DashScope API Key（优先使用环境变量）
 DASHSCOPE_API_KEY = os.environ.get('DASHSCOPE_API_KEY')

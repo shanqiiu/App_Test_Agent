@@ -6,10 +6,12 @@ utils - UI Semantic Patch 工具模块
 - gt_manager: Ground Truth 模板管理
 - semantic_dialog_generator: 语义弹窗生成器
 - component_position_resolver: UI组件精确定位解析器
+- anomaly_sample_manager: 异常样本管理与聚类
 """
 
 from .gt_manager import GTManager
 from .semantic_dialog_generator import SemanticDialogGenerator
 from .component_position_resolver import ComponentPositionResolver, resolve_popup_position
+from .anomaly_sample_manager import AnomalySampleManager
 
-__all__ = ['GTManager', 'SemanticDialogGenerator', 'ComponentPositionResolver', 'resolve_popup_position']
+__all__ = ['GTManager', 'SemanticDialogGenerator', 'ComponentPositionResolver', 'resolve_popup_position', 'AnomalySampleManager']

@@ -25,7 +25,7 @@ from PIL import Image
 from utils.common import encode_image, get_mime_type, extract_json
 
 # 添加 OmniParser 路径 (third_party 目录)
-OMNIPARSER_PATH = Path(__file__).parent.parent / 'third_party' / 'OmniParser'
+OMNIPARSER_PATH = Path(__file__).parent.parent.parent / 'third_party' / 'OmniParser'
 sys.path.insert(0, str(OMNIPARSER_PATH))
 
 

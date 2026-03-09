@@ -28,6 +28,15 @@ import sys
 import json
 import argparse
 from pathlib import Path
+
+# 自动加载项目根目录的 .env 文件
+try:
+    from dotenv import load_dotenv
+    env_path = Path(__file__).resolve().parents[3] / '.env'
+    if env_path.exists():
+        load_dotenv(env_path)
+except ImportError:
+    pass  # python-dotenv 未安装，使用系统环境变量
 from typing import List, Optional
 
 # 确保能导入本地模块

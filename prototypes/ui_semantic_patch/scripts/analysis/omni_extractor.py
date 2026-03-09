@@ -19,7 +19,7 @@ from typing import Union, Optional, Dict, List
 from PIL import Image
 
 # 添加 OmniParser 路径 (third_party 目录)
-OMNIPARSER_PATH = Path(__file__).parent.parent / 'third_party' / 'OmniParser'
+OMNIPARSER_PATH = Path(__file__).parent.parent.parent / 'third_party' / 'OmniParser'
 sys.path.insert(0, str(OMNIPARSER_PATH))
 
 # 延迟导入，避免模块加载时的开销

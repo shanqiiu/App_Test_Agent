@@ -19,7 +19,7 @@ from typing import Dict, List
 # 自动加载.env文件
 try:
     from dotenv import load_dotenv
-    env_path = Path(__file__).resolve().parents[3] / '.env'
+    env_path = Path(__file__).resolve().parents[4] / '.env'
     if env_path.exists():
         load_dotenv(env_path)
 except ImportError:

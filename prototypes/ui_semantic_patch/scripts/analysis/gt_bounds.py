@@ -26,13 +26,13 @@ from typing import Dict, List, Optional, Tuple
 from PIL import Image
 
 # 添加 scripts 目录到路径
-SCRIPTS_DIR = Path(__file__).parent
+SCRIPTS_DIR = Path(__file__).parent.parent
 sys.path.insert(0, str(SCRIPTS_DIR))
 
 # 自动加载 .env
 try:
     from dotenv import load_dotenv
-    env_path = Path(__file__).resolve().parents[3] / '.env'
+    env_path = Path(__file__).resolve().parents[4] / '.env'
     if env_path.exists():
         load_dotenv(env_path)
 except ImportError:
@@ -317,7 +317,7 @@ def extract_bounds_for_sample(
 
     # Stage 1: OmniParser 检测
     print(f"  [Stage 1] OmniParser 检测...")
-    from omni_extractor import omni_to_ui_json
+    from .omni_extractor import omni_to_ui_json
     omni_result = omni_to_ui_json(
         image_path=image_path,
         device=omni_device
@@ -328,7 +328,7 @@ def extract_bounds_for_sample(
     # Stage 2: VLM 语义过滤（合并弹窗子元素）
     if not skip_vlm and api_key:
         print(f"  [Stage 2] VLM 语义过滤...")
-        from omni_vlm_fusion import omni_vlm_fusion
+        from .omni_vlm_fusion import omni_vlm_fusion
         fusion_result = omni_vlm_fusion(
             image_path=image_path,
             api_key=api_key,
