@@ -28,6 +28,22 @@ DEFAULT_CATEGORY_DESCRIPTIONS = {
     "loading_timeout": {
         "description": "加载超时、网络错误等状态",
         "applicable_scenarios": "网络请求等待、数据加载、页面渲染"
+    },
+    "image_broken": {
+        "description": "图片资源加载失败，显示破碎图标或占位符",
+        "applicable_scenarios": "航空公司logo无法显示、座位图加载失败、机型图片损坏、广告图裂开"
+    },
+    "network_error": {
+        "description": "网络异常提示覆盖界面，如Toast或错误横幅",
+        "applicable_scenarios": "航班搜索网络超时、支付请求失败、数据同步断开、接口返回错误"
+    },
+    "price_anomaly": {
+        "description": "价格或数值显示异常（¥0、负数、乱码、格式错乱）",
+        "applicable_scenarios": "机票价格显示错误、折扣计算异常、税费显示乱码、总价不一致"
+    },
+    "empty_state": {
+        "description": "列表或内容区域为空，显示无数据状态",
+        "applicable_scenarios": "航班搜索无结果、筛选条件过严、服务器返回空列表、历史订单清空"
     }
 }
 
