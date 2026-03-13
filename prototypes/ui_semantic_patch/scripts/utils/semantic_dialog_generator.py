@@ -94,10 +94,15 @@ def generate_image_dashscope(
     size: str = '1024*1024',
     negative_prompt: str = None,
     save_path: str = None,
-    prompt_extend: bool = True
+    prompt_extend: bool = True,
+    reference_image_path: str = None
 ) -> Optional[Image.Image]:
     """
     使用 DashScope MultiModalConversation API 生成图像
+
+    当提供 reference_image_path 时，使用 qwen-image-edit-max 模型进行图文混合生成，
+    参考图直接传入模型，实现更精准的风格迁移。
+    否则使用 qwen-image-max 纯文生图。
 
     Args:
         prompt: 图像描述提示词
@@ -106,6 +111,7 @@ def generate_image_dashscope(
         negative_prompt: 负面提示词
         save_path: 可选的保存路径
         prompt_extend: 是否启用提示词扩展（meta驱动生成建议关闭以保持精确控制）
+        reference_image_path: 参考图片路径（可选），提供后模型可直接看到参考图的视觉风格
 
     Returns:
         生成的 PIL Image 对象，失败返回 None
@@ -132,16 +138,35 @@ def generate_image_dashscope(
         print(f"  ⚠ 无效的尺寸格式: {size}，使用默认 1024*1024")
         size = "1024*1024"
 
-    messages = [
-        {
-            "role": "user",
-            "content": [{"text": prompt}]
-        }
-    ]
+    # 构建 messages：有参考图时使用图文混合输入
+    if reference_image_path and Path(reference_image_path).exists():
+        # DashScope SDK 支持本地文件路径，会自动上传到 OSS
+        # 使用 file:// 协议 或直接传路径
+        ref_path = str(Path(reference_image_path).resolve())
+        messages = [
+            {
+                "role": "user",
+                "content": [
+                    {"image": ref_path},
+                    {"text": prompt}
+                ]
+            }
+        ]
+        # 有参考图时使用图像编辑模型，支持图文混合输入
+        model = "qwen-image-edit-max"
+        print(f"  ℹ 使用参考图直接输入模式 (model={model})")
+    else:
+        messages = [
+            {
+                "role": "user",
+                "content": [{"text": prompt}]
+            }
+        ]
+        model = "qwen-image-max"
 
-    # 默认负面提示词（排除非黑色背景、低质量图像、品牌logo）
+    # 默认负面提示词（排除非黑色背景、低质量图像、品牌logo、关闭按钮）
     if negative_prompt is None:
-        negative_prompt = "低分辨率，低画质，肢体畸形，手指畸形，画面过饱和，蜡像感，人脸无细节，过度光滑，画面具有AI感。构图混乱。文字模糊，扭曲。白色背景，灰色背景，渐变背景，彩色背景，white background, gray background, colored background, gradient background, 美团logo, 淘宝logo, 京东logo, 华为logo, 抖音logo, HarmonyOS, brand logo, brand text, watermark"
+        negative_prompt = "低分辨率，低画质，肢体畸形，手指畸形，画面过饱和，蜡像感，人脸无细节，过度光滑，画面具有AI感。构图混乱。文字模糊，扭曲。白色背景，灰色背景，渐变背景，彩色背景，white background, gray background, colored background, gradient background, 美团logo, 淘宝logo, 京东logo, 华为logo, 抖音logo, HarmonyOS, brand logo, brand text, watermark, close button, X button, X icon, 关闭按钮"
 
     # 重试逻辑
     max_retries = 5
@@ -161,7 +186,7 @@ def generate_image_dashscope(
         try:
             response = MultiModalConversation.call(
                 api_key=api_key,
-                model="qwen-image-max",
+                model=model,
                 messages=messages,
                 result_format='message',
                 stream=False,
@@ -666,7 +691,7 @@ class SemanticDialogGenerator:
                     ]
                 }
             ],
-            'temperature': 0.7,
+            'temperature': 0.5,
             'max_tokens': 500
         }
 
@@ -1221,6 +1246,100 @@ class SemanticDialogGenerator:
             print(f"  ⚠ AI 生成失败: {e}")
             raise  # 不返回 None，直接抛出异常
 
+    def _crop_reference_to_dialog(
+        self,
+        reference_path: str,
+        meta_features: Dict[str, Any],
+    ) -> str:
+        """
+        将参考图裁剪到弹窗区域，避免整张截图（含APP背景）污染风格迁移。
+
+        优先使用 meta_features 中的 dialog_bounds_px（精确像素坐标）；
+        若不存在，则根据 dialog_size_ratio + dialog_position 估算裁剪区域。
+
+        返回裁剪后的临时图片路径。如果无法裁剪（没有位置信息），返回原路径。
+        """
+        if not reference_path or not Path(reference_path).exists():
+            return reference_path
+
+        bounds_px = meta_features.get('dialog_bounds_px')
+        size_ratio = meta_features.get('dialog_size_ratio')
+        # 兼容 MetaLoader 展开后的字段名
+        if not size_ratio and 'dialog_width_ratio' in meta_features:
+            size_ratio = {
+                'width': meta_features['dialog_width_ratio'],
+                'height': meta_features['dialog_height_ratio'],
+            }
+        dialog_position = meta_features.get('dialog_position', 'center')
+
+        try:
+            ref_img = Image.open(reference_path)
+            img_w, img_h = ref_img.size
+
+            if bounds_px:
+                # 精确像素坐标裁剪
+                x = bounds_px['x']
+                y = bounds_px['y']
+                w = bounds_px['width']
+                h = bounds_px['height']
+                # 添加少量 padding 以保留弹窗边缘效果（圆角、阴影）
+                pad = int(min(w, h) * 0.05)
+                crop_box = (
+                    max(0, x - pad),
+                    max(0, y - pad),
+                    min(img_w, x + w + pad),
+                    min(img_h, y + h + pad),
+                )
+                print(f"  ✓ 参考图裁剪 (bounds_px): ({crop_box[0]},{crop_box[1]})→({crop_box[2]},{crop_box[3]})")
+
+            elif size_ratio:
+                # 根据比例 + 位置估算
+                if isinstance(size_ratio, dict) and 'width' in size_ratio:
+                    ratio_w = size_ratio['width']
+                    ratio_h = size_ratio['height']
+                else:
+                    # 多层弹窗等复杂结构，无法精确估算
+                    print(f"  ℹ 参考图裁剪跳过: dialog_size_ratio 格式不支持")
+                    return reference_path
+
+                crop_w = int(img_w * ratio_w)
+                crop_h = int(img_h * ratio_h)
+
+                # 根据 dialog_position 估算中心点
+                if 'bottom' in dialog_position:
+                    cx, cy = img_w // 2, img_h - crop_h // 2
+                elif 'top' in dialog_position:
+                    cx, cy = img_w // 2, crop_h // 2
+                else:
+                    cx, cy = img_w // 2, img_h // 2
+
+                pad = int(min(crop_w, crop_h) * 0.05)
+                crop_box = (
+                    max(0, cx - crop_w // 2 - pad),
+                    max(0, cy - crop_h // 2 - pad),
+                    min(img_w, cx + crop_w // 2 + pad),
+                    min(img_h, cy + crop_h // 2 + pad),
+                )
+                print(f"  ✓ 参考图裁剪 (size_ratio): ({crop_box[0]},{crop_box[1]})→({crop_box[2]},{crop_box[3]})")
+            else:
+                print(f"  ℹ 参考图裁剪跳过: 无 bounds_px 或 size_ratio")
+                return reference_path
+
+            cropped = ref_img.crop(crop_box)
+
+            # 保存到临时文件
+            import tempfile
+            tmp_dir = Path(tempfile.gettempdir()) / "dialog_ref_crops"
+            tmp_dir.mkdir(exist_ok=True)
+            crop_filename = f"crop_{Path(reference_path).stem}.png"
+            crop_path = str(tmp_dir / crop_filename)
+            cropped.save(crop_path, format='PNG')
+            return crop_path
+
+        except Exception as e:
+            print(f"  ⚠ 参考图裁剪失败: {e}，使用原图")
+            return reference_path
+
     def generate_dialog_ai_from_meta(
         self,
         meta_semantic: str,
@@ -1256,11 +1375,16 @@ class SemanticDialogGenerator:
         Returns:
             生成的弹窗图像
         """
-        # 使用meta信息构建prompt
-        prompt = self._build_ai_prompt_from_meta(meta_semantic, meta_features, reference_path, target_content)
+        # 裁剪参考图到弹窗区域，避免整张截图污染风格迁移
+        cropped_ref_path = self._crop_reference_to_dialog(reference_path, meta_features)
+
+        # 使用meta信息构建prompt（传入裁剪后的参考图路径）
+        prompt = self._build_ai_prompt_from_meta(meta_semantic, meta_features, cropped_ref_path, target_content)
 
         print(f"  正在使用 Meta-driven AI 生成弹窗 (目标尺寸: {width}x{height})...")
         print(f"  ✓ 参考图: {reference_path}")
+        if cropped_ref_path != reference_path:
+            print(f"  ✓ 裁剪后参考图: {cropped_ref_path}")
         print(f"  ✓ APP风格: {meta_features.get('app_style', '通用')}")
         print(f"  ✓ 主色调: {meta_features.get('primary_color', 'N/A')}")
         if target_content:
@@ -1269,7 +1393,10 @@ class SemanticDialogGenerator:
         gen_size = f"{width}*{height}"
 
         try:
-            image = generate_image_dashscope(prompt=prompt, size=gen_size, prompt_extend=False)
+            image = generate_image_dashscope(
+                prompt=prompt, size=gen_size, prompt_extend=False,
+                reference_image_path=cropped_ref_path
+            )
 
             if image:
                 gen_width, gen_height = image.size
@@ -1448,7 +1575,7 @@ class SemanticDialogGenerator:
                     ]
                 }
             ],
-            'temperature': 0.7,
+            'temperature': 0.5,
             'max_tokens': 500
         }
 
@@ -2537,27 +2664,35 @@ class SemanticDialogGenerator:
 
         # 关闭按钮：不写入 prompt，由 run_pipeline.py 在最终合成阶段用 PIL 精确绘制
         # 避免 AI 画一个 + pipeline 再画一个导致重复
-        close_desc = 'Do not draw any close button or X icon.'
+        # 使用正面指令替代否定指令——AI 文生图模型对 "Do not" 否定句效果很差
+        close_desc = 'The dialog has clean edges with NO X button, NO close icon, and NO circular button in any corner. All four corners of the dialog card must show only the background color or content — leave corners completely empty and undecorated.'
+
+        # 参考图风格指令：当有参考图直接传入时，使用更精确的描述
+        # reference_path 在调用时传入，这里通过成员方法的参数获取
+        if reference_path and Path(reference_path).exists():
+            style_ref_desc = 'Use the input image (Image 1) as the visual style reference — match its color scheme, layout proportions, rounded corner style, button shape, and overall design language. Generate a NEW dialog with the SAME visual style but with the text content specified above.'
+        else:
+            style_ref_desc = 'Match the visual style of a modern mobile app dialog.'
 
         # 根据弹窗类型构建不同的简洁 prompt
         # 文生图模型需要简短的自然语言描述，不能用长结构化文档
         if is_dropdown_menu and menu_items:
             menu_items_str = ', '.join([f'"{item}"' for item in menu_items])
-            prompt = f"""A mobile app dropdown menu on pure black background. The menu is a small white card with these items: {menu_items_str}. The item "{selected_item}" has a checkmark. Style: {list_style}, clean minimal design. {close_desc} The area outside the menu must be pure black #000000. Match the visual style of the reference image."""
+            prompt = f"""A mobile app dropdown menu on pure black background. The menu is a small white card with these items: {menu_items_str}. The item "{selected_item}" has a checkmark. Style: {list_style}, clean minimal design. {close_desc} The area outside the menu must be pure black #000000. {style_ref_desc}"""
         elif dialog_position in ('bottom-floating', 'bottom-fixed', 'bottom-center-floating'):
             # 底部横幅/浮层类型 — 强调只生成单一横幅，不要额外弹窗元素
             subtitle_part = f' Subtitle: "{subtitle_text}".' if subtitle_text else ''
             brand_part = f' The banner belongs to "{display_brand}" app.' if display_brand else ''
             elements_part = f' Include visual elements: {special_elements_desc}.' if special_elements_desc != '无' else ''
 
-            prompt = f"""A single mobile app notification banner on pure black background. This is {layout_desc}. IMPORTANT: Generate ONLY ONE banner element, do not add any other popup, dialog, card or UI element. The banner has {corner_style} rounded corners with {background} background and {primary_color} as primary color. Title: "{title_text}". Message: "{message_text}".{f' Button text: "{button_text}".' if button_text else ''}{subtitle_part}{brand_part}{elements_part} {close_desc} The banner must fill at least 90% of the canvas width and be vertically centered on the canvas. The rest of the canvas must be pure black #000000 with absolutely no other elements, shadows, or gradients. Do not draw any overlay, dark mask, or additional popup layers. All text is in Chinese, crisp and readable. Match the visual style of the reference image."""
+            prompt = f"""A single mobile app notification banner on pure black background. This is {layout_desc}. IMPORTANT: Generate ONLY ONE banner element, do not add any other popup, dialog, card or UI element. The banner has {corner_style} rounded corners with {background} background and {primary_color} as primary color. Title: "{title_text}". Message: "{message_text}".{f' Button text: "{button_text}".' if button_text else ''}{subtitle_part}{brand_part}{elements_part} {close_desc} The banner must fill at least 90% of the canvas width and be vertically centered on the canvas. The rest of the canvas must be pure black #000000 with absolutely no other elements, shadows, or gradients. Do not draw any overlay, dark mask, or additional popup layers. All text is in Chinese, crisp and readable. {style_ref_desc}"""
         else:
             # 标准弹窗 — 简洁的自然语言描述
             subtitle_part = f' Subtitle: "{subtitle_text}".' if subtitle_text else ''
             brand_part = f' The dialog belongs to "{display_brand}" app.' if display_brand else ''
             elements_part = f' Include visual elements: {special_elements_desc}.' if special_elements_desc != '无' else ''
 
-            prompt = f"""A mobile app popup dialog card on pure black background. This is {layout_desc}. IMPORTANT: Generate ONLY ONE dialog element, do not add any other popup or UI element. The dialog card has {corner_style} rounded corners with {background} background and {primary_color} as primary color. Title: "{title_text}". Message: "{message_text}". Button text: "{button_text}".{subtitle_part}{brand_part}{elements_part} {close_desc} The dialog must fill at least 90% of the canvas width. The area outside the dialog must be pure black #000000 with no shadows or gradients. Do not draw any overlay or dark mask. All text is in Chinese, crisp and readable. Match the visual style of the reference image."""
+            prompt = f"""A mobile app popup dialog card on pure black background. This is {layout_desc}. IMPORTANT: Generate ONLY ONE dialog element, do not add any other popup or UI element. The dialog card has {corner_style} rounded corners with {background} background and {primary_color} as primary color. Title: "{title_text}". Message: "{message_text}". Button text: "{button_text}".{subtitle_part}{brand_part}{elements_part} {close_desc} The dialog must fill at least 90% of the canvas width. The area outside the dialog must be pure black #000000 with no shadows or gradients. Do not draw any overlay or dark mask. All text is in Chinese, crisp and readable. {style_ref_desc}"""
 
         return prompt
 

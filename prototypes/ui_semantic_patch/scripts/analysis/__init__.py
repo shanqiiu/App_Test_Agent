@@ -3,7 +3,7 @@
 
 from .omni_extractor import omni_to_ui_json, img_to_ui_json, get_omni_parser
 from .omni_vlm_fusion import omni_vlm_fusion, call_vlm_for_grouping
-from .gt_bounds import extract_bounds_for_sample
+from .gt_bounds import extract_bounds_for_sample, extract_all_bounds
 from .visualize import visualize_components
 
 __all__ = [
@@ -13,5 +13,6 @@ __all__ = [
     "omni_vlm_fusion",
     "call_vlm_for_grouping",
     "extract_bounds_for_sample",
+    "extract_all_bounds",
     "visualize_components",
 ]
