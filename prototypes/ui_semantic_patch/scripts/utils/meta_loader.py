@@ -178,7 +178,12 @@ class MetaLoader:
             close_style = visual_features.get('close_button_style', 'default')
             prompt_parts.append(f"- 关闭按钮: {close_pos}, 样式={close_style}")
 
-        if 'main_button_text' in visual_features:
+        if 'buttons' in visual_features:
+            buttons = visual_features['buttons']
+            prompt_parts.append(f"- 按钮数量: {len(buttons)}")
+            buttons_str = ', '.join(['"' + b + '"' for b in buttons])
+            prompt_parts.append(f"- 按钮文字: {buttons_str}")
+        elif 'main_button_text' in visual_features:
             prompt_parts.append(f"- 主按钮文字: \"{visual_features['main_button_text']}\"")
 
         # 特殊元素
@@ -342,6 +347,11 @@ class MetaLoader:
         # 按钮样式（不含具体文字）
         if 'main_button_style' in visual_features:
             prompt_parts.append(f"- 主按钮样式: {visual_features['main_button_style']}")
+
+        # 按钮数量布局（不含文字内容）
+        if 'buttons' in visual_features:
+            button_count = len(visual_features['buttons'])
+            prompt_parts.append(f"- 按钮数量: {button_count} 个按钮，横向排列")
 
         # 特殊视觉元素（过滤掉文字相关描述和品牌相关元素）
         if 'special_elements' in visual_features:

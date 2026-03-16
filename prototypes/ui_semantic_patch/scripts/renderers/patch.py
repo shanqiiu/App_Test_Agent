@@ -229,6 +229,7 @@ class PatchRenderer(BaseRenderer):
             instruction=instruction,
             anomaly_type=meta_features.get('anomaly_type', 'promotional_dialog'),
             app_style=meta_features.get('app_style'),
+            meta_buttons=meta_features.get('buttons'),
         )
         if target_content:
             print(f"  ✓ 语义内容: {target_content.get('title', '')} - {target_content.get('message', '')[:30]}...")

@@ -1504,7 +1504,8 @@ class SemanticDialogGenerator:
         screenshot_path: str,
         instruction: str,
         anomaly_type: str = 'promotional_dialog',
-        app_style: str = None
+        app_style: str = None,
+        meta_buttons: list = None
     ) -> Dict[str, str]:
         """
         使用 VLM 根据目标截图生成语义相关的弹窗内容
@@ -1518,12 +1519,14 @@ class SemanticDialogGenerator:
             instruction: 用户指令（如"模拟广告弹窗"）
             anomaly_type: 异常类型（从meta.json获取，用于约束生成的弹窗类型）
             app_style: APP风格（可选，用于风格一致性）
+            meta_buttons: meta.json中定义的按钮列表（可选，如["不允许", "允许"]）
 
         Returns:
             {
                 'title': '弹窗标题',
                 'message': '弹窗正文内容',
                 'button_text': '主按钮文字',
+                'buttons': ['按钮1', '按钮2'],  # 多按钮时返回
                 'subtitle': '副标题（可选）'
             }
         """
@@ -1578,6 +1581,16 @@ class SemanticDialogGenerator:
             'vip_prompt': 'VIP会员推广弹窗'
         }.get(anomaly_type, '通用弹窗')
 
+        # 确定按钮数量要求
+        button_count = len(meta_buttons) if meta_buttons else 1
+        if button_count > 1:
+            buttons_format_hint = f"""按钮数量要求: {button_count} 个按钮
+参考按钮模式: {', '.join(meta_buttons)}（根据目标APP场景生成对应的按钮文字）"""
+            buttons_json_field = f'"buttons": ["按钮1文字", "按钮2文字", ...]  // 必须恰好 {button_count} 个按钮'
+        else:
+            buttons_format_hint = "按钮数量要求: 1 个主按钮"
+            buttons_json_field = '"button_text": "主按钮文字（2-6个字）"'
+
         prompt = f"""分析这个App页面截图，生成一个与页面内容**语义相关**的弹窗文案。
 
 ## 任务要求
@@ -1589,23 +1602,25 @@ class SemanticDialogGenerator:
 ## 弹窗类型约束
 - 弹窗类型: {anomaly_type_desc}
 - 用户指令: {instruction}
+- {buttons_format_hint}
 - 重要：品牌信息必须从截图中识别，不要猜测或使用其他品牌
 
 ## 示例
 - 如果是机票/火车票页面 + 促销弹窗 → 生成"春运特惠券"、"机票立减50元"等内容
 - 如果是电商页面 + 奖励弹窗 → 生成"恭喜获得购物金"、"新人专享礼包"等内容
 - 如果是社交页面 + 权限弹窗 → 生成"开启消息通知"、"允许访问通讯录"等内容
+- 如果是权限请求弹窗 + 多按钮 → 生成"不允许"和"允许"等对应按钮
 
 ## 输出格式
 请以JSON格式返回弹窗文案，必须与截图中的APP业务相关：
 ```json
-{{
+{{{{
     "title": "弹窗标题（简短，2-8个字）",
     "message": "弹窗正文（描述性内容，10-30个字）",
-    "button_text": "主按钮文字（2-6个字）",
+    {buttons_json_field},
     "subtitle": "副标题或补充说明（可选，5-15个字）",
     "brand_name": "APP品牌名称（如携程、12306、美团，用于Logo显示）"
-}}
+}}}}
 ```
 
 只返回JSON，不要其他内容。"""
@@ -1648,8 +1663,23 @@ class SemanticDialogGenerator:
                     result['title'] = '提示'
                 if 'message' not in result:
                     result['message'] = ''
-                if 'button_text' not in result:
+                # 多按钮支持：统一为 buttons 列表
+                if 'buttons' in result and isinstance(result['buttons'], list):
+                    # VLM 返回了 buttons 数组
+                    if not result['buttons']:
+                        result['buttons'] = ['确定']
+                    result['button_text'] = result['buttons'][-1]  # 主按钮取最后一个
+                elif 'button_text' in result:
+                    # 单按钮场景，兼容旧格式
+                    if meta_buttons and len(meta_buttons) > 1:
+                        # meta 要求多按钮但 VLM 只返回了单按钮，补齐
+                        result['buttons'] = meta_buttons
+                        result['button_text'] = result['button_text']
+                    else:
+                        result['buttons'] = [result['button_text']]
+                else:
                     result['button_text'] = '确定'
+                    result['buttons'] = ['确定']
                 if 'brand_name' not in result:
                     result['brand_name'] = ''
                 return result
@@ -1680,7 +1710,8 @@ class SemanticDialogGenerator:
             'permission_dialog': {
                 'title': '开启通知权限',
                 'message': '开启后可及时接收重要消息提醒',
-                'button_text': '立即开启',
+                'button_text': '允许',
+                'buttons': ['不允许', '允许'],
                 'subtitle': '',
                 'brand_name': ''
             },
@@ -2712,6 +2743,7 @@ class SemanticDialogGenerator:
             title_text = target_content.get('title', '') if target_content else ''
             message_text = ''
             button_text = ''
+            buttons = []
             subtitle_text = ''
             brand_name = target_content.get('brand_name', '') if target_content else ''
         elif target_content:
@@ -2719,6 +2751,7 @@ class SemanticDialogGenerator:
             title_text = target_content.get('title', '提示')
             message_text = target_content.get('message', '')
             button_text = target_content.get('button_text', '确定')
+            buttons = target_content.get('buttons', [button_text])
             subtitle_text = target_content.get('subtitle', '')
             brand_name = target_content.get('brand_name', '')
             content_source = "VLM generated (semantic-aware)"
@@ -2727,9 +2760,21 @@ class SemanticDialogGenerator:
             title_text = meta_features.get('title_text', meta_features.get('main_button_text', '确定'))
             message_text = meta_features.get('anomaly_description', '')
             button_text = meta_features.get('main_button_text', '确定')
+            buttons = meta_features.get('buttons', [button_text])
             subtitle_text = meta_features.get('subtitle_text', '')
             brand_name = ''
             content_source = "meta.json (fallback)"
+
+        # 构建按钮描述文本
+        if len(buttons) > 1:
+            buttons_desc = ' and '.join([f'"{b}"' for b in buttons])
+            buttons_prompt_part = f' Buttons at bottom (side by side): {buttons_desc}.'
+        elif buttons:
+            buttons_prompt_part = f' Button text: "{buttons[0]}".'
+        elif button_text:
+            buttons_prompt_part = f' Button text: "{button_text}".'
+        else:
+            buttons_prompt_part = ''
 
         # 构建关闭按钮描述（保留原始灰色样式）
         if close_button_pos != 'none':
@@ -2810,14 +2855,14 @@ class SemanticDialogGenerator:
             brand_part = f' The banner belongs to "{display_brand}" app.' if display_brand else ''
             elements_part = f' Include visual elements: {special_elements_desc}.' if special_elements_desc != '无' else ''
 
-            prompt = f"""A single mobile app notification banner on pure black background. This is {layout_desc}. IMPORTANT: Generate ONLY ONE banner element, do not add any other popup, dialog, card or UI element. The banner has {corner_style} rounded corners with {background} background and {primary_color} as primary color. Title: "{title_text}". Message: "{message_text}".{f' Button text: "{button_text}".' if button_text else ''}{subtitle_part}{brand_part}{elements_part} {close_desc} The banner must fill at least 90% of the canvas width and be vertically centered on the canvas. The rest of the canvas must be pure black #000000 with absolutely no other elements, shadows, or gradients. Do not draw any overlay, dark mask, or additional popup layers. All text is in Chinese, crisp and readable. {style_ref_desc}"""
+            prompt = f"""A single mobile app notification banner on pure black background. This is {layout_desc}. IMPORTANT: Generate ONLY ONE banner element, do not add any other popup, dialog, card or UI element. The banner has {corner_style} rounded corners with {background} background and {primary_color} as primary color. Title: "{title_text}". Message: "{message_text}".{buttons_prompt_part}{subtitle_part}{brand_part}{elements_part} {close_desc} The banner must fill at least 90% of the canvas width and be vertically centered on the canvas. The rest of the canvas must be pure black #000000 with absolutely no other elements, shadows, or gradients. Do not draw any overlay, dark mask, or additional popup layers. All text is in Chinese, crisp and readable. {style_ref_desc}"""
         else:
             # 标准弹窗 — 简洁的自然语言描述
             subtitle_part = f' Subtitle: "{subtitle_text}".' if subtitle_text else ''
             brand_part = f' The dialog belongs to "{display_brand}" app.' if display_brand else ''
             elements_part = f' Include visual elements: {special_elements_desc}.' if special_elements_desc != '无' else ''
 
-            prompt = f"""A mobile app popup dialog card on pure black background. This is {layout_desc}. IMPORTANT: Generate ONLY ONE dialog element, do not add any other popup or UI element. The dialog card has {corner_style} rounded corners with {background} background and {primary_color} as primary color. Title: "{title_text}". Message: "{message_text}". Button text: "{button_text}".{subtitle_part}{brand_part}{elements_part} {close_desc} The dialog must fill at least 90% of the canvas width. The area outside the dialog must be pure black #000000 with no shadows or gradients. Do not draw any overlay or dark mask. All text is in Chinese, crisp and readable. {style_ref_desc}"""
+            prompt = f"""A mobile app popup dialog card on pure black background. This is {layout_desc}. IMPORTANT: Generate ONLY ONE dialog element, do not add any other popup or UI element. The dialog card has {corner_style} rounded corners with {background} background and {primary_color} as primary color. Title: "{title_text}". Message: "{message_text}".{buttons_prompt_part}{subtitle_part}{brand_part}{elements_part} {close_desc} The dialog must fill at least 90% of the canvas width. The area outside the dialog must be pure black #000000 with no shadows or gradients. Do not draw any overlay or dark mask. All text is in Chinese, crisp and readable. {style_ref_desc}"""
 
         return prompt
 

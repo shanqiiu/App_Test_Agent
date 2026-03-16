@@ -108,6 +108,7 @@ reward_badge_dialog, promotional_coupon_dialog, permission_dialog, context_menu_
 - close_button_style: 如"gray_circle_x"/"white_text_button"/"circle_x"/"none"
 - main_button_text: 主按钮文字，没有则""
 - main_button_style: 如"red_filled"/"outlined_with_arrow"/"blue_filled"/"none"
+- buttons: 如果弹窗有多个并列按钮（如"不允许"和"允许"），按从左到右的顺序列出所有按钮文字。单按钮场景可省略。例如：["不允许", "允许"] 或 ["本次使用允许", "仅使用期间允许", "不允许"]
 - title_text: 标题文字，没有则""
 - subtitle_text: 副标题，没有则""
 - special_elements: 特殊视觉元素列表
@@ -143,6 +144,7 @@ reward_badge_dialog, promotional_coupon_dialog, permission_dialog, context_menu_
     "close_button_style": "none",
     "main_button_text": "",
     "main_button_style": "none",
+    "buttons": [],
     "title_text": "",
     "subtitle_text": "",
     "special_elements": []
