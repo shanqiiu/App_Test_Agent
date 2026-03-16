@@ -1,23 +1,419 @@
 {
   "category": "dialog_blocking",
   "description": "弹窗覆盖UI - 用于生成各类遮挡弹窗异常",
-  "count": 11,
+  "count": 12,
   "samples": {
+    "使用教程遮挡.jpg": {
+      "anomaly_type": "tutorial_guide",
+      "anomaly_description": "美团神券页面中央弹出权益升级引导弹窗，显示'神券权益升级 快来查看、膨胀你的专属神券吧'",
+      "visual_features": {
+        "app_style": "美团",
+        "source_brand": "美团",
+        "source_brand_keywords": [
+          "美团",
+          "神券",
+          "美小团",
+          "外卖神券",
+          "吃喝玩乐红包"
+        ],
+        "primary_color": "#FF6B35",
+        "background": "白色 #FFFFFF",
+        "dialog_position": "center",
+        "dialog_size_ratio": {
+          "width": 0.7,
+          "height": 0.2
+        },
+        "overlay_enabled": true,
+        "overlay_opacity": 0.5,
+        "close_button_position": "none",
+        "close_button_style": "none",
+        "main_button_text": "下一步 1/3",
+        "main_button_style": "outlined_with_arrow",
+        "title_text": "神券权益升级",
+        "subtitle_text": "快来查看、膨胀你的专属神券吧",
+        "special_elements": [
+          "跳过指引按钮",
+          "步骤指示器 1/3",
+          "半透明遮罩背景"
+        ]
+      },
+      "generation_template": {
+        "instruction": "在美团神券页面中央添加一个引导教程弹窗，提示用户进行权益升级。",
+        "patch_operations": [
+          {
+            "type": "add",
+            "component": "TutorialGuideDialog",
+            "position": "center",
+            "overlay": true,
+            "close_button": false
+          }
+        ],
+        "key_points": [
+          "弹窗位于屏幕中央，覆盖主内容区域",
+          "标题为'神券权益升级'，使用红色字体突出",
+          "副标题为'快来查看、膨胀你的专属神券吧'",
+          "底部有'下一步 1/3'的圆形按钮，带箭头样式",
+          "下方有'跳过指引'文字链接"
+        ]
+      }
+    },
+    "使用教程遮挡2.jpg": {
+      "anomaly_type": "floating_tip_banner",
+      "anomaly_description": "美团APP在瑞幸咖啡商品页面底部弹出红色浮动提示横幅，显示'到店自取，取餐更快更便宜!'",
+      "visual_features": {
+        "app_style": "美团",
+        "source_brand": "美团",
+        "source_brand_keywords": [
+          "美团",
+          "Meituan",
+          "拼好饭",
+          "luckin coffee",
+          "瑞幸咖啡"
+        ],
+        "primary_color": "#FF3B58",
+        "background": "红色渐变 #FF3B58 → #FF6B6B",
+        "dialog_position": "bottom-fixed",
+        "dialog_size_ratio": {
+          "width": 0.9,
+          "height": 0.12
+        },
+        "overlay_enabled": false,
+        "overlay_opacity": 0,
+        "close_button_position": "none",
+        "close_button_style": "none",
+        "main_button_text": "我知道了",
+        "main_button_style": "white_text_button",
+        "title_text": "到店自取，取餐更快更便宜!",
+        "subtitle_text": "",
+        "special_elements": [
+          "黄色笑脸表情图标",
+          "粉色帽子的卡通形象",
+          "右上角小对话气泡"
+        ],
+        "mascot_position": "right",
+        "mascot_style": "yellow_smiley_with_pink_hat",
+        "close_button_text": "我知道了",
+        "main_text": "到店自取，取餐更快更便宜!"
+      },
+      "generation_template": {
+        "instruction": "在美团APP商品详情页底部添加一个红色固定横幅，包含促销文案和卡通形象，并附带确认按钮。",
+        "patch_operations": [
+          {
+            "type": "add",
+            "component": "FloatingTipBanner",
+            "position": "bottom-fixed",
+            "overlay": false,
+            "close_button": true
+          }
+        ],
+        "key_points": [
+          "底部固定位置的红色横幅",
+          "包含文字'到店自取，取餐更快更便宜!'",
+          "右侧有黄色笑脸卡通形象",
+          "带有'我知道了'白色按钮",
+          "无遮罩层，直接覆盖在内容上方"
+        ]
+      }
+    },
+    "使用教程遮挡3.jpg": {
+      "anomaly_type": "floating_tip_banner",
+      "anomaly_description": "美团外卖页面底部弹出黄色浮动提示横幅，显示'这家店所有优惠的商品都在这里喔～'",
+      "visual_features": {
+        "app_style": "美团",
+        "source_brand": "美团",
+        "source_brand_keywords": [
+          "美团",
+          "美团外卖",
+          "麦当劳",
+          "麦咖啡"
+        ],
+        "primary_color": "#FFD700",
+        "background": "黄色渐变 #FFD700 → #FFC107",
+        "dialog_position": "bottom-fixed",
+        "dialog_size_ratio": {
+          "width": 0.8,
+          "height": 0.12
+        },
+        "overlay_enabled": false,
+        "overlay_opacity": 0,
+        "close_button_position": "top-right",
+        "close_button_style": "gray_circle_x",
+        "main_button_text": "",
+        "main_button_style": "none",
+        "title_text": "",
+        "subtitle_text": "这家店所有优惠的商品都在这里喔～",
+        "special_elements": [
+          "黄色兔子吉祥物图标",
+          "箭头指示标签",
+          "金色闪光装饰"
+        ],
+        "mascot_position": "left",
+        "mascot_style": "卡通黄色兔子",
+        "close_button_text": "×",
+        "main_text": "这家店所有优惠的商品都在这里喔～"
+      },
+      "generation_template": {
+        "instruction": "在美团外卖店铺页面底部添加一个黄色浮动提示横幅，左侧有黄色兔子吉祥物，右侧显示优惠提示文字，并带右上角关闭按钮。",
+        "patch_operations": [
+          {
+            "type": "add",
+            "component": "FloatingTipBanner",
+            "position": "bottom-fixed",
+            "overlay": false,
+            "close_button": true
+          }
+        ],
+        "key_points": [
+          "底部固定位置的黄色横幅",
+          "左侧有黄色卡通兔子吉祥物",
+          "中间显示‘这家店所有优惠的商品都在这里喔～’文字",
+          "右上角有灰色圆形关闭按钮（×）",
+          "整体风格活泼，带有金色闪光装饰"
+        ]
+      }
+    },
+    "关闭按钮干扰.jpg": {
+      "anomaly_type": "permission_dialog",
+      "anomaly_description": "铁路12306首页中央弹出微信/支付宝/负一屏通知权限弹窗，显示开启行程提醒等通知功能",
+      "visual_features": {
+        "app_style": "铁路12306",
+        "source_brand": "铁路12306",
+        "source_brand_keywords": [
+          "铁路12306",
+          "12306",
+          "中国铁路",
+          "火车票"
+        ],
+        "primary_color": "#409EFF",
+        "background": "白色 #FFFFFF",
+        "dialog_position": "center",
+        "dialog_size_ratio": {
+          "width": 0.8,
+          "height": 0.5
+        },
+        "overlay_enabled": true,
+        "overlay_opacity": 0.5,
+        "close_button_position": "bottom-center",
+        "close_button_style": "gray_circle_x",
+        "main_button_text": "立即开启",
+        "main_button_style": "blue_filled",
+        "title_text": "开启微信/支付宝/负一屏通知",
+        "subtitle_text": "第一时间接收行程信息等重要通知",
+        "special_elements": [
+          "三个圆形图标：购退交易、候补结果、行程提醒等",
+          "蓝色主按钮",
+          "半透明遮罩背景"
+        ]
+      },
+      "generation_template": {
+        "instruction": "在铁路12306首页中央添加一个权限弹窗，用于引导用户开启微信/支付宝/负一屏通知",
+        "patch_operations": [
+          {
+            "type": "add",
+            "component": "PermissionDialog",
+            "position": "center",
+            "overlay": true,
+            "close_button": true
+          }
+        ],
+        "key_points": [
+          "弹窗位于屏幕中央，覆盖主界面",
+          "标题为'开启微信/支付宝/负一屏通知'",
+          "副标题提示接收行程信息等通知",
+          "包含三个黄色圆形图标分别代表购退交易、候补结果、行程提醒",
+          "底部有蓝色'立即开启'按钮和关闭按钮"
+        ]
+      }
+    },
+    "去哪网消息通知.jpg": {
+      "anomaly_type": "permission_dialog",
+      "anomaly_description": "去哪儿旅行首页中央弹出位置权限请求弹窗，显示'允许“去哪儿旅行”访问你的位置？'",
+      "visual_features": {
+        "app_style": "去哪儿旅行",
+        "source_brand": "去哪儿旅行",
+        "source_brand_keywords": [
+          "去哪儿旅行",
+          "游视界",
+          "Petal Maps",
+          "华为"
+        ],
+        "primary_color": "#007AFF",
+        "background": "白色 #FFFFFF",
+        "dialog_position": "center",
+        "dialog_size_ratio": {
+          "width": 0.85,
+          "height": 0.65
+        },
+        "overlay_enabled": true,
+        "overlay_opacity": 0.5,
+        "close_button_position": "none",
+        "close_button_style": "none",
+        "main_button_text": "本次使用允许",
+        "main_button_style": "blue_filled",
+        "title_text": "允许“去哪儿旅行”访问你的位置？",
+        "subtitle_text": "申请位置权限为了向您提供基于您位置信息附近的优质出行资源及相关产品",
+        "special_elements": [
+          "蓝色定位图标",
+          "地图预览图（Petal Maps）",
+          "精确位置开关（已开启）",
+          "三个选项按钮：本次使用允许、仅使用期间允许、不允许"
+        ]
+      },
+      "generation_template": {
+        "instruction": "在去哪儿旅行首页中央添加一个位置权限请求弹窗，包含标题、副标题、地图预览和三个权限选项。",
+        "patch_operations": [
+          {
+            "type": "add",
+            "component": "PermissionDialog",
+            "position": "center",
+            "overlay": true,
+            "close_button": false
+          }
+        ],
+        "key_points": [
+          "弹窗位于屏幕中央，覆盖半透明遮罩",
+          "顶部有蓝色定位图标和标题文字",
+          "中间显示Petal Maps的地图预览及‘精确位置’开关",
+          "下方有三个蓝色文字按钮：本次使用允许、仅使用期间允许、不允许",
+          "背景为白色，主色调为蓝色（#007AFF）"
+        ]
+      }
+    },
+    "商品下方存在遮挡.jpg": {
+      "anomaly_type": "promotional_coupont_dialog",
+      "anomaly_description": "京东到家外卖页面底部弹出专属福利优惠券弹窗，显示'百补好运券 满4元可用'",
+      "visual_features": {
+        "app_style": "京东到家",
+        "source_brand": "京东到家",
+        "source_brand_keywords": [
+          "京东",
+          "京东到家",
+          "京东秒送",
+          "京喜"
+        ],
+        "primary_color": "#FF1744",
+        "background": "白色 #FFFFFF",
+        "dialog_position": "bottom-fixed",
+        "dialog_size_ratio": {
+          "width": 0.96,
+          "height": 0.23
+        },
+        "overlay_enabled": false,
+        "overlay_opacity": 0,
+        "close_button_position": "top-right",
+        "close_button_style": "gray_circle_x",
+        "main_button_text": "立即使用",
+        "main_button_style": "red_filled",
+        "title_text": "送您专属福利",
+        "subtitle_text": "百补好运券",
+        "special_elements": [
+          "优惠券金额¥3",
+          "使用条件满4元可用",
+          "有效期限2025.12.29~2026.02.28",
+          "红色横幅背景",
+          "右上角X关闭按钮"
+        ]
+      },
+      "generation_template": {
+        "instruction": "在京东到家外卖页面底部添加一个红色主题的优惠券弹窗，包含标题、优惠信息和立即使用按钮。",
+        "patch_operations": [
+          {
+            "type": "add",
+            "component": "PromotionalCouponDialog",
+            "position": "bottom-fixed",
+            "overlay": false,
+            "close_button": true
+          }
+        ],
+        "key_points": [
+          "弹窗位于页面底部固定位置",
+          "主色调为红色（#FF1744）",
+          "包含标题'送您专属福利'和优惠内容'百补好运券 满4元可用'",
+          "右侧有红色'立即使用'按钮",
+          "右上角有灰色圆形X关闭按钮"
+        ]
+      }
+    },
+    "广告弹窗.jpg": {
+      "anomaly_type": "promotional_popup",
+      "anomaly_description": "携程旅行首页中央弹出携程榜单推广弹窗，显示'被世界米到了！'的宣传内容",
+      "visual_features": {
+        "app_style": "携程旅行",
+        "source_brand": "携程",
+        "source_brand_keywords": [
+          "携程",
+          "携程旅行",
+          "携程榜单",
+          "米卡MIKA",
+          "携程口碑榜"
+        ],
+        "primary_color": "#F5E87B",
+        "background": "绿色草地背景 #4CAF50",
+        "dialog_position": "center",
+        "dialog_size_ratio": {
+          "width": 0.75,
+          "height": 0.65
+        },
+        "overlay_enabled": true,
+        "overlay_opacity": 0.5,
+        "close_button_position": "top-right",
+        "close_button_style": "gray_circle_x",
+        "main_button_text": "立即查看",
+        "main_button_style": "yellow_filled",
+        "title_text": "被世界米到了！",
+        "subtitle_text": "打卡同款路线 解锁限量周边",
+        "special_elements": [
+          "人物剪影轮廓",
+          "手绘风格文字",
+          "泰国·曼谷地理位置标签",
+          "米卡MIKA品牌大使标识",
+          "What a beautiful world! 手写体英文"
+        ]
+      },
+      "generation_template": {
+        "instruction": "在携程旅行首页中央添加一个推广弹窗，展示‘被世界米到了’主题的旅游榜单活动",
+        "patch_operations": [
+          {
+            "type": "add",
+            "component": "PromotionalPopup",
+            "position": "center",
+            "overlay": true,
+            "close_button": true
+          }
+        ],
+        "key_points": [
+          "弹窗位于屏幕中央，覆盖主界面",
+          "顶部有灰色圆形关闭按钮（X）",
+          "主标题为手绘风格‘被世界米到了！’",
+          "包含人物站立剪影和绿色草地背景",
+          "底部黄色按钮显示‘立即查看’"
+        ]
+      }
+    },
     "弹出广告.jpg": {
       "anomaly_type": "reward_badge_dialog",
       "anomaly_description": "华为花粉俱乐部首页中央弹出HarmonyOS勋章奖励弹窗，显示'恭喜您获得勋章 鸿蒙合伙人 30天'",
       "visual_features": {
         "app_style": "华为花粉俱乐部",
-        "design_language": "warm-toned reward card, golden circular badge, cream background, outlined CTA button with arrow",
-        "primary_color": "#C8A882",
-        "background": "米白色渐变 #FAF6F0",
+        "source_brand": "华为",
+        "source_brand_keywords": [
+          "华为",
+          "HUAWEI",
+          "HarmonyOS",
+          "鸿蒙",
+          "鸿蒙操作系统",
+          "花粉俱乐部",
+          "鸿蒙合伙人"
+        ],
+        "primary_color": "#F5F0E6",
+        "background": "米白色渐变 #F5F0E6 → #F8F4EB",
         "dialog_position": "center",
         "dialog_size_ratio": {
-          "width": 0.85,
+          "width": 0.75,
           "height": 0.55
         },
         "overlay_enabled": true,
-        "overlay_opacity": 0.6,
+        "overlay_opacity": 0.5,
         "close_button_position": "bottom-center",
         "close_button_style": "gray_circle_x",
         "main_button_text": "立即查看",
@@ -25,14 +421,14 @@
         "title_text": "恭喜您获得勋章",
         "subtitle_text": "鸿蒙合伙人 30天",
         "special_elements": [
-          "金色圆形勋章",
-          "HarmonyOS标识",
-          "数字30",
-          "鸿蒙操作系统文字"
+          "圆形勋章图标",
+          "HarmonyOS文字标识",
+          "数字'30'立体浮雕效果",
+          "底部箭头按钮"
         ]
       },
       "generation_template": {
-        "instruction": "生成用户成就勋章奖励弹窗打断浏览流程",
+        "instruction": "在华为花粉俱乐部首页中央添加一个半透明遮罩的勋章奖励弹窗，展示鸿蒙合伙人30天成就。",
         "patch_operations": [
           {
             "type": "add",
@@ -43,31 +439,48 @@
           }
         ],
         "key_points": [
-          "居中卡片式弹窗",
-          "底部中央关闭按钮",
-          "金色圆形勋章图标",
-          "温暖配色（米白、金棕）",
-          "主按钮带箭头图标"
+          "弹窗位于屏幕中央，覆盖主界面内容",
+          "背景为米白色渐变，带有柔和阴影",
+          "顶部显示标题'恭喜您获得勋章'和副标题'鸿蒙合伙人 30天'",
+          "中心是一个金色边框的圆形勋章，内含'30'和'HarmonyOS'字样",
+          "底部有一个带右箭头的'立即查看'按钮"
         ]
       }
     },
     "弹出提示.jpg": {
       "anomaly_type": "context_menu_dropdown",
-      "anomaly_description": "抖音北京大学官方账号作品列表左下角弹出排序选择下拉菜单，显示'最新'和'最热'选项",
+      "anomaly_description": "哔哩哔哩北京大学官方账号页面弹出作品排序下拉菜单，显示'最新'和'最热'选项",
       "visual_features": {
-        "app_style": "抖音",
-        "design_language": "minimal white dropdown card, compact radio list, pink checkmark indicator",
-        "primary_color": "#FE2C55",
-        "background": "白色 rgba(255,255,255,0.98)",
+        "app_style": "哔哩哔哩",
+        "source_brand": "北京大学",
+        "source_brand_keywords": [
+          "北京大学",
+          "北大",
+          "Peking University",
+          "Bilibili"
+        ],
+        "primary_color": "#FFFFFF",
+        "background": "白色 #FFFFFF",
         "dialog_position": "bottom-left-inline",
         "dialog_size_ratio": {
-          "width": 0.2,
-          "height": 0.1
+          "width": 0.35,
+          "height": 0.28
         },
         "overlay_enabled": false,
+        "overlay_opacity": 0,
         "close_button_position": "none",
-        "list_style": "radio_list",
-        "selected_indicator": "checkmark_pink",
+        "close_button_style": "none",
+        "main_button_text": "",
+        "main_button_style": "none",
+        "title_text": "",
+        "subtitle_text": "",
+        "special_elements": [
+          "下拉菜单",
+          "选中指示器（红色对勾）",
+          "分栏切换按钮"
+        ],
+        "list_style": "vertical_list",
+        "selected_indicator": "red_checkmark",
         "menu_items": [
           "最新",
           "最热"
@@ -75,494 +488,130 @@
         "selected_item": "最热"
       },
       "generation_template": {
-        "instruction": "生成排序下拉菜单遮挡部分内容列表",
+        "instruction": "在哔哩哔哩APP的北京大学官方账号主页，点击作品列表上方的排序按钮，弹出包含'最新'和'最热'选项的下拉菜单，其中'最热'被选中并带有红色对勾标记。",
         "patch_operations": [
           {
             "type": "add",
             "component": "DropdownMenu",
             "position": "bottom-left-inline",
-            "overlay": false
-          }
-        ],
-        "key_points": [
-          "小型白色浮层菜单",
-          "无遮罩层",
-          "选中项带粉色勾选标记",
-          "点击外部自动关闭",
-          "圆角卡片设计"
-        ]
-      },
-      "dialog_bounds_px": {
-        "x": 29,
-        "y": 1505,
-        "width": 1194,
-        "height": 274
-      }
-    },
-    "使用教程遮挡3.jpg": {
-      "anomaly_type": "tooltip_bubble",
-      "anomaly_description": "美团麦当劳门店页面底部弹出黄色提示气泡'这家店所有优惠的商品都在这里哦~'",
-      "visual_features": {
-        "app_style": "美团",
-        "design_language": "yellow tooltip bubble, rounded rectangle, white text, downward arrow indicator",
-        "primary_color": "#FFD700",
-        "background": "黄色 #FFD700",
-        "dialog_position": "bottom-center-floating",
-        "dialog_size_ratio": {
-          "width": 0.75,
-          "height": 0.08
-        },
-        "overlay_enabled": false,
-        "close_button_position": "none",
-        "bubble_shape": "rounded_rectangle",
-        "text_content": "这家店所有优惠的商品都在这里哦~",
-        "special_elements": [
-          "黄色底色",
-          "白色文字",
-          "箭头指示"
-        ]
-      },
-      "generation_template": {
-        "instruction": "生成底部浮动提示气泡遮挡部分内容",
-        "patch_operations": [
-          {
-            "type": "add",
-            "component": "TooltipBubble",
-            "position": "bottom-center-floating",
-            "overlay": false
-          }
-        ],
-        "key_points": [
-          "小型黄色气泡提示框",
-          "无遮罩层",
-          "圆角矩形设计",
-          "底部居中位置",
-          "自动消失或点击关闭"
-        ]
-      },
-      "dialog_bounds_px": {
-        "x": 4,
-        "y": 2114,
-        "width": 1374,
-        "height": 474
-      }
-    },
-    "商品下方存在遮挡.jpg": {
-      "anomaly_type": "promotional_coupon_dialog",
-      "anomaly_description": "美团外卖柴火大院餐厅详情页底部弹出红色优惠券领取弹窗，显示'送您专属福利 百补好运券 ¥3 满4元可用'",
-      "visual_features": {
-        "app_style": "美团",
-        "design_language": "red gradient coupon banner, bold white price text, prominent CTA button, warm color scheme, bottom-fixed horizontal strip",
-        "primary_color": "#FF1744",
-        "background": "红色渐变 #FF1744 → #FF6B35",
-        "dialog_position": "bottom-fixed",
-        "dialog_size_ratio": {
-          "width": 0.9,
-          "height": 0.25
-        },
-        "overlay_enabled": false,
-        "close_button_position": "none",
-        "main_button_text": "立即使用",
-        "main_button_style": "red_filled",
-        "title_text": "送您专属福利",
-        "coupon_amount": "¥3",
-        "coupon_condition": "满4元可用",
-        "special_elements": [
-          "红色渐变背景",
-          "白色文字",
-          "优惠券卡片"
-        ]
-      },
-      "generation_template": {
-        "instruction": "生成底部固定优惠券弹窗遮挡商品列表",
-        "patch_operations": [
-          {
-            "type": "add",
-            "component": "CouponDialog",
-            "position": "bottom-fixed",
             "overlay": false,
             "close_button": false
           }
         ],
         "key_points": [
-          "底部固定红色弹窗",
-          "红色渐变背景",
-          "优惠券金额突出显示",
-          "立即使用按钮",
-          "遮挡部分商品内容"
-        ]
-      },
-      "dialog_bounds_px": {
-        "x": 12,
-        "y": 2364,
-        "width": 1079,
-        "height": 161
-      }
-    },
-    "关闭按钮干扰.jpg": {
-      "anomaly_type": "permission_dialog",
-      "anomaly_description": "12306火车票页面中央弹出通知权限请求弹窗",
-      "visual_features": {
-        "app_style": "12306",
-        "design_language": "clean white center dialog, blue CTA button, yellow feature icons, system permission style",
-        "primary_color": "#2196F3",
-        "background": "白色 #FFFFFF",
-        "dialog_position": "center",
-        "dialog_size_ratio": {
-          "width": 0.75,
-          "height": 0.35
-        },
-        "overlay_enabled": true,
-        "overlay_opacity": 0.5,
-        "close_button_position": "none",
-        "main_button_text": "立即开启",
-        "main_button_color": "#2196F3",
-        "special_elements": [
-          "三个黄色图标",
-          "购退交易",
-          "候补结果",
-          "行程提醒等"
-        ],
-        "title_text": "开启微信/支付宝/负一屏通知",
-        "subtitle_text": "第一时间接收行程信息等重要通知"
-      },
-      "generation_template": {
-        "instruction": "生成系统权限请求弹窗遮挡页面操作",
-        "patch_operations": [
-          {
-            "type": "add",
-            "component": "PermissionDialog",
-            "position": "center",
-            "overlay": true,
-            "close_button": false
-          }
-        ],
-        "key_points": [
-          "居中系统弹窗",
-          "无关闭按钮（强制选择）",
-          "蓝色主按钮CTA",
-          "三组黄色功能图标",
-          "权限说明文字"
-        ]
-      }
-    },
-    "使用教程遮挡.jpg": {
-      "anomaly_type": "tutorial_guide",
-      "anomaly_description": "美团神券页面中央及底部弹出多层引导教程",
-      "visual_features": {
-        "app_style": "美团",
-        "design_language": "multi-layer tutorial overlay, dark semi-transparent mask, white speech bubble, step navigation buttons",
-        "primary_color": "#FF6B35",
-        "background": "深灰色半透明遮罩 rgba(0,0,0,0.6)",
-        "dialog_position": "multi-layer",
-        "dialog_size_ratio": {
-          "top": {
-            "width": 0.9,
-            "height": 0.35
-          },
-          "center": {
-            "width": 0.8,
-            "height": 0.15
-          },
-          "bottom": {
-            "width": 0.6,
-            "height": 0.08
-          }
-        },
-        "overlay_enabled": true,
-        "overlay_opacity": 0.6,
-        "close_button_position": "none",
-        "navigation_text": "下一步 1/3",
-        "navigation_style": "outlined_button",
-        "skip_button_text": "跳过指引",
-        "special_elements": [
-          "神券包卡片",
-          "白色提示气泡",
-          "步骤导航按钮"
-        ]
-      },
-      "generation_template": {
-        "instruction": "生成多层引导教程弹窗打断用户流程",
-        "patch_operations": [
-          {
-            "type": "add",
-            "component": "TutorialGuide",
-            "position": "multi-layer",
-            "overlay": true,
-            "close_button": false,
-            "skip_button": true
-          }
-        ],
-        "key_points": [
-          "多层叠加弹窗",
-          "深色半透明遮罩",
-          "白色气泡提示框",
-          "步骤导航（1/3）",
-          "跳过指引选项"
-        ]
-      }
-    },
-    "使用教程遮挡2.jpg": {
-      "anomaly_type": "floating_tip_banner",
-      "anomaly_description": "瑞幸咖啡商品详情页底部弹出粉色提示横幅",
-      "visual_features": {
-        "app_style": "瑞幸咖啡/美团拼好饭",
-        "design_language": "pink gradient floating banner, rounded card, white text, mascot illustration on right",
-        "primary_color": "#FF69B4",
-        "background": "粉红色渐变 #FF69B4 → #FF85C8",
-        "dialog_position": "bottom-floating",
-        "dialog_size_ratio": {
-          "width": 0.85,
-          "height": 0.12
-        },
-        "overlay_enabled": false,
-        "close_button_position": "left-side",
-        "close_button_style": "white_text_button",
-        "close_button_text": "我知道了",
-        "main_text": "到店自取，取餐更快更便宜！",
-        "mascot_position": "right",
-        "mascot_style": "yellow_smiley_face"
-      },
-      "generation_template": {
-        "instruction": "生成底部浮动提示横幅遮挡商品信息",
-        "patch_operations": [
-          {
-            "type": "add",
-            "component": "FloatingBanner",
-            "position": "bottom-floating",
-            "overlay": false,
-            "close_button": true
-          }
-        ],
-        "key_points": [
-          "底部浮动横幅",
-          "圆角卡片设计",
-          "粉色渐变背景",
-          "左侧白色文字按钮",
-          "右侧黄色笑脸吉祥物"
-        ]
-      },
-      "dialog_bounds_px": {
-        "x": 44,
-        "y": 2532,
-        "width": 1142,
-        "height": 164
-      }
-    },
-    "满减信息遮挡.jpg": {
-      "anomaly_type": "stacked_bottom_banners",
-      "anomaly_description": "瑞幸咖啡首页底部堆叠两层遮挡横幅：上层为'神券最高减16'满减优惠栏（深蓝底色，显示满减规则和'去凑单'按钮），下层为'已选1件/免配送费'去结算栏（白底黄色'去结算'按钮）。两栏紧密堆叠，共同遮挡底部商品内容区域",
-      "visual_features": {
-        "app_style": "瑞幸咖啡",
-        "primary_color": "#FFD700",
-        "background": "白色 #FFFFFF",
-        "dialog_position": "bottom-fixed",
-        "dialog_size_ratio": {
-          "width": 1.0,
-          "height": 0.15
-        },
-        "overlay_enabled": false,
-        "overlay_opacity": 0,
-        "close_button_position": "none",
-        "close_button_style": "none",
-        "main_button_text": "去结算",
-        "main_button_style": "yellow_filled",
-        "title_text": "",
-        "subtitle_text": "",
-        "special_elements": [
-          "mascot_icon",
-          "coupon_discount_bar",
-          "checkout_bar"
-        ],
-        "stacked_bars": [
-          {
-            "layer": "top",
-            "description": "神券满减优惠栏",
-            "background": "深蓝色 #1A237E",
-            "text_content": "神券最高减16 | 已减¥6，还差¥18减¥10",
-            "button_text": "去凑单",
-            "button_style": "orange_filled"
-          },
-          {
-            "layer": "bottom",
-            "description": "去结算栏",
-            "background": "白色 #FFFFFF",
-            "text_content": "已选1件 | 免配送费",
-            "button_text": "去结算",
-            "button_style": "yellow_filled"
-          }
-        ]
-      },
-      "generation_template": {
-        "instruction": "在瑞幸咖啡首页底部添加两层堆叠横幅：上层为深蓝底满减优惠栏，下层为白底去结算栏，共同遮挡底部内容。",
-        "patch_operations": [
-          {
-            "type": "add",
-            "component": "CouponDiscountBar",
-            "position": "bottom-fixed",
-            "overlay": false,
-            "close_button": false
-          },
-          {
-            "type": "add",
-            "component": "CheckoutBar",
-            "position": "bottom-fixed",
-            "overlay": false,
-            "close_button": false
-          }
-        ],
-        "key_points": [
-          "两层横幅紧密堆叠于底部",
-          "上层深蓝底色显示'神券最高减16'满减信息和'去凑单'橙色按钮",
-          "下层白色底显示'已选1件/免配送费'和黄色'去结算'按钮",
-          "两栏共同占据屏幕底部约15%高度",
-          "遮挡底部商品列表内容区域"
-        ]
-      }
-    },
-    "去哪网消息通知.jpg": {
-      "anomaly_type": "permission_dialog",
-      "anomaly_description": "去哪儿旅行APP首页弹出位置权限请求弹窗，显示'允许去哪儿旅行访问你的位置？'",
-      "visual_features": {
-        "app_style": "去哪儿旅行",
-        "primary_color": "#FFFFFF",
-        "background": "白色 #FFFFFF",
-        "dialog_position": "bottom-center-floating",
-        "dialog_size_ratio": {
-          "width": 0.9,
-          "height": 0.4
-        },
-        "overlay_enabled": true,
-        "overlay_opacity": 0.5,
-        "close_button_position": "none",
-        "close_button_style": "none",
-        "main_button_text": "本次使用允许",
-        "main_button_style": "blue_filled",
-        "title_text": "允许\"去哪儿旅行\"访问你的位置？",
-        "subtitle_text": "申请位置权限为了向您提供基于您位置信息附近的优质出行资源及相关产品",
-        "special_elements": [
-          "地图预览"
-        ]
-      },
-      "generation_template": {
-        "instruction": "在去哪儿旅行APP首页生成一个位置权限请求弹窗。",
-        "patch_operations": [
-          {
-            "type": "add",
-            "component": "PermissionDialog",
-            "position": "bottom-center-floating",
-            "overlay": true,
-            "close_button": false
-          }
-        ],
-        "key_points": [
-          "弹窗背景为白色",
-          "包含地图预览元素",
-          "主按钮为蓝色填充样式",
-          "标题询问位置权限",
-          "副标题说明权限申请原因"
+          "弹窗为白色背景的垂直下拉菜单",
+          "包含两个选项：'最新'和'最热'",
+          "'最热'选项右侧有红色对勾标识",
+          "菜单位于作品列表上方区域左侧",
+          "无遮罩层，无关闭按钮"
         ]
       }
     },
     "携程开屏优惠广告.jpg": {
-      "anomaly_type": "promotional_coupon_dialog",
-      "anomaly_description": "某APP机票页面弹出新客随机福利优惠券弹窗，包含国内机票90元券包、国际机票100元券包、出行权益包1288元三行优惠",
+      "anomaly_type": "promotional_coupont_dialog",
+      "anomaly_description": "携程旅行APP机票页面中央弹出新客随机福利弹窗，显示90元国内机票券包、100元国际机票券包和1288元出行权益包等优惠内容",
       "visual_features": {
-        "app_style": "某APP",
-        "design_language": "red-coral gradient coupon card, white rounded outer frame, three coupon rows with price highlights, cream pill CTA button, cartoon mascot at top",
-        "primary_color": "#FF6B35",
-        "background": "外层白色圆角卡片，内容区红色珊瑚渐变 #FF1744 → #FF6B35，优惠券条目白色底",
+        "app_style": "携程",
+        "source_brand": "携程",
+        "source_brand_keywords": [
+          "携程",
+          "CATHAY PACIFIC",
+          "国泰航空",
+          "机票",
+          "特价机票"
+        ],
+        "primary_color": "#FF4D4D",
+        "background": "红色渐变 #FF4D4D → #FF6B35",
         "dialog_position": "center",
         "dialog_size_ratio": {
           "width": 0.85,
-          "height": 0.65
+          "height": 0.55
         },
         "overlay_enabled": true,
         "overlay_opacity": 0.5,
         "close_button_position": "bottom-center",
         "close_button_style": "gray_circle_x",
         "main_button_text": "开心收下",
-        "main_button_style": "cream_pill",
+        "main_button_style": "red_filled",
         "title_text": "新客随机福利",
-        "subtitle_text": "使用说明",
-        "corner_radius": "large",
+        "subtitle_text": "使用说明 >",
         "special_elements": [
-          "蓝色企鹅吉祥物（顶部）",
-          "红色礼盒福袋装饰",
-          "三行优惠券条目（白色卡片行）",
-          "优惠金额大号橙红色数字"
+          "卡通形象（蓝色海豚）",
+          "红包图标",
+          "三个横向优惠卡片",
+          "价格标签（90元、100元、1288元）",
+          "“共”字标签"
         ],
-        "coupon_items": [
-          {
-            "amount": "90元",
-            "label": "新客国内机票券包",
-            "detail": "包含无门槛/多人/往返券"
-          },
-          {
-            "amount": "100元",
-            "label": "新客国际机票券包",
-            "detail": "包含无门槛券和多人券"
-          },
-          {
-            "amount": "1288元",
-            "label": "出行权益包",
-            "detail": "含租车、包车等权益"
-          }
-        ]
+        "coupon_amount": [
+          "90元",
+          "100元",
+          "1288元"
+        ],
+        "coupon_condition": [
+          "包含无门槛/多人/往返券",
+          "包含无门槛券和多人券",
+          "含租车、包车等权益"
+        ],
+        "mascot_position": "top-center",
+        "mascot_style": "蓝色海豚卡通形象，戴帽子，手持红包",
+        "close_button_text": "×",
+        "main_text": "新客随机福利"
       },
       "generation_template": {
-        "instruction": "在某APP的机票页面中央添加一个新客随机福利优惠券弹窗，包含三行优惠券条目和底部领取按钮。",
+        "instruction": "在携程机票页面中央添加一个红色主题的新客福利弹窗，包含三个优惠券选项和底部‘开心收下’按钮",
         "patch_operations": [
           {
             "type": "add",
-            "component": "CouponDialog",
+            "component": "PromotionalCouponDialog",
             "position": "center",
             "overlay": true,
             "close_button": true
           }
         ],
         "key_points": [
-          "白色外框+红色渐变内容区的双层卡片结构",
-          "顶部蓝色企鹅吉祥物和礼盒装饰",
-          "三行白色优惠券条目，左侧大号金额数字",
-          "底部奶油色椭圆'开心收下'按钮",
-          "关闭按钮在弹窗底部正中央（灰色圆形X）",
-          "弹窗占屏幕约65%高度，居中显示"
+          "弹窗位于屏幕中央，覆盖半透明遮罩",
+          "主色调为红色，顶部有蓝色海豚卡通形象",
+          "包含三个横向优惠券卡片，分别标注90元、100元、1288元",
+          "底部有‘开心收下’的红色填充按钮",
+          "弹窗下方有一个圆形关闭按钮（×）"
         ]
       }
     },
     "携程通知.jpg": {
       "anomaly_type": "permission_dialog",
-      "anomaly_description": "某旅行APP首页弹出iOS系统通知权限请求弹窗，显示'允许向你发送通知？'，含'不允许'和'允许'两个文字按钮",
+      "anomaly_description": "携程旅行APP首页中央弹出权限请求弹窗，显示'允许“携程旅行”向你发送通知？'",
       "visual_features": {
-        "app_style": "某旅行APP",
-        "design_language": "iOS system alert style, white rounded card, blue bell icon, dual text buttons separated by divider line",
-        "primary_color": "#2979FF",
+        "app_style": "携程旅行",
+        "source_brand": "携程旅行",
+        "source_brand_keywords": [
+          "携程",
+          "携程旅行",
+          "Ctrip"
+        ],
+        "primary_color": "#007AFF",
         "background": "白色 #FFFFFF",
         "dialog_position": "center",
         "dialog_size_ratio": {
           "width": 0.85,
-          "height": 0.22
+          "height": 0.4
         },
         "overlay_enabled": true,
         "overlay_opacity": 0.5,
         "close_button_position": "none",
         "close_button_style": "none",
-        "left_button_text": "允许",
-        "left_button_style": "blue_text_regular",
-        "right_button_text": "不允许",
-        "right_button_style": "blue_text_regular",
-        "button_layout": "horizontal_split_divider",
-        "title_text": "允许\"携程旅行\"向你发送通知？",
-        "subtitle_text": "通知提醒方式可能包括锁屏、横幅、角标、响铃、振动。可前往\"设置\"更改。",
-        "corner_radius": "large",
+        "main_button_text1": "允许",
+        "main_button_style1": "blue_filled",
+        "main_button_text2": "不允许",
+        "main_button_style2": "blue_filled",
+        "title_text": "允许“携程旅行”向你发送通知？",
+        "subtitle_text": "通知提醒方式可能包括锁屏、横幅、角标、响铃、振动。可前往“设置”更改。",
         "special_elements": [
-          "蓝色实心铃铛图标（顶部居中）",
-          "按钮区域水平竖线分隔"
+          "蓝色铃铛图标",
+          "两个按钮：不允许/允许"
         ]
       },
       "generation_template": {
-        "instruction": "在某旅行APP首页中央生成一个iOS风格的通知权限请求弹窗。",
+        "instruction": "在携程旅行APP首页中央添加一个权限请求弹窗，询问用户是否允许接收通知。",
         "patch_operations": [
           {
             "type": "add",
@@ -573,15 +622,66 @@
           }
         ],
         "key_points": [
-          "iOS系统弹窗风格，白色大圆角卡片",
-          "顶部蓝色实心铃铛图标",
-          "标题和副标题居中排列",
-          "底部双按钮水平排列，竖线分隔",
-          "'不允许'和'允许'均为常规蓝色文字按钮",
-          "半透明深色遮罩覆盖背景"
+          "弹窗位于屏幕中央，覆盖背景内容",
+          "顶部有一个蓝色铃铛图标",
+          "标题为'允许“携程旅行”向你发送通知？'",
+          "副标题说明通知形式和设置路径",
+          "底部有两个按钮：'不允许'和'允许'"
+        ]
+      }
+    },
+    "满减信息遮挡.jpg": {
+      "anomaly_type": "floating_tip_banner",
+      "anomaly_description": "瑞幸咖啡APP点餐页面底部弹出浮动提示横幅，显示'选到店自取再减19.5元'优惠信息",
+      "visual_features": {
+        "app_style": "瑞幸咖啡",
+        "source_brand": "瑞幸咖啡",
+        "source_brand_keywords": [
+          "瑞幸咖啡",
+          "luckin coffee",
+          "luckin"
+        ],
+        "primary_color": "#FFD700",
+        "background": "浅粉色 #FFE4E1",
+        "dialog_position": "bottom-fixed",
+        "dialog_size_ratio": {
+          "width": 0.98,
+          "height": 0.06
+        },
+        "overlay_enabled": false,
+        "overlay_opacity": 0,
+        "close_button_position": "none",
+        "close_button_style": "none",
+        "main_button_text": "去自取",
+        "main_button_style": "outlined_with_arrow",
+        "title_text": "选到店自取再减19.5元",
+        "subtitle_text": "",
+        "special_elements": [
+          "黄色机器人图标",
+          "红色价格标签",
+          "神券按钮"
+        ]
+      },
+      "generation_template": {
+        "instruction": "在瑞幸咖啡APP点餐页面底部添加一个固定位置的浮动优惠横幅，展示自取优惠信息",
+        "patch_operations": [
+          {
+            "type": "add",
+            "component": "FloatingTipBanner",
+            "position": "bottom-fixed",
+            "overlay": false,
+            "close_button": false
+          }
+        ],
+        "key_points": [
+          "底部固定位置的浅粉色横幅",
+          "左侧有黄色机器人图标和数字1",
+          "中间显示'选到店自取再减19.5元'文字",
+          "右侧有'去自取'按钮",
+          "整体风格与瑞幸品牌色系一致"
         ]
       }
     }
   },
-  "usage": "--gt-dir ./gt_templates/弹窗覆盖原UI --reference ./gt_templates/弹窗覆盖原UI/弹出广告.jpg"
+  "usage": "--gt-dir ./gt_templates/弹窗覆盖原UI --reference ./gt_templates/弹窗覆盖原UI/<sample>.jpg"
 }

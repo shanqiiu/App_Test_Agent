@@ -13,6 +13,7 @@ run_pipeline.py - UI 异常场景生成流水线
 import argparse
 import json
 import os
+import time
 from pathlib import Path
 from datetime import datetime
 from typing import Optional
@@ -122,6 +123,93 @@ except ImportError as e:
     OMNIPARSER_AVAILABLE = False
 
 
+# ==================== 中文类别 → category_id 映射 ====================
+
+GT_CATEGORY_NAME_TO_ID = {
+    '弹窗覆盖原UI': 'dialog_blocking',
+    '内容歧义、重复': 'content_duplicate',
+    'loading_timeout': 'loading_timeout',
+}
+
+
+def ensure_meta_for_reference(
+    reference_path: str,
+    gt_category: str,
+    api_key: str,
+    api_url: str = None,
+    vlm_model: str = None,
+) -> tuple:
+    """
+    确保参考图有对应的 meta.json 条目，没有则自动调用 VLM 生成。
+
+    Args:
+        reference_path: 任意位置的参考异常图片路径
+        gt_category: 中文类别名（如"弹窗覆盖原UI"）
+        api_key: VLM API 密钥
+        api_url: VLM API 端点
+        vlm_model: VLM 模型名
+
+    Returns:
+        (gt_sample, gt_dir) 元组，可直接传给 Stage 3 渲染
+    """
+    import json
+
+    ref_path = Path(reference_path).resolve()
+    ref_dir = ref_path.parent
+    ref_filename = ref_path.name
+
+    # 映射中文类别 → category_id
+    category_id = GT_CATEGORY_NAME_TO_ID.get(gt_category)
+    if not category_id:
+        # 尝试直接作为 category_id 使用
+        if gt_category in ('dialog_blocking', 'content_duplicate', 'loading_timeout'):
+            category_id = gt_category
+        else:
+            print(f"  ⚠ 无法识别类别 '{gt_category}'，将使用 dialog_blocking")
+            category_id = 'dialog_blocking'
+
+    # 检查 meta.json 是否已包含该文件条目
+    meta_file = ref_dir / 'meta.json'
+    if meta_file.exists():
+        try:
+            with open(meta_file, 'r', encoding='utf-8') as f:
+                existing_meta = json.load(f)
+            if ref_filename in existing_meta.get('samples', {}):
+                print(f"  ✓ meta.json 已包含 '{ref_filename}'，跳过生成")
+                return (ref_filename, str(ref_dir))
+        except Exception:
+            pass
+
+    # 自动生成 meta.json（仅分析该文件）
+    print(f"\n{'='*60}")
+    print(f"[Auto-Meta] 自动为参考图生成 meta.json")
+    print(f"  参考图: {ref_path}")
+    print(f"  类别: {gt_category} ({category_id})")
+    print(f"{'='*60}")
+
+    from generate_meta import generate_meta_for_directory
+
+    result = generate_meta_for_directory(
+        target_dir=str(ref_dir),
+        category_id=category_id,
+        api_key=api_key,
+        api_url=api_url or VLM_API_URL,
+        vlm_model=vlm_model or VLM_MODEL,
+        force=False,
+        dry_run=False,
+        target_files=[ref_filename],
+    )
+
+    if result is None:
+        raise RuntimeError(f"Auto-Meta 生成失败: {ref_filename}")
+
+    if ref_filename not in result.get('samples', {}):
+        raise RuntimeError(f"Auto-Meta 生成后仍无 '{ref_filename}' 条目")
+
+    print(f"  ✓ Auto-Meta 完成，已写入 {meta_file}")
+    return (ref_filename, str(ref_dir))
+
+
 def run_pipeline(
     screenshot_path: str,
     instruction: str,
@@ -184,8 +272,11 @@ def run_pipeline(
         'timestamp': timestamp,
         'screenshot': screenshot_path,
         'instruction': instruction,
-        'outputs': {}
+        'outputs': {},
+        'timing': {}
     }
+
+    pipeline_start = time.time()
 
     print("=" * 60)
     print("UI 异常场景生成流水线（简化模式）")
@@ -195,6 +286,7 @@ def run_pipeline(
     print(f"  输出目录: {output_dir}")
 
     # ===== Stage 1: OmniParser 粗检测 =====
+    stage1_start = time.time()
     print("\n" + "=" * 60)
     print("[Stage 1/3] OmniParser 粗检测")
     print("=" * 60)
@@ -233,7 +325,12 @@ def run_pipeline(
     print(f"  ✓ 检测到 {omni_raw_result['componentCount']} 个组件")
     print(f"  ✓ 保存至: {stage1_path}")
 
+    stage1_elapsed = time.time() - stage1_start
+    results['timing']['stage1'] = round(stage1_elapsed, 2)
+    print(f"  ⏱ Stage 1 耗时: {stage1_elapsed:.2f}s")
+
     # ===== Stage 2: VLM 语义分组（单次调用） =====
+    stage2_start = time.time()
     print("\n" + "=" * 60)
     print("[Stage 2/3] VLM 语义分组（原图 + 坐标文本 → 分组 → 代码合并）")
     print("=" * 60)
@@ -284,7 +381,36 @@ def run_pipeline(
         results['outputs']['stage2_annotated'] = str(stage2_vis_path)
         print(f"  ✓ 可视化图片: {stage2_vis_path}")
 
+    stage2_elapsed = time.time() - stage2_start
+    results['timing']['stage2'] = round(stage2_elapsed, 2)
+    print(f"  ⏱ Stage 2 耗时: {stage2_elapsed:.2f}s")
+
+    # ===== Auto-Meta: 自动为任意参考图生成 meta.json =====
+    if reference_path and gt_category and anomaly_mode == 'dialog':
+        if not gt_sample:
+            # 用户只提供了 --reference + --gt-category，自动生成 meta
+            gt_sample, gt_dir = ensure_meta_for_reference(
+                reference_path=reference_path,
+                gt_category=gt_category,
+                api_key=api_key,
+                api_url=api_url,
+                vlm_model=vlm_model or structure_model,
+            )
+        elif not gt_dir:
+            # 有 gt_sample 但没 gt_dir，也检查参考图目录是否需要生成 meta
+            ref_dir = str(Path(reference_path).resolve().parent)
+            meta_file = Path(ref_dir) / 'meta.json'
+            if not meta_file.exists():
+                gt_sample, gt_dir = ensure_meta_for_reference(
+                    reference_path=reference_path,
+                    gt_category=gt_category,
+                    api_key=api_key,
+                    api_url=api_url,
+                    vlm_model=vlm_model or structure_model,
+                )
+
     # ===== Stage 3: 异常渲染（RENDERER_MAP 统一路由） =====
+    stage3_start = time.time()
     print("\n" + "=" * 60)
     print(f"[Stage 3/3] 异常渲染 ({anomaly_mode} 模式)")
     print("=" * 60)
@@ -396,15 +522,28 @@ def run_pipeline(
         import traceback
         traceback.print_exc()
         return results
+
+    stage3_elapsed = time.time() - stage3_start
+    results['timing']['stage3'] = round(stage3_elapsed, 2)
+    print(f"  ⏱ Stage 3 耗时: {stage3_elapsed:.2f}s")
+
     # ===== 保存流水线元数据 =====
     meta_path = output_dir / f"{screenshot_name}_pipeline_meta_{timestamp}.json"
     with open(meta_path, 'w', encoding='utf-8') as f:
         json.dump(results, f, ensure_ascii=False, indent=2)
     results['outputs']['pipeline_meta'] = str(meta_path)
 
+    pipeline_elapsed = time.time() - pipeline_start
+    results['timing']['total'] = round(pipeline_elapsed, 2)
+
     print("\n" + "=" * 60)
     print("✓ 流水线执行完成!")
     print("=" * 60)
+    print("\n⏱ 耗时统计:")
+    print(f"  [Stage 1]  OmniParser 粗检测:   {results['timing'].get('stage1', 0):.2f}s")
+    print(f"  [Stage 2]  VLM 语义分组:        {results['timing'].get('stage2', 0):.2f}s")
+    print(f"  [Stage 3]  异常渲染:            {results['timing'].get('stage3', 0):.2f}s")
+    print(f"  [总计]     全流程耗时:          {pipeline_elapsed:.2f}s")
     print("\n中间结果:")
     print(f"  [Stage 1]  OmniParser 原始检测: {stage1_path}")
     if visualize and results['outputs'].get('stage1_annotated'):
@@ -473,10 +612,18 @@ def main():
     --output ./output/
 
 Meta驱动生成说明:
-  - 使用 --gt-category 和 --gt-sample 指定GT模板
+  - 使用 --gt-category 和 --gt-sample 指定GT模板（传统方式）
+  - 或使用 --reference + --gt-category 传入任意参考图（自动生成 meta.json）
   - 系统会从 meta.json 读取精确的语义描述和视觉特征
   - 结合参考图片的风格，生成更一致、更真实的异常弹窗
-  - 比普通模式质量更高，推荐使用！
+
+Auto-Meta 模式示例（推荐！无需预先生成 meta.json）:
+  python run_pipeline.py \\
+    --screenshot ./page.png \\
+    --instruction "生成优惠券广告弹窗" \\
+    --gt-category "弹窗覆盖原UI" \\
+    --reference /path/to/any_popup.jpg \\
+    --output ./output/
 
 中间结果说明:
   - stage1_omni_raw_*.json   : OmniParser 原始检测结果
@@ -506,7 +653,7 @@ Meta驱动生成说明:
     parser.add_argument('--vlm-model', default=VLM_MODEL,
                         help='VLM 模型（语义弹窗）')
     parser.add_argument('--reference', '-r',
-                        help='参考弹窗图片路径 (dialog 模式)')
+                        help='参考异常图片路径（任意位置均可，系统会自动生成 meta.json）')
     parser.add_argument('--reference-icon',
                         help='参考加载图标路径 (area_loading 模式，可显著提升生成真实性)')
     parser.add_argument('--omni-device',
@@ -534,6 +681,11 @@ Meta驱动生成说明:
         else:
             print(f"  ⚠ 默认 GT 目录不存在: {default_gt_dir}")
             print(f"  请通过 --gt-dir 手动指定")
+
+    # 新流程：--reference + --gt-category（无需 --gt-sample），gt_sample 从 reference 文件名推断
+    if args.reference and args.gt_category and not args.gt_sample:
+        print(f"  ✓ Auto-Meta 模式: 参考图 → {args.reference}")
+        # gt_sample 和 gt_dir 将在 run_pipeline 内由 ensure_meta_for_reference 自动设置
 
     # 检查必需的API密钥
     if not args.api_key:

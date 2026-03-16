@@ -97,6 +97,8 @@ reward_badge_dialog, promotional_coupon_dialog, permission_dialog, context_menu_
 ### 3. visual_features
 提取全部以下字段：
 - app_style: APP名称（如"淘宝"、"美团"、"抖音"）
+- source_brand: 参考图中出现的品牌名称（中文），如"美团"、"华为"、"携程"
+- source_brand_keywords: 参考图中出现的所有品牌相关关键词列表，包括中英文品牌名、子品牌、产品线标识等。例如：["华为", "HUAWEI", "HarmonyOS", "鸿蒙", "花粉俱乐部"] 或 ["美团", "Meituan", "美团外卖"]
 - primary_color: 弹窗主色调HEX，如"#FF6600"
 - background: 背景描述+HEX，如"白色 #FFFFFF"或"红色渐变 #FF1744 → #FF6B35"
 - dialog_position: 必须是以下之一：
@@ -104,8 +106,8 @@ reward_badge_dialog, promotional_coupon_dialog, permission_dialog, context_menu_
 - dialog_size_ratio: 弹窗占屏幕比例 {"width": 0.xx, "height": 0.xx}
 - overlay_enabled: 是否有半透明遮罩(true/false)
 - overlay_opacity: 遮罩不透明度(0.0-1.0)，无遮罩则为0
-- close_button_position: "top-right"/"top-left"/"bottom-center"/"left-side"/"none"
-- close_button_style: 如"gray_circle_x"/"white_text_button"/"circle_x"/"none"
+- close_button_position: 关闭/取消按钮的位置。**注意：关闭按钮可能在弹窗卡片外部**（如卡片下方的圆形X、卡片右上角外侧的X），也算关闭按钮。仔细查看弹窗周围区域。必须是以下之一："top-right"/"top-left"/"bottom-center"/"left-side"/"none"（仅当确实没有任何关闭/取消/跳过入口时才填none）
+- close_button_style: 关闭按钮的视觉样式，如"gray_circle_x"/"white_text_button"/"circle_x"/"none"
 - main_button_text: 主按钮文字，没有则""
 - main_button_style: 如"red_filled"/"outlined_with_arrow"/"blue_filled"/"none"
 - title_text: 标题文字，没有则""
@@ -133,14 +135,16 @@ reward_badge_dialog, promotional_coupon_dialog, permission_dialog, context_menu_
   "anomaly_description": "",
   "visual_features": {
     "app_style": "",
+    "source_brand": "",
+    "source_brand_keywords": [],
     "primary_color": "#XXXXXX",
     "background": "",
     "dialog_position": "",
     "dialog_size_ratio": {"width": 0.0, "height": 0.0},
     "overlay_enabled": false,
     "overlay_opacity": 0,
-    "close_button_position": "none",
-    "close_button_style": "none",
+    "close_button_position": "仔细看弹窗卡片内外是否有关闭/取消按钮，填写位置或none",
+    "close_button_style": "填写样式或none",
     "main_button_text": "",
     "main_button_style": "none",
     "title_text": "",
@@ -473,9 +477,13 @@ def generate_meta_for_directory(
     verbose: bool = False,
     extract_bounds: bool = False,
     omni_device: str = None,
+    target_files: List[str] = None,
 ) -> Optional[dict]:
     """
     对单个 GT 模板目录生成 meta.json
+
+    Args:
+        target_files: 只分析这些文件名（如 ['popup.jpg']），为 None 则扫描全部图片
 
     Returns:
         生成的 meta.json dict，失败返回 None
@@ -506,6 +514,10 @@ def generate_meta_for_directory(
 
     # 3. 扫描图片
     images = scan_images(target_path)
+    # 如果指定了 target_files，只保留指定文件
+    if target_files:
+        target_set = set(target_files)
+        images = [img for img in images if img.name in target_set]
     if not images:
         print(f"[ERROR] 目录中无图片文件: {target_dir}")
         return None

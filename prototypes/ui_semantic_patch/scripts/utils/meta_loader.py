@@ -247,6 +247,16 @@ class MetaLoader:
         # 同时添加 anomaly_type（用于语义内容生成时参考）
         flat_features['anomaly_type'] = sample_meta.get('anomaly_type', 'promotional_dialog')
 
+        # 添加 source_brand_keywords（用于动态品牌过滤）
+        # 优先使用显式的 source_brand_keywords 字段；回退到从 app_style 推导
+        brand_keywords = visual_features.get('source_brand_keywords', [])
+        if not brand_keywords:
+            # 向后兼容：从 app_style 推导基本品牌关键词
+            app_style = visual_features.get('app_style', '')
+            if app_style and app_style != '通用':
+                brand_keywords = [app_style]
+        flat_features['source_brand_keywords'] = brand_keywords
+
         # 添加 duplicate_mode（用于内容重复异常渲染）
         if 'duplicate_mode' in sample_meta:
             flat_features['duplicate_mode'] = sample_meta.get('duplicate_mode')
@@ -338,15 +348,17 @@ class MetaLoader:
             elements = visual_features['special_elements']
             # 过滤掉包含具体文字内容和参考图品牌的元素
             visual_elements = []
-            # 关键词列表：文字内容 + 参考图品牌（防止品牌污染）
-            filter_keywords = [
-                # 文字内容关键词
+            # 文字内容关键词（固定列表）
+            text_filter_keywords = [
                 '文字', '显示', '标题', '内容', '数字', '天', '元', '折',
-                # 华为/鸿蒙品牌关键词（参考图可能来自华为APP）
-                'HarmonyOS', 'Harmony', '鸿蒙', '花粉', '华为', 'HUAWEI',
-                # 其他常见品牌（防止参考图品牌泄露）
-                '淘宝', '京东', '美团', '抖音', '微信', '支付宝'
             ]
+            # 动态品牌关键词：从 source_brand_keywords 获取，回退到 app_style
+            brand_keywords = visual_features.get('source_brand_keywords', [])
+            if not brand_keywords:
+                app_style_name = visual_features.get('app_style', '')
+                if app_style_name and app_style_name != '通用':
+                    brand_keywords = [app_style_name]
+            filter_keywords = text_filter_keywords + brand_keywords
             for elem in elements:
                 # 检查是否包含任何过滤关键词（不区分大小写）
                 has_filter_keyword = any(kw.lower() in elem.lower() for kw in filter_keywords)

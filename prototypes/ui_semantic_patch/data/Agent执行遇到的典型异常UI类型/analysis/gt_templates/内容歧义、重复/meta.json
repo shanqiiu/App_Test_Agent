@@ -5,12 +5,12 @@
   "samples": {
     "部分信息重复.jpg": {
       "anomaly_type": "ui_duplicate_display",
-      "anomaly_description": "选集列表重复显示，上方横向选集与下方浮层选集同时可见",
+      "anomaly_description": "在页面中部的'选集'区域和底部浮层中，均出现了相同的剧集选择列表（'玉茗茶骨'的36集全），导致内容重复。原始的选集列表位于页面中部，而底部浮层中再次完整展示了相同的内容，造成用户视觉混淆。",
       "duplicate_mode": "expanded_view",
       "visual_features": {
         "app_style": "芒果TV",
-        "primary_color": "#FF6600",
-        "background": "#1A1A1A",
+        "primary_color": "#FFD700",
+        "background": "#121212",
         "duplicate_element": "选集",
         "original_position": "page-inline",
         "duplicate_position": "bottom-sheet",
@@ -24,10 +24,10 @@
         "overlay_enabled": true,
         "overlay_opacity": 0.5,
         "close_button_position": "top-right",
-        "close_button_style": "circle_x"
+        "close_button_style": "circle_with_x"
       },
       "generation_template": {
-        "instruction": "生成选集/列表重复显示的异常场景",
+        "instruction": "将底部浮层中的选集列表替换为仅展示当前播放剧集的快捷跳转功能，避免与主界面重复显示。",
         "patch_operations": [
           {
             "type": "add",
@@ -39,13 +39,13 @@
           }
         ],
         "key_points": [
-          "保留原有列表可见",
-          "底部浮层包含相同功能列表",
-          "浮层有关闭按钮",
-          "半透明遮罩但不完全遮挡原列表"
+          "避免在底部弹窗中重复展示已存在于主界面的完整选集列表",
+          "底部浮层应提供更简洁的导航或快速操作功能",
+          "保持UI层级清晰，减少信息冗余",
+          "优化用户体验，防止用户误操作"
         ]
       }
     }
   },
-  "usage": "--anomaly-mode content_duplicate --gt-category \"内容歧义、重复\" --gt-sample \"部分信息重复.jpg\""
+  "usage": "--anomaly-mode content_duplicate --gt-category \"内容歧义、重复\" --gt-sample \"<sample>.jpg\""
 }

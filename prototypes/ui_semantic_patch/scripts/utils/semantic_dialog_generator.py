@@ -164,9 +164,10 @@ def generate_image_dashscope(
         ]
         model = "qwen-image-max"
 
-    # 默认负面提示词（排除非黑色背景、低质量图像、品牌logo、关闭按钮）
+    # 默认负面提示词（排除非黑色背景、低质量图像、通用品牌相关、关闭按钮）
+    # 注意：具体参考图品牌的 negative_prompt 应由调用方通过 negative_prompt 参数传入
     if negative_prompt is None:
-        negative_prompt = "低分辨率，低画质，肢体畸形，手指畸形，画面过饱和，蜡像感，人脸无细节，过度光滑，画面具有AI感。构图混乱。文字模糊，扭曲。白色背景，灰色背景，渐变背景，彩色背景，white background, gray background, colored background, gradient background, 美团logo, 淘宝logo, 京东logo, 华为logo, 抖音logo, HarmonyOS, brand logo, brand text, watermark, close button, X button, X icon, 关闭按钮"
+        negative_prompt = "低分辨率，低画质，肢体畸形，手指畸形，画面过饱和，蜡像感，人脸无细节，过度光滑，画面具有AI感。构图混乱。文字模糊，扭曲。白色背景，灰色背景，渐变背景，彩色背景，white background, gray background, colored background, gradient background, brand logo, brand text, brand name, reference image text, watermark, close button, X button, X icon, 关闭按钮"
 
     # 重试逻辑
     max_retries = 5
@@ -1246,6 +1247,37 @@ class SemanticDialogGenerator:
             print(f"  ⚠ AI 生成失败: {e}")
             raise  # 不返回 None，直接抛出异常
 
+    def _blur_text_regions(
+        self,
+        img: 'Image.Image',
+        brand_keywords: list,
+    ) -> 'Image.Image':
+        """
+        模糊参考图中的文字区域，防止品牌文字泄漏到生成结果。
+
+        策略：对整张参考图施加中等强度高斯模糊。
+        - 模糊后文字不可读，但色彩、形状、布局结构保留
+        - DashScope 风格迁移仍能提取配色方案和视觉风格
+        - 彻底杜绝模型从参考图"抄"文字的可能
+
+        Args:
+            img: 裁剪后的参考图 PIL Image
+            brand_keywords: 品牌关键词列表（用于日志）
+
+        Returns:
+            模糊处理后的 PIL Image
+        """
+        from PIL import ImageFilter
+
+        # 根据图片尺寸自适应模糊半径
+        # 目标：文字不可辨认，但大色块和布局结构清晰
+        min_dim = min(img.size)
+        blur_radius = max(8, min_dim // 40)  # 典型值: 800px → 20, 400px → 10
+
+        blurred = img.filter(ImageFilter.GaussianBlur(radius=blur_radius))
+        print(f"  ✓ 参考图文字模糊处理: radius={blur_radius}, 过滤品牌={brand_keywords[:3]}...")
+        return blurred
+
     def _crop_reference_to_dialog(
         self,
         reference_path: str,
@@ -1327,6 +1359,11 @@ class SemanticDialogGenerator:
 
             cropped = ref_img.crop(crop_box)
 
+            # 模糊参考图中的文字区域，防止品牌文字被风格迁移模型复制
+            source_brand_kws = meta_features.get('source_brand_keywords', [])
+            if source_brand_kws:
+                cropped = self._blur_text_regions(cropped, source_brand_kws)
+
             # 保存到临时文件
             import tempfile
             tmp_dir = Path(tempfile.gettempdir()) / "dialog_ref_crops"
@@ -1393,9 +1430,26 @@ class SemanticDialogGenerator:
         gen_size = f"{width}*{height}"
 
         try:
+            # 构建动态 negative_prompt：基于 source_brand_keywords 过滤参考图品牌
+            source_brand_kws = meta_features.get('source_brand_keywords', [])
+            if not source_brand_kws:
+                _app_style_neg = meta_features.get('app_style', '')
+                if _app_style_neg and _app_style_neg != '通用':
+                    source_brand_kws = [_app_style_neg]
+            brand_neg_parts = ', '.join(f'{kw}' for kw in source_brand_kws) if source_brand_kws else ''
+            brand_neg_parts_with_logo = ', '.join(f'{kw} logo, {kw} text' for kw in source_brand_kws) if source_brand_kws else ''
+            dynamic_negative = (
+                "低分辨率，低画质，肢体畸形，手指畸形，画面过饱和，蜡像感，人脸无细节，过度光滑，画面具有AI感。"
+                "构图混乱。文字模糊，扭曲。"
+                "白色背景，灰色背景，渐变背景，彩色背景，white background, gray background, colored background, gradient background, "
+                f"{brand_neg_parts}, {brand_neg_parts_with_logo}, "
+                "brand logo, brand text, brand name, reference image text, watermark, close button, X button, X icon, 关闭按钮"
+            )
+
             image = generate_image_dashscope(
                 prompt=prompt, size=gen_size, prompt_extend=False,
-                reference_image_path=cropped_ref_path
+                reference_image_path=cropped_ref_path,
+                negative_prompt=dynamic_negative
             )
 
             if image:
@@ -1824,14 +1878,9 @@ class SemanticDialogGenerator:
                 else:
                     result_pixels[x, y] = (0, 0, 0, 0)
 
-        # 对边缘进行额外处理（渐变透明，使边缘更平滑）
-        # 注意：只对弹窗边缘做轻微平滑，不影响已经透明的区域
-        result = self._smooth_edges_safe(result, blur_radius=0.8)
-
-        # 关键修复：对 alpha 通道进行阈值处理，消除半透明边缘导致的灰色条纹
-        # 半透明像素（alpha 在 1-254 之间）与底图合成时会产生灰白色条纹
-        # 通过阈值处理，将 alpha < 128 的像素变为完全透明，alpha >= 128 的变为完全不透明
-        result = self._threshold_alpha(result, threshold=128)
+        # 边缘修复：将不透明像素的颜色渗透到半透明边缘，
+        # 替换残留的黑色背景色，保留自然抗锯齿过渡
+        result = self._fix_edge_fringe(result, noise_threshold=10)
 
         removed_percent = (1 - len(main_content) / (width * height)) * 100
         isolated_removed = len(retained_pixels) - len(main_content)
@@ -1884,6 +1933,10 @@ class SemanticDialogGenerator:
             # 内容已经铺满大部分画布，只需 resize
             if (canvas_width, canvas_height) != (target_width, target_height):
                 image = image.resize((target_width, target_height), Image.Resampling.LANCZOS)
+                # LANCZOS 缩放后轻量噪声清理（极低 alpha 插值残留）
+                r, g, b, a = image.split()
+                a = a.point(lambda x: 0 if x < 10 else x)
+                image = Image.merge('RGBA', (r, g, b, a))
             return image
 
         # 裁切到内容边界框
@@ -1893,6 +1946,11 @@ class SemanticDialogGenerator:
         # resize 到目标尺寸
         resized = cropped.resize((target_width, target_height), Image.Resampling.LANCZOS)
         print(f"  ℹ 已 resize 到目标尺寸: {target_width}x{target_height}")
+
+        # LANCZOS 缩放后轻量噪声清理（颜色已由插值正确计算，只需去除极低 alpha 残留）
+        r, g, b, a = resized.split()
+        a = a.point(lambda x: 0 if x < 10 else x)
+        resized = Image.merge('RGBA', (r, g, b, a))
 
         return resized
 
@@ -2385,6 +2443,53 @@ class SemanticDialogGenerator:
 
         return result
 
+    def _fix_edge_fringe(self, image: Image.Image, noise_threshold: int = 10) -> Image.Image:
+        """
+        修复去背景后边缘的黑色色晕，同时保留自然的抗锯齿过渡
+
+        问题：AI 生成图像的黑色背景移除后，边缘半透明像素的 RGB 仍偏黑，
+        与深色遮罩合成时产生灰色条纹。旧方案用 alpha 阈值硬切为 0/255，
+        消除了色晕但也破坏了抗锯齿，导致锯齿状毛刺。
+
+        新方案：将不透明区域的颜色向外"渗透"到半透明边缘像素的 RGB 通道，
+        替换残留的黑色背景色。保留 alpha 通道的自然过渡，实现平滑边缘。
+
+        Args:
+            image: RGBA 图像（已去除背景）
+            noise_threshold: alpha 低于此值的像素视为噪声，直接清零
+
+        Returns:
+            边缘修复后的图像
+        """
+        if image.mode != 'RGBA':
+            return image
+
+        r, g, b, alpha = image.split()
+
+        # 1. 去除极低 alpha 噪声（洪水填充残留的微弱像素）
+        alpha = alpha.point(lambda x: 0 if x < noise_threshold else x)
+
+        # 2. 创建不透明像素遮罩（alpha >= 240 视为不透明）
+        opaque_mask = alpha.point(lambda x: 255 if x >= 240 else 0)
+
+        # 3. 颜色渗透：通过多次"模糊+恢复"迭代，
+        #    让不透明像素的颜色逐渐扩散到半透明边缘区域
+        def bleed_channel(channel, iterations=3, blur_radius=2):
+            """将不透明区域的颜色渗透到透明边缘"""
+            result = channel.copy()
+            for _ in range(iterations):
+                # 模糊扩散颜色
+                blurred = result.filter(ImageFilter.GaussianBlur(radius=blur_radius))
+                # 不透明区域保持原色，其他区域使用模糊后的颜色
+                result = Image.composite(channel, blurred, opaque_mask)
+            return result
+
+        r_fixed = bleed_channel(r)
+        g_fixed = bleed_channel(g)
+        b_fixed = bleed_channel(b)
+
+        return Image.merge('RGBA', (r_fixed, g_fixed, b_fixed, alpha))
+
     def _build_ai_prompt(
         self,
         title: str,
@@ -2562,15 +2667,18 @@ class SemanticDialogGenerator:
         special_elements = meta_features.get('special_elements', [])
         # 过滤掉文字内容和参考图品牌相关的元素
         visual_elements = []
-        # 关键词列表：文字内容 + 参考图品牌（防止品牌污染）
-        filter_keywords = [
-            # 文字内容关键词
+        # 文字内容关键词（固定列表）
+        text_filter_keywords = [
             '文字', '显示', '标题', '内容', '数字', '天', '元', '折',
-            # 华为/鸿蒙品牌关键词（参考图可能来自华为APP）
-            'HarmonyOS', 'Harmony', '鸿蒙', '花粉', '华为', 'HUAWEI',
-            # 其他常见品牌（防止参考图品牌泄露）
-            '淘宝', '京东', '美团', '抖音', '微信', '支付宝'
         ]
+        # 动态品牌关键词：从 meta_features 的 source_brand_keywords 获取
+        source_brand_keywords = meta_features.get('source_brand_keywords', [])
+        if not source_brand_keywords:
+            # 向后兼容：从 app_style 推导
+            _app_style = meta_features.get('app_style', '')
+            if _app_style and _app_style != '通用':
+                source_brand_keywords = [_app_style]
+        filter_keywords = text_filter_keywords + source_brand_keywords
         for elem in special_elements:
             # 检查是否包含任何过滤关键词（不区分大小写）
             has_filter_keyword = any(kw.lower() in elem.lower() for kw in filter_keywords)
@@ -2639,11 +2747,15 @@ class SemanticDialogGenerator:
         if brand_name:
             logo_text_desc = f"""### Logo/Badge Text (CRITICAL)
 - If there is a logo, badge or medal in the design, the text inside it should be: "{brand_name}"
-- DO NOT use the reference image's brand text (like "HarmonyOS")
+- DO NOT use the reference image's brand text
 - The logo should display the TARGET APP's brand: "{brand_name}" """
         else:
-            logo_text_desc = """### Logo/Badge Text
-- If there is a logo or badge, leave it without specific brand text or use generic text"""
+            # 动态构建禁止品牌示例
+            brand_examples = ', '.join(f'"{kw}"' for kw in source_brand_keywords[:3]) if source_brand_keywords else '"any brand from the reference"'
+            logo_text_desc = f"""### Logo/Badge Text
+- If there is a logo or badge, leave it without specific brand text or use generic decorative text
+- NEVER copy brand text from the reference image (e.g. {brand_examples})
+- Replace any brand badge with a generic achievement icon or the target app's content"""
 
         # 构建精确的prompt
         # 注意：app_style 来自参考图的meta.json，可能包含参考图的品牌（如"华为花粉俱乐部"）
@@ -2670,7 +2782,20 @@ class SemanticDialogGenerator:
         # 参考图风格指令：当有参考图直接传入时，使用更精确的描述
         # reference_path 在调用时传入，这里通过成员方法的参数获取
         if reference_path and Path(reference_path).exists():
-            style_ref_desc = 'Use the input image (Image 1) as the visual style reference — match its color scheme, layout proportions, rounded corner style, button shape, and overall design language. Generate a NEW dialog with the SAME visual style but with the text content specified above.'
+            # 构建禁止复制的品牌列表（从 source_brand_keywords 动态获取）
+            if source_brand_keywords:
+                banned_brands = ', '.join(source_brand_keywords)
+            else:
+                banned_brands = 'any brand name from the reference image'
+            style_ref_desc = (
+                'Use the input image (Image 1) ONLY as a visual STYLE reference — '
+                'match its color scheme, layout proportions, rounded corner style, button shape, and overall design language. '
+                'CRITICAL: Do NOT copy any text, logo, brand name, or badge content from the reference image. '
+                f'Specifically, NEVER include these words: {banned_brands}. '
+                'If the reference has a medal, badge, or logo with brand text inside, '
+                'replace that text with the title/brand specified above. '
+                'Generate a completely NEW dialog using ONLY the text content specified above.'
+            )
         else:
             style_ref_desc = 'Match the visual style of a modern mobile app dialog.'
 

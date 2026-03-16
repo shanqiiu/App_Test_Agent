@@ -285,9 +285,14 @@ class PatchRenderer(BaseRenderer):
         # 粘贴弹窗
         result_img.paste(dialog_img, (pos_x, pos_y), dialog_img)
 
-        # 关闭按钮
+        # 关闭按钮（异常测试场景必须有关闭按钮，Agent 需要识别并操作它）
         close_button_pos = meta_features.get('close_button_position', 'none')
         close_button_style = meta_features.get('close_button_style', 'gray_circle_x')
+        if close_button_pos == 'none':
+            # meta 中未指定关闭按钮时，自动添加默认关闭按钮
+            close_button_pos = 'bottom-center'
+            close_button_style = 'gray_circle_x'
+            print(f"  ℹ meta 未指定关闭按钮，自动添加默认: {close_button_pos}")
         if close_button_pos != 'none':
             button_size = max(36, min(50, dialog_width // 14))
             if close_button_pos == 'bottom-center':
