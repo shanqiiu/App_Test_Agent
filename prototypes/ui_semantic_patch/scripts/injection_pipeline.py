@@ -43,7 +43,7 @@ from typing import List, Optional
 sys.path.insert(0, str(Path(__file__).parent))
 
 from injection import SequenceAnalyzer, AnomalyRecommender, SequenceRewriter
-from injection.mock_provider import MockConfig, MockSequenceAnalyzer, MockSequenceRewriter
+from injection.mock_provider import MockConfig, MockSequenceRewriter
 
 
 def load_task(input_dir: Path) -> dict:
@@ -286,34 +286,26 @@ def main():
         recommender = AnomalyRecommender(gt_template_dir)
         print(f"  ✓ 异常推荐器: {len(recommender.get_available_categories())} 个类别")
 
+        # 语义分析器：始终使用真实 VLM（多模态视觉理解）
+        analyzer = SequenceAnalyzer(
+            recommender=recommender,
+            task_description=task_description,
+            max_history_steps=args.max_history,
+            min_steps_before_inject=args.min_steps
+        )
+        print(f"  ✓ 语义分析器 (VLM)")
+
         if mock_mode:
-            # Mock 模式：不依赖生成模型 API
+            # Mock 模式：仅 mock 生成器（不调用 run_pipeline.py 生成异常图片）
             mock_config = MockConfig(args.mock_config)
-
-            analyzer = MockSequenceAnalyzer(
-                recommender=recommender,
-                task_description=task_description,
-                mock_config=mock_config,
-                min_steps_before_inject=args.min_steps
-            )
-            print(f"  ✓ 语义分析器 [Mock]")
-
             rewriter = MockSequenceRewriter(
                 output_dir=output_dir,
                 gt_template_dir=gt_template_dir,
                 mock_config=mock_config
             )
-            print(f"  ✓ 序列改写器 [Mock]")
+            print(f"  ✓ 序列改写器 [Mock — 跳过图像生成]")
         else:
-            # 正常模式：调用 VLM API
-            analyzer = SequenceAnalyzer(
-                recommender=recommender,
-                task_description=task_description,
-                max_history_steps=args.max_history,
-                min_steps_before_inject=args.min_steps
-            )
-            print(f"  ✓ 语义分析器")
-
+            # 正常模式：调用 run_pipeline.py 生成异常图片
             rewriter = SequenceRewriter(
                 output_dir=output_dir,
                 gt_template_dir=gt_template_dir
