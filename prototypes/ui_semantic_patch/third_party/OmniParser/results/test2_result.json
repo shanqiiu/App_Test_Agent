@@ -1,0 +1,698 @@
+{
+  "image_size": [
+    1279,
+    2774
+  ],
+  "element_count": 53,
+  "elements": [
+    {
+      "id": 0,
+      "type": "text",
+      "bbox": [
+        0.4980453550815582,
+        0.2833453416824341,
+        0.7146207690238953,
+        0.29776495695114136
+      ],
+      "content": "+12",
+      "interactivity": false,
+      "source": "box_ocr_content_ocr"
+    },
+    {
+      "id": 1,
+      "type": "text",
+      "bbox": [
+        0.10946051776409149,
+        0.5407354235649109,
+        0.40656763315200806,
+        0.5551550388336182
+      ],
+      "content": "ONEREPUBLIC",
+      "interactivity": false,
+      "source": "box_ocr_content_ocr"
+    },
+    {
+      "id": 2,
+      "type": "text",
+      "bbox": [
+        0.2251759171485901,
+        0.6780821681022644,
+        0.3010164201259613,
+        0.6896178722381592
+      ],
+      "content": "04.19",
+      "interactivity": false,
+      "source": "box_ocr_content_ocr"
+    },
+    {
+      "id": 3,
+      "type": "text",
+      "bbox": [
+        0.1540265828371048,
+        0.7761355638504028,
+        0.39483970403671265,
+        0.7905551791191101
+      ],
+      "content": "201700",
+      "interactivity": false,
+      "source": "box_ocr_content_ocr"
+    },
+    {
+      "id": 4,
+      "type": "icon",
+      "bbox": [
+        0.5039095282554626,
+        0.7350735664367676,
+        0.9767733216285706,
+        0.801921010017395
+      ],
+      "content": "4 ",
+      "interactivity": true,
+      "source": "box_yolo_content_ocr"
+    },
+    {
+      "id": 5,
+      "type": "icon",
+      "bbox": [
+        0.0078077190555632114,
+        0.00818094052374363,
+        0.34612396359443665,
+        0.0586494617164135
+      ],
+      "content": "14:32 ",
+      "interactivity": true,
+      "source": "box_yolo_content_ocr"
+    },
+    {
+      "id": 6,
+      "type": "icon",
+      "bbox": [
+        0.5967329144477844,
+        0.11799418926239014,
+        0.7861624956130981,
+        0.19267939031124115
+      ],
+      "content": "A mobile phone service.",
+      "interactivity": true,
+      "source": "box_yolo_content_yolo"
+    },
+    {
+      "id": 7,
+      "type": "icon",
+      "bbox": [
+        0.020177258178591728,
+        0.81202632188797,
+        0.49997326731681824,
+        0.9133543968200684
+      ],
+      "content": "World War Z: The World of Wars: The Empire State Building",
+      "interactivity": true,
+      "source": "box_yolo_content_yolo"
+    },
+    {
+      "id": 8,
+      "type": "icon",
+      "bbox": [
+        0.212663933634758,
+        0.11659277975559235,
+        0.40626174211502075,
+        0.1930367797613144
+      ],
+      "content": "A website or application related to Chinese architecture.",
+      "interactivity": true,
+      "source": "box_yolo_content_yolo"
+    },
+    {
+      "id": 9,
+      "type": "icon",
+      "bbox": [
+        0.5015395879745483,
+        0.7997722029685974,
+        0.9785124063491821,
+        0.8737930059432983
+      ],
+      "content": "A computer monitor or desktop monitor.",
+      "interactivity": true,
+      "source": "box_yolo_content_yolo"
+    },
+    {
+      "id": 10,
+      "type": "icon",
+      "bbox": [
+        0.7862182855606079,
+        0.11788235604763031,
+        0.9853412508964539,
+        0.19328361749649048
+      ],
+      "content": "A website or application related to Chinese language.",
+      "interactivity": true,
+      "source": "box_yolo_content_yolo"
+    },
+    {
+      "id": 11,
+      "type": "icon",
+      "bbox": [
+        0.40344420075416565,
+        0.11796621233224869,
+        0.5960658192634583,
+        0.1928570717573166
+      ],
+      "content": "A website or application related to travel.",
+      "interactivity": true,
+      "source": "box_yolo_content_yolo"
+    },
+    {
+      "id": 12,
+      "type": "icon",
+      "bbox": [
+        0.6009873151779175,
+        0.4350198805332184,
+        0.7840725779533386,
+        0.5078662633895874
+      ],
+      "content": "Xiaohongshu (Hongkong)",
+      "interactivity": true,
+      "source": "box_yolo_content_yolo"
+    },
+    {
+      "id": 13,
+      "type": "icon",
+      "bbox": [
+        0.40703943371772766,
+        0.43634653091430664,
+        0.5910452008247375,
+        0.5087798237800598
+      ],
+      "content": "Asian currency",
+      "interactivity": true,
+      "source": "box_yolo_content_yolo"
+    },
+    {
+      "id": 14,
+      "type": "icon",
+      "bbox": [
+        0.011018306948244572,
+        0.11624274402856827,
+        0.2167743742465973,
+        0.19490450620651245
+      ],
+      "content": "A website or application related to e-mails.",
+      "interactivity": true,
+      "source": "box_yolo_content_yolo"
+    },
+    {
+      "id": 15,
+      "type": "icon",
+      "bbox": [
+        0.21722139418125153,
+        0.43526604771614075,
+        0.4009144604206085,
+        0.5091325044631958
+      ],
+      "content": "World Tour",
+      "interactivity": true,
+      "source": "box_yolo_content_yolo"
+    },
+    {
+      "id": 16,
+      "type": "icon",
+      "bbox": [
+        0.025305336341261864,
+        0.4349106550216675,
+        0.2111872285604477,
+        0.5116478800773621
+      ],
+      "content": "Competitiveetitiveetitive",
+      "interactivity": true,
+      "source": "box_yolo_content_yolo"
+    },
+    {
+      "id": 17,
+      "type": "icon",
+      "bbox": [
+        0.7915803790092468,
+        0.4345407485961914,
+        0.9780710339546204,
+        0.5100528597831726
+      ],
+      "content": "Asian League",
+      "interactivity": true,
+      "source": "box_yolo_content_yolo"
+    },
+    {
+      "id": 18,
+      "type": "icon",
+      "bbox": [
+        0.2158023715019226,
+        0.1985054910182953,
+        0.3988894522190094,
+        0.2691260576248169
+      ],
+      "content": "Video connector",
+      "interactivity": true,
+      "source": "box_yolo_content_yolo"
+    },
+    {
+      "id": 19,
+      "type": "icon",
+      "bbox": [
+        0.01808309368789196,
+        0.19799810647964478,
+        0.21233801543712616,
+        0.26780256628990173
+      ],
+      "content": "Xiaohongshu (Little Red Book)",
+      "interactivity": true,
+      "source": "box_yolo_content_yolo"
+    },
+    {
+      "id": 20,
+      "type": "icon",
+      "bbox": [
+        0.790566086769104,
+        0.19766411185264587,
+        0.9798620939254761,
+        0.27026814222335815
+      ],
+      "content": "Paintbrush",
+      "interactivity": true,
+      "source": "box_yolo_content_yolo"
+    },
+    {
+      "id": 21,
+      "type": "icon",
+      "bbox": [
+        0.3993886113166809,
+        0.1994968205690384,
+        0.5967612266540527,
+        0.26073452830314636
+      ],
+      "content": "Xiaohongshu (K)",
+      "interactivity": true,
+      "source": "box_yolo_content_yolo"
+    },
+    {
+      "id": 22,
+      "type": "icon",
+      "bbox": [
+        0.6066560745239258,
+        0.1977771371603012,
+        0.7726823687553406,
+        0.2598619759082794
+      ],
+      "content": "Carrier",
+      "interactivity": true,
+      "source": "box_yolo_content_yolo"
+    },
+    {
+      "id": 23,
+      "type": "icon",
+      "bbox": [
+        0.8192159533500671,
+        0.32683518528938293,
+        0.9730405211448669,
+        0.38420364260673523
+      ],
+      "content": "A user profile or account.",
+      "interactivity": true,
+      "source": "box_yolo_content_yolo"
+    },
+    {
+      "id": 24,
+      "type": "icon",
+      "bbox": [
+        0.8417057991027832,
+        0.06315688788890839,
+        0.9166570901870728,
+        0.10067390650510788
+      ],
+      "content": "Partial Right",
+      "interactivity": true,
+      "source": "box_yolo_content_yolo"
+    },
+    {
+      "id": 25,
+      "type": "icon",
+      "bbox": [
+        0.6505096554756165,
+        0.06900308281183243,
+        0.7152265906333923,
+        0.10018335282802582
+      ],
+      "content": "Testimonials",
+      "interactivity": true,
+      "source": "box_yolo_content_yolo"
+    },
+    {
+      "id": 26,
+      "type": "icon",
+      "bbox": [
+        0.25434741377830505,
+        0.916155993938446,
+        0.35234105587005615,
+        0.9661975502967834
+      ],
+      "content": "Chinese translation",
+      "interactivity": true,
+      "source": "box_yolo_content_yolo"
+    },
+    {
+      "id": 27,
+      "type": "icon",
+      "bbox": [
+        0.2792697846889496,
+        0.27764275670051575,
+        0.3297855854034424,
+        0.30248185992240906
+      ],
+      "content": "Bus",
+      "interactivity": true,
+      "source": "box_yolo_content_yolo"
+    },
+    {
+      "id": 28,
+      "type": "icon",
+      "bbox": [
+        0.9146612286567688,
+        0.06585472822189331,
+        0.9820224642753601,
+        0.09901388734579086
+      ],
+      "content": "Asian People People",
+      "interactivity": true,
+      "source": "box_yolo_content_yolo"
+    },
+    {
+      "id": 29,
+      "type": "icon",
+      "bbox": [
+        0.8092507719993591,
+        0.910323977470398,
+        0.9807289242744446,
+        0.9723371863365173
+      ],
+      "content": "Person",
+      "interactivity": true,
+      "source": "box_yolo_content_yolo"
+    },
+    {
+      "id": 30,
+      "type": "icon",
+      "bbox": [
+        0.3319540321826935,
+        0.277039110660553,
+        0.38271886110305786,
+        0.3017657697200775
+      ],
+      "content": "crown",
+      "interactivity": true,
+      "source": "box_yolo_content_yolo"
+    },
+    {
+      "id": 31,
+      "type": "icon",
+      "bbox": [
+        0.4039866328239441,
+        0.3859071135520935,
+        0.515529453754425,
+        0.41455668210983276
+      ],
+      "content": "Asian People People",
+      "interactivity": true,
+      "source": "box_yolo_content_yolo"
+    },
+    {
+      "id": 32,
+      "type": "icon",
+      "bbox": [
+        0.4408309757709503,
+        0.276704341173172,
+        0.4912063181400299,
+        0.30316129326820374
+      ],
+      "content": "Gold",
+      "interactivity": true,
+      "source": "box_yolo_content_yolo"
+    },
+    {
+      "id": 33,
+      "type": "icon",
+      "bbox": [
+        0.6984259486198425,
+        0.01635136641561985,
+        0.7721741795539856,
+        0.04595326632261276
+      ],
+      "content": "App Store",
+      "interactivity": true,
+      "source": "box_yolo_content_yolo"
+    },
+    {
+      "id": 34,
+      "type": "icon",
+      "bbox": [
+        0.3841496706008911,
+        0.2767702341079712,
+        0.4398731589317322,
+        0.30165940523147583
+      ],
+      "content": "Security Lock",
+      "interactivity": true,
+      "source": "box_yolo_content_yolo"
+    },
+    {
+      "id": 35,
+      "type": "icon",
+      "bbox": [
+        0.01261061243712902,
+        0.7683975696563721,
+        0.16937294602394104,
+        0.836323618888855
+      ],
+      "content": "Facebook.",
+      "interactivity": true,
+      "source": "box_yolo_content_yolo"
+    },
+    {
+      "id": 36,
+      "type": "icon",
+      "bbox": [
+        0.5955226421356201,
+        0.9105970859527588,
+        0.80530846118927,
+        0.9690268039703369
+      ],
+      "content": "China",
+      "interactivity": true,
+      "source": "box_yolo_content_yolo"
+    },
+    {
+      "id": 37,
+      "type": "icon",
+      "bbox": [
+        0.28315043449401855,
+        0.3846272826194763,
+        0.3996434807777405,
+        0.41329100728034973
+      ],
+      "content": "Level Construction",
+      "interactivity": true,
+      "source": "box_yolo_content_yolo"
+    },
+    {
+      "id": 38,
+      "type": "icon",
+      "bbox": [
+        0.8332892656326294,
+        0.014603345654904842,
+        0.9174198508262634,
+        0.04807049408555031
+      ],
+      "content": "61",
+      "interactivity": true,
+      "source": "box_yolo_content_yolo"
+    },
+    {
+      "id": 39,
+      "type": "icon",
+      "bbox": [
+        0.43749508261680603,
+        0.9111068248748779,
+        0.5559152960777283,
+        0.9663494229316711
+      ],
+      "content": "Xiaohongshu (Little Red Book)",
+      "interactivity": true,
+      "source": "box_yolo_content_yolo"
+    },
+    {
+      "id": 40,
+      "type": "icon",
+      "bbox": [
+        0.4973352253437042,
+        0.5199022889137268,
+        0.9791821837425232,
+        0.7364200353622437
+      ],
+      "content": "A movie or TV show called The King of Thrones.",
+      "interactivity": true,
+      "source": "box_yolo_content_yolo"
+    },
+    {
+      "id": 41,
+      "type": "icon",
+      "bbox": [
+        0.771500289440155,
+        0.016368353739380836,
+        0.8279727697372437,
+        0.04539080709218979
+      ],
+      "content": "5G",
+      "interactivity": true,
+      "source": "box_yolo_content_yolo"
+    },
+    {
+      "id": 42,
+      "type": "icon",
+      "bbox": [
+        0.7143514752388,
+        0.06713543832302094,
+        0.8364362716674805,
+        0.09768124669790268
+      ],
+      "content": "Xiaohongshu (Little Red Book)",
+      "interactivity": true,
+      "source": "box_yolo_content_yolo"
+    },
+    {
+      "id": 43,
+      "type": "icon",
+      "bbox": [
+        0.5216551423072815,
+        0.38637053966522217,
+        0.6343138217926025,
+        0.4120607376098633
+      ],
+      "content": "Xiaohongshu (Xiao)",
+      "interactivity": true,
+      "source": "box_yolo_content_yolo"
+    },
+    {
+      "id": 44,
+      "type": "icon",
+      "bbox": [
+        0.6386792659759521,
+        0.3874254822731018,
+        0.7649413347244263,
+        0.41208603978157043
+      ],
+      "content": "Asian People People",
+      "interactivity": true,
+      "source": "box_yolo_content_yolo"
+    },
+    {
+      "id": 45,
+      "type": "icon",
+      "bbox": [
+        0.3492661416530609,
+        0.9141206741333008,
+        0.441116064786911,
+        0.9675639867782593
+      ],
+      "content": "M0,0L0,5 4.5,5z",
+      "interactivity": true,
+      "source": "box_yolo_content_yolo"
+    },
+    {
+      "id": 46,
+      "type": "icon",
+      "bbox": [
+        0.02047392539680004,
+        0.9119324088096619,
+        0.20983977615833282,
+        0.9700427651405334
+      ],
+      "content": "Home",
+      "interactivity": true,
+      "source": "box_yolo_content_yolo"
+    },
+    {
+      "id": 47,
+      "type": "icon",
+      "bbox": [
+        0.7663232088088989,
+        0.38159024715423584,
+        0.9754495620727539,
+        0.4214416444301605
+      ],
+      "content": "Asian People People",
+      "interactivity": true,
+      "source": "box_yolo_content_yolo"
+    },
+    {
+      "id": 48,
+      "type": "icon",
+      "bbox": [
+        0.032287780195474625,
+        0.383075475692749,
+        0.1622902899980545,
+        0.4156434237957001
+      ],
+      "content": "Junior View",
+      "interactivity": true,
+      "source": "box_yolo_content_yolo"
+    },
+    {
+      "id": 49,
+      "type": "icon",
+      "bbox": [
+        0.009788503870368004,
+        0.058748066425323486,
+        0.33870628476142883,
+        0.10150643438100815
+      ],
+      "content": "Xiaohongshu (Xia)",
+      "interactivity": true,
+      "source": "box_yolo_content_yolo"
+    },
+    {
+      "id": 50,
+      "type": "icon",
+      "bbox": [
+        0.16875222325325012,
+        0.3868209421634674,
+        0.27053192257881165,
+        0.41369086503982544
+      ],
+      "content": "Chinese language",
+      "interactivity": true,
+      "source": "box_yolo_content_yolo"
+    },
+    {
+      "id": 51,
+      "type": "icon",
+      "bbox": [
+        0.39097166061401367,
+        0.01333505567163229,
+        0.6096612215042114,
+        0.0600462332367897
+      ],
+      "content": "Meitlini",
+      "interactivity": true,
+      "source": "box_yolo_content_yolo"
+    },
+    {
+      "id": 52,
+      "type": "icon",
+      "bbox": [
+        0.7044382095336914,
+        0.3365665376186371,
+        0.8098309636116028,
+        0.37484246492385864
+      ],
+      "content": "Search function.",
+      "interactivity": true,
+      "source": "box_yolo_content_yolo"
+    }
+  ]
+}

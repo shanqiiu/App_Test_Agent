@@ -14,15 +14,6 @@ venv/
 *.swp
 *.swo
 
-# Output files
-outputs/
-results/
-*.png
-*.jpg
-*.jpeg
-!examples/*.png
-!examples/*.jpg
-!assets/**/*.png
 
 # API keys
 .env

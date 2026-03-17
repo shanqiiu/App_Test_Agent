@@ -250,6 +250,11 @@
         "close_button_style": "none",
         "main_button_text": "本次使用允许",
         "main_button_style": "blue_filled",
+        "buttons": [
+          "本次使用允许",
+          "仅使用期间允许",
+          "不允许"
+        ],
         "title_text": "允许“去哪儿旅行”访问你的位置？",
         "subtitle_text": "申请位置权限为了向您提供基于您位置信息附近的优质出行资源及相关产品",
         "special_elements": [
@@ -599,10 +604,12 @@
         "overlay_opacity": 0.5,
         "close_button_position": "none",
         "close_button_style": "none",
-        "main_button_text1": "允许",
-        "main_button_style1": "blue_filled",
-        "main_button_text2": "不允许",
-        "main_button_style2": "blue_filled",
+        "main_button_text": "允许",
+        "main_button_style": "blue_filled",
+        "buttons": [
+          "不允许",
+          "允许"
+        ],
         "title_text": "允许“携程旅行”向你发送通知？",
         "subtitle_text": "通知提醒方式可能包括锁屏、横幅、角标、响铃、振动。可前往“设置”更改。",
         "special_elements": [
@@ -628,6 +635,12 @@
           "副标题说明通知形式和设置路径",
           "底部有两个按钮：'不允许'和'允许'"
         ]
+      },
+      "dialog_bounds_px": {
+        "x": 36,
+        "y": 1016,
+        "width": 1150,
+        "height": 744
       }
     },
     "满减信息遮挡.jpg": {
