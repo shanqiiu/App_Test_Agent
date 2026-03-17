@@ -1,32 +1,5 @@
 {
-    "_comment": "Mock 配置文件示例 — 用于内网环境下不依赖生成模型 API 的异常注入测试",
-
-    "decisions": [
-        {
-            "step": 0,
-            "decision": "SKIP",
-            "think": "App 首页/启动页面，操作序列刚开始，需要积累上下文",
-            "conclusion": "跳过启动页"
-        },
-        {
-            "step": 1,
-            "decision": "SKIP",
-            "think": "用户正在浏览或导航，继续积累操作上下文",
-            "conclusion": "跳过浏览步骤"
-        },
-        {
-            "step": 2,
-            "decision": "INJECT",
-            "anomaly_type": "弹窗覆盖原UI",
-            "instruction": "生成优惠券广告弹窗",
-            "think": "用户已进入核心功能页面，此处弹出广告弹窗在语义上合理，可测试 Agent 的弹窗处理能力",
-            "conclusion": "在核心功能页注入弹窗覆盖异常"
-        }
-    ],
-
-    "fallback_inject_step": 2,
-    "fallback_anomaly_type": "弹窗覆盖原UI",
-    "fallback_instruction": "生成异常弹窗",
+    "_comment": "Mock 配置文件 — 用于内网环境下跳过图像生成，VLM 分析正常调用",
 
     "anomaly_images_dir": null
 }

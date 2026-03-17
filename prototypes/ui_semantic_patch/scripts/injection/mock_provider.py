@@ -1,34 +1,23 @@
 """
 Mock 提供器
 
-在内网环境下不依赖生成模型 API，使用预置结果完成异常注入流水线。
+在内网环境下跳过图像生成模型调用，使用预置异常图片完成注入流水线。
+VLM 视觉理解（SequenceAnalyzer）仍正常调用内网多模态模型。
+
+当前 --mock 模式影响范围：
+  - MockSequenceRewriter: 替代 SequenceRewriter，跳过 run_pipeline.py 的图像生成
+  - MockSequenceAnalyzer: 可选，完全跳过 VLM 分析（用于纯离线测试）
 
 用法：
-    1. 准备 mock 配置文件（JSON），指定每步的决策结果
-    2. 在 injection_pipeline.py 中使用 --mock 参数启用
+    # 最小配置（仅需 .env 中 VLM 指向内网端点）
+    python injection_pipeline.py --input-dir ... --output-dir ... --mock
 
-mock 配置文件格式：
+    # 自定义异常图片来源
+    python injection_pipeline.py --input-dir ... --output-dir ... --mock --mock-config my_config.json
+
+mock 配置文件格式（所有字段可选）：
 {
-    "decisions": [
-        {
-            "step": 0,
-            "decision": "SKIP",
-            "think": "首页界面，操作序列刚开始",
-            "conclusion": "跳过首页"
-        },
-        {
-            "step": 2,
-            "decision": "INJECT",
-            "anomaly_type": "弹窗覆盖原UI",
-            "instruction": "生成优惠券广告弹窗",
-            "think": "用户进入搜索结果页，适合弹出广告",
-            "conclusion": "在搜索结果页注入弹窗"
-        }
-    ],
-    "fallback_inject_step": 2,
-    "fallback_anomaly_type": "弹窗覆盖原UI",
-    "fallback_instruction": "生成异常弹窗",
-    "anomaly_images_dir": null
+    "anomaly_images_dir": "./path/to/preset/anomaly/images"
 }
 """
 

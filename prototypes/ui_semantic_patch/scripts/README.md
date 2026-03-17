@@ -311,8 +311,43 @@ python injection_pipeline.py \
 
 适用于内网环境（已部署多模态模型，但不支持图像生成模型）。`--mock` 只影响序列改写阶段（跳过 `run_pipeline.py` 的图像生成调用），VLM 语义分析阶段不受影响，仍然使用真实多模态模型分析截图并决策注入点。
 
-异常图片来源优先级：
-1. `mock_config.anomaly_images_dir` 指定的预置异常图片目录
+**内网环境配置步骤**：
+
+1. **修改 `.env`**，将 VLM 指向内网多模态模型端点：
+
+```bash
+# .env — 内网环境配置
+VLM_API_KEY=<内网模型的 API Key>
+VLM_API_URL=http://<内网地址>/v1/chat/completions
+VLM_MODEL=<内网部署的多模态模型名>
+```
+
+2. **运行时加 `--mock`** 即可，无需额外配置文件（默认使用 GT 模板样本作为异常图片）：
+
+```bash
+python injection_pipeline.py \
+  --input-dir ./examples/injection_demo \
+  --output-dir ./output/injected \
+  --mock --no-interactive
+```
+
+3. **（可选）自定义异常图片来源**，创建 `mock_config.json`：
+
+```json
+{
+    "anomaly_images_dir": "./my_preset_anomaly_images"
+}
+```
+
+```bash
+python injection_pipeline.py \
+  --input-dir ./examples/injection_demo \
+  --output-dir ./output/injected \
+  --mock --mock-config mock_config.json
+```
+
+**异常图片来源优先级**：
+1. `anomaly_images_dir` 指定的预置异常图片目录（如有）
 2. GT 模板库中的样本图片（`data/.../gt_templates/<异常类型>/`）
 3. 基准截图作为占位
 
