@@ -43,6 +43,7 @@ from typing import List, Optional
 sys.path.insert(0, str(Path(__file__).parent))
 
 from injection import SequenceAnalyzer, AnomalyRecommender, SequenceRewriter
+from injection.mock_provider import MockConfig, MockSequenceAnalyzer, MockSequenceRewriter
 
 
 def load_task(input_dir: Path) -> dict:
@@ -215,6 +216,19 @@ def main():
     )
 
     parser.add_argument(
+        "--mock",
+        action="store_true",
+        help="启用 Mock 模式，不调用生成模型 API，使用预置结果"
+    )
+
+    parser.add_argument(
+        "--mock-config",
+        type=str,
+        default=None,
+        help="Mock 配置文件路径（JSON），不指定则使用内置默认配置"
+    )
+
+    parser.add_argument(
         "--max-history",
         type=int,
         default=10,
@@ -232,6 +246,7 @@ def main():
 
     # 处理交互模式参数
     interactive = not args.no_interactive
+    mock_mode = args.mock
 
     # 路径处理
     input_dir = Path(args.input_dir)
@@ -259,6 +274,10 @@ def main():
     print(f"任务描述: {task_description}")
     print(f"截图数量: {len(screenshots)}")
     print(f"交互模式: {'启用' if interactive else '禁用'}")
+    if mock_mode:
+        print(f"Mock 模式: 启用")
+        if args.mock_config:
+            print(f"Mock 配置: {args.mock_config}")
 
     # 初始化组件
     print("\n初始化组件...")
@@ -267,19 +286,39 @@ def main():
         recommender = AnomalyRecommender(gt_template_dir)
         print(f"  ✓ 异常推荐器: {len(recommender.get_available_categories())} 个类别")
 
-        analyzer = SequenceAnalyzer(
-            recommender=recommender,
-            task_description=task_description,
-            max_history_steps=args.max_history,
-            min_steps_before_inject=args.min_steps
-        )
-        print(f"  ✓ 语义分析器")
+        if mock_mode:
+            # Mock 模式：不依赖生成模型 API
+            mock_config = MockConfig(args.mock_config)
 
-        rewriter = SequenceRewriter(
-            output_dir=output_dir,
-            gt_template_dir=gt_template_dir
-        )
-        print(f"  ✓ 序列改写器")
+            analyzer = MockSequenceAnalyzer(
+                recommender=recommender,
+                task_description=task_description,
+                mock_config=mock_config,
+                min_steps_before_inject=args.min_steps
+            )
+            print(f"  ✓ 语义分析器 [Mock]")
+
+            rewriter = MockSequenceRewriter(
+                output_dir=output_dir,
+                gt_template_dir=gt_template_dir,
+                mock_config=mock_config
+            )
+            print(f"  ✓ 序列改写器 [Mock]")
+        else:
+            # 正常模式：调用 VLM API
+            analyzer = SequenceAnalyzer(
+                recommender=recommender,
+                task_description=task_description,
+                max_history_steps=args.max_history,
+                min_steps_before_inject=args.min_steps
+            )
+            print(f"  ✓ 语义分析器")
+
+            rewriter = SequenceRewriter(
+                output_dir=output_dir,
+                gt_template_dir=gt_template_dir
+            )
+            print(f"  ✓ 序列改写器")
 
     except Exception as e:
         print(f"❌ 初始化失败: {e}")
