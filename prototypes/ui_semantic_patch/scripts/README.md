@@ -257,6 +257,7 @@ python injection_pipeline.py \
   --input-dir <输入目录> \
   --output-dir <输出目录> \
   [--interactive]          # 每步需用户确认
+  [--mock]                 # Mock 模式（跳过图像生成）
 ```
 
 **输入目录结构**：
@@ -274,17 +275,48 @@ input/
 **示例**：
 
 ```bash
+# 正常模式（需要 VLM + 生成模型 API）
 python injection_pipeline.py \
   --input-dir ./examples/injection_demo \
   --output-dir ./output/injected \
   --interactive
+
+# Mock 模式（仅需 VLM，跳过图像生成，使用 GT 模板样本占位）
+python injection_pipeline.py \
+  --input-dir ./examples/injection_demo \
+  --output-dir ./output/injected \
+  --mock --no-interactive
+
+# Mock 模式 + 自定义配置
+python injection_pipeline.py \
+  --input-dir ./examples/injection_demo \
+  --output-dir ./output/injected \
+  --mock --mock-config injection/mock_config_example.json
 ```
 
 | 参数 | 说明 | 默认值 |
 |------|------|--------|
 | `--input-dir` | 输入目录（含 `task.json` + `screenshots/`） | 必需 |
 | `--output-dir` | 输出目录 | 必需 |
-| `--interactive` | 启用用户确认流程 | False |
+| `--interactive` | 启用用户确认流程 | True |
+| `--no-interactive` | 禁用用户确认，自动执行 | - |
+| `--mock` | Mock 模式：VLM 视觉分析正常调用，跳过图像生成 | False |
+| `--mock-config` | Mock 配置文件路径（JSON），指定异常图片来源等 | 内置默认 |
+| `--gt-template-dir` | GT 模板目录路径 | 项目默认路径 |
+| `--task` | 任务描述（覆盖 task.json） | - |
+| `--max-history` | 最大历史步数 | 10 |
+| `--min-steps` | 最少分析步数后才考虑注入 | 2 |
+
+**Mock 模式说明**：
+
+适用于内网环境（已部署多模态模型，但不支持图像生成模型）。`--mock` 只影响序列改写阶段（跳过 `run_pipeline.py` 的图像生成调用），VLM 语义分析阶段不受影响，仍然使用真实多模态模型分析截图并决策注入点。
+
+异常图片来源优先级：
+1. `mock_config.anomaly_images_dir` 指定的预置异常图片目录
+2. GT 模板库中的样本图片（`data/.../gt_templates/<异常类型>/`）
+3. 基准截图作为占位
+
+Mock 配置文件示例见 `injection/mock_config_example.json`。
 
 ---
 
