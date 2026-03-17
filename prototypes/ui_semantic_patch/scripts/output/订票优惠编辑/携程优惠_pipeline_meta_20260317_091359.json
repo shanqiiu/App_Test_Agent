@@ -1,0 +1,24 @@
+{
+  "timestamp": "20260317_091359",
+  "screenshot": "../data/原图/订票优惠编辑/携程优惠.png",
+  "instruction": "在贵宾休息室服务卡片中插入优惠信息：订阅该服务，机票满500减300元",
+  "outputs": {
+    "stage1_omni_raw": "output\\订票优惠编辑\\携程优惠_stage1_omni_raw_20260317_091359.json",
+    "stage1_annotated": "output\\订票优惠编辑\\携程优惠_stage1_annotated_20260317_091359.png",
+    "stage2_filtered": "output\\订票优惠编辑\\携程优惠_stage2_filtered_20260317_091359.json",
+    "stage2_annotated": "output\\订票优惠编辑\\携程优惠_stage2_annotated_20260317_091359.png",
+    "final_image": "output\\订票优惠编辑\\final_20260317_091508.png",
+    "meta_driven": false
+  },
+  "timing": {
+    "stage1": 43.67,
+    "stage2": 23.87,
+    "stage3": 2.07
+  },
+  "stage2_status": "success",
+  "render_metadata": {
+    "edit_count": 1,
+    "diff_path": "output\\订票优惠编辑\\diff_20260317_091508.png",
+    "edit_plan_path": "output\\订票优惠编辑\\edit_plan_20260317_091508.json"
+  }
+}

@@ -1,0 +1,36 @@
+{
+  "success": true,
+  "injection_point": 2,
+  "anomaly_type": "loading_timeout",
+  "instruction": "在“生椰拿铁（首创）”商品区域下方添加加载超时提示，显示“加载失败，请稍后重试”，并保持页面其他内容不变",
+  "reasoning": "<decision>INJECT</decision>\n<anomaly_type>loading_timeout</anomaly_type>\n<instruction>在“生椰拿铁（首创）”商品区域下方添加加载超时提示，显示“加载失败，请稍后重试”，并保持页面其他内容不变</instruction>\n<conclusion>用户已浏览至具体商品页，正在考虑点选生椰拿铁，此时注入加载超时异常合理",
+  "history": [
+    {
+      "step_index": 0,
+      "screenshot_path": "..\\examples\\injection_demo\\screenshots\\01.jpg",
+      "think": "<decision>SKIP</decision>\n<anomaly_type></anomaly_type>\n<instruction></instruction>\n<conclusion>当前为首页初始界面，用户尚未开始具体操作，不适合注入异常。</conclusion>",
+      "decision": "SKIP",
+      "anomaly_type": null,
+      "instruction": null,
+      "conclusion": "当前为首页初始界面，用户尚未开始具体操作，不适合注入异常。"
+    },
+    {
+      "step_index": 1,
+      "screenshot_path": "..\\examples\\injection_demo\\screenshots\\02.jpg",
+      "think": "<decision>SKIP</decision>\n<anomaly_type></anomaly_type>\n<instruction></instruction>\n<conclusion>当前为甜点饮品分类首页，用户尚未进行具体搜索或点击操作，不适合注入异常。</conclusion>",
+      "decision": "SKIP",
+      "anomaly_type": null,
+      "instruction": null,
+      "conclusion": "当前为甜点饮品分类首页，用户尚未进行具体搜索或点击操作，不适合注入异常。"
+    },
+    {
+      "step_index": 2,
+      "screenshot_path": "..\\examples\\injection_demo\\screenshots\\03.jpg",
+      "think": "<decision>INJECT</decision>\n<anomaly_type>loading_timeout</anomaly_type>\n<instruction>在“生椰拿铁（首创）”商品区域下方添加加载超时提示，显示“加载失败，请稍后重试”，并保持页面其他内容不变</instruction>\n<conclusion>用户已浏览至具体商品页，正在考虑点选生椰拿铁，此时注入加载超时异常合理",
+      "decision": "INJECT",
+      "anomaly_type": "loading_timeout",
+      "instruction": "在“生椰拿铁（首创）”商品区域下方添加加载超时提示，显示“加载失败，请稍后重试”，并保持页面其他内容不变",
+      "conclusion": "用户已浏览至具体商品页，正在考虑点选生椰拿铁，此时注入加载超时异常合理且能有效测试AI Agent的异常处理能力。"
+    }
+  ]
+}

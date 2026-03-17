@@ -1,0 +1,571 @@
+{
+  "metadata": {
+    "source": "携程优惠.png",
+    "extractionMethod": "OmniParser+VLM_Fusion",
+    "models": {
+      "detection": "OmniParser (YOLO + PaddleOCR + Florence2)",
+      "semantic_filter": "qwen-vl-max"
+    },
+    "timestamp": "2026-02-26T09:57:23.653242",
+    "resolution": {
+      "width": 1290,
+      "height": 2796
+    },
+    "processing": {
+      "omni_raw_count": 46,
+      "final_count": 31,
+      "merge_log": [
+        {
+          "action": "merge",
+          "from": [
+            15,
+            16
+          ],
+          "to": 0,
+          "reason": "属于同一Banner广告内的文字与图标，应合并为一个视觉组件"
+        },
+        {
+          "action": "merge",
+          "from": [
+            17,
+            18
+          ],
+          "to": 1,
+          "reason": "贵宾休息室模块的标题、价格和选择按钮属于同一功能单元，但保留选择按钮独立性"
+        },
+        {
+          "action": "merge",
+          "from": [
+            20,
+            21
+          ],
+          "to": 2,
+          "reason": "接送机模块的价格和选择按钮属于同一功能单元"
+        },
+        {
+          "action": "merge",
+          "from": [
+            27,
+            28
+          ],
+          "to": 3,
+          "reason": "保险模块的价格和选择按钮属于同一功能单元"
+        },
+        {
+          "action": "merge",
+          "from": [
+            32,
+            33
+          ],
+          "to": 4,
+          "reason": "租车模块的标题和选择按钮属于同一功能单元"
+        },
+        {
+          "action": "merge",
+          "from": [
+            41,
+            42,
+            43,
+            44,
+            45
+          ],
+          "to": 5,
+          "reason": "底部支付按钮及其价格、时间信息属于同一交互组件"
+        },
+        {
+          "action": "delete",
+          "indices": [
+            0,
+            1,
+            2,
+            3,
+            4,
+            5
+          ],
+          "reason": "状态栏区域的重复检测，如时间、电池、WiFi等，属于系统级元素，不应作为应用内组件处理"
+        }
+      ]
+    }
+  },
+  "components": [
+    {
+      "index": 0,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 22,
+        "y": 196,
+        "width": 88,
+        "height": 107
+      },
+      "text": "Back",
+      "clickable": true,
+      "source": "box_yolo_content_yolo",
+      "contentDesc": "Back",
+      "original_index": 6
+    },
+    {
+      "index": 1,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 337,
+        "y": 197,
+        "width": 164,
+        "height": 106
+      },
+      "text": "Chinese language",
+      "clickable": true,
+      "source": "box_yolo_content_yolo",
+      "contentDesc": "Chinese language",
+      "original_index": 7
+    },
+    {
+      "index": 2,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 832,
+        "y": 201,
+        "width": 107,
+        "height": 82
+      },
+      "text": "Xray",
+      "clickable": true,
+      "source": "box_yolo_content_yolo",
+      "contentDesc": "Xray",
+      "original_index": 8
+    },
+    {
+      "index": 3,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 499,
+        "y": 203,
+        "width": 77,
+        "height": 89
+      },
+      "text": "Line",
+      "clickable": true,
+      "source": "box_yolo_content_yolo",
+      "contentDesc": "Line",
+      "original_index": 9
+    },
+    {
+      "index": 4,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 754,
+        "y": 205,
+        "width": 78,
+        "height": 76
+      },
+      "text": "Line",
+      "clickable": true,
+      "source": "box_yolo_content_yolo",
+      "contentDesc": "Line",
+      "original_index": 10
+    },
+    {
+      "index": 5,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 572,
+        "y": 206,
+        "width": 178,
+        "height": 77
+      },
+      "text": "Chinese language",
+      "clickable": true,
+      "source": "box_yolo_content_yolo",
+      "contentDesc": "Chinese language",
+      "original_index": 11
+    },
+    {
+      "index": 6,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 368,
+        "y": 305,
+        "width": 136,
+        "height": 72
+      },
+      "text": "$611",
+      "clickable": true,
+      "source": "box_yolo_content_yolo",
+      "contentDesc": "$611",
+      "original_index": 12
+    },
+    {
+      "index": 7,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 513,
+        "y": 311,
+        "width": 82,
+        "height": 64
+      },
+      "text": "Meituan",
+      "clickable": true,
+      "source": "box_yolo_content_yolo",
+      "contentDesc": "Meituan",
+      "original_index": 13
+    },
+    {
+      "index": 8,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 595,
+        "y": 312,
+        "width": 108,
+        "height": 60
+      },
+      "text": "Design",
+      "clickable": true,
+      "source": "box_yolo_content_yolo",
+      "contentDesc": "Design",
+      "original_index": 14
+    },
+    {
+      "index": 9,
+      "class": "ImageView",
+      "bounds": {
+        "x": 164,
+        "y": 439,
+        "width": 539,
+        "height": 169
+      },
+      "text": "避开人群喧闹 在休息室舒适候机",
+      "clickable": true,
+      "source_indices": [
+        15,
+        16
+      ],
+      "note": "属于同一Banner广告内的文字与图标，应合并为一个视觉组件"
+    },
+    {
+      "index": 10,
+      "class": "Button",
+      "bounds": {
+        "x": 346,
+        "y": 700,
+        "width": 860,
+        "height": 76
+      },
+      "text": "贵宾休息室 ¥138/份",
+      "clickable": true,
+      "source_indices": [
+        17,
+        18
+      ],
+      "note": "贵宾休息室模块的标题、价格和选择按钮属于同一功能单元，但保留选择按钮独立性"
+    },
+    {
+      "index": 11,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 104,
+        "y": 828,
+        "width": 262,
+        "height": 88
+      },
+      "text": "V1",
+      "clickable": true,
+      "source": "box_yolo_content_yolo",
+      "contentDesc": "V1",
+      "original_index": 19
+    },
+    {
+      "index": 12,
+      "class": "Button",
+      "bounds": {
+        "x": 987,
+        "y": 1122,
+        "width": 228,
+        "height": 112
+      },
+      "text": "北京送机/上海接机 ¥53起",
+      "clickable": true,
+      "source_indices": [
+        20,
+        21
+      ],
+      "note": "接送机模块的价格和选择按钮属于同一功能单元"
+    },
+    {
+      "index": 13,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 527,
+        "y": 1140,
+        "width": 50,
+        "height": 71
+      },
+      "text": "Help",
+      "clickable": true,
+      "source": "box_yolo_content_yolo",
+      "contentDesc": "Help",
+      "original_index": 22
+    },
+    {
+      "index": 14,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 484,
+        "y": 1219,
+        "width": 196,
+        "height": 62
+      },
+      "text": "Chinese language translation",
+      "clickable": true,
+      "source": "box_yolo_content_yolo",
+      "contentDesc": "Chinese language translation",
+      "original_index": 23
+    },
+    {
+      "index": 15,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 414,
+        "y": 1293,
+        "width": 282,
+        "height": 53
+      },
+      "text": "scanning a QR code.",
+      "clickable": true,
+      "source": "box_yolo_content_yolo",
+      "contentDesc": "scanning a QR code.",
+      "original_index": 24
+    },
+    {
+      "index": 16,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 77,
+        "y": 1294,
+        "width": 324,
+        "height": 53
+      },
+      "text": "A grid layout or grid layout.",
+      "clickable": true,
+      "source": "box_yolo_content_yolo",
+      "contentDesc": "A grid layout or grid layout.",
+      "original_index": 25
+    },
+    {
+      "index": 17,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 708,
+        "y": 1294,
+        "width": 286,
+        "height": 53
+      },
+      "text": "A grid layout or grid layout layout.",
+      "clickable": true,
+      "source": "box_yolo_content_yolo",
+      "contentDesc": "A grid layout or grid layout layout.",
+      "original_index": 26
+    },
+    {
+      "index": 18,
+      "class": "Button",
+      "bounds": {
+        "x": 76,
+        "y": 1460,
+        "width": 1130,
+        "height": 131
+      },
+      "text": "航空意外险 ¥29/人",
+      "clickable": true,
+      "source_indices": [
+        27,
+        28
+      ],
+      "note": "保险模块的价格和选择按钮属于同一功能单元"
+    },
+    {
+      "index": 19,
+      "class": "TextView",
+      "bounds": {
+        "x": 83,
+        "y": 1616,
+        "width": 771,
+        "height": 37
+      },
+      "text": "3503",
+      "clickable": false,
+      "source": "box_ocr_content_ocr",
+      "original_index": 29
+    },
+    {
+      "index": 20,
+      "class": "TextView",
+      "bounds": {
+        "x": 83,
+        "y": 1671,
+        "width": 327,
+        "height": 38
+      },
+      "text": "#1000",
+      "clickable": false,
+      "source": "box_ocr_content_ocr",
+      "original_index": 30
+    },
+    {
+      "index": 21,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 793,
+        "y": 1753,
+        "width": 408,
+        "height": 52
+      },
+      "text": "Conference",
+      "clickable": true,
+      "source": "box_yolo_content_yolo",
+      "contentDesc": "Conference",
+      "original_index": 31
+    },
+    {
+      "index": 22,
+      "class": "Button",
+      "bounds": {
+        "x": 301,
+        "y": 1916,
+        "width": 911,
+        "height": 99
+      },
+      "text": "上海租车",
+      "clickable": true,
+      "source_indices": [
+        32,
+        33
+      ],
+      "note": "租车模块的标题和选择按钮属于同一功能单元"
+    },
+    {
+      "index": 23,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 73,
+        "y": 2081,
+        "width": 374,
+        "height": 59
+      },
+      "text": "QR code scanner",
+      "clickable": true,
+      "source": "box_yolo_content_yolo",
+      "contentDesc": "QR code scanner",
+      "original_index": 34
+    },
+    {
+      "index": 24,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 282,
+        "y": 2279,
+        "width": 61,
+        "height": 64
+      },
+      "text": "Slow motion",
+      "clickable": true,
+      "source": "box_yolo_content_yolo",
+      "contentDesc": "Slow motion",
+      "original_index": 35
+    },
+    {
+      "index": 25,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 1168,
+        "y": 2407,
+        "width": 83,
+        "height": 92
+      },
+      "text": "Circle",
+      "clickable": true,
+      "source": "box_yolo_content_yolo",
+      "contentDesc": "Circle",
+      "original_index": 36
+    },
+    {
+      "index": 26,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 467,
+        "y": 2417,
+        "width": 299,
+        "height": 55
+      },
+      "text": "Newcastlecastle",
+      "clickable": true,
+      "source": "box_yolo_content_yolo",
+      "contentDesc": "Newcastlecastle",
+      "original_index": 37
+    },
+    {
+      "index": 27,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 786,
+        "y": 2419,
+        "width": 349,
+        "height": 50
+      },
+      "text": "Conference",
+      "clickable": true,
+      "source": "box_yolo_content_yolo",
+      "contentDesc": "Conference",
+      "original_index": 38
+    },
+    {
+      "index": 28,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 262,
+        "y": 2420,
+        "width": 31,
+        "height": 50
+      },
+      "text": "Language or translation function.",
+      "clickable": true,
+      "source": "box_yolo_content_yolo",
+      "contentDesc": "Language or translation function.",
+      "original_index": 39
+    },
+    {
+      "index": 29,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 296,
+        "y": 2422,
+        "width": 33,
+        "height": 45
+      },
+      "text": "A railway station platform.",
+      "clickable": true,
+      "source": "box_yolo_content_yolo",
+      "contentDesc": "A railway station platform.",
+      "original_index": 40
+    },
+    {
+      "index": 30,
+      "class": "Button",
+      "bounds": {
+        "x": 32,
+        "y": 2536,
+        "width": 1210,
+        "height": 138
+      },
+      "text": "去支付 14:50",
+      "clickable": true,
+      "source_indices": [
+        41,
+        42,
+        43,
+        44,
+        45
+      ],
+      "note": "底部支付按钮及其价格、时间信息属于同一交互组件"
+    }
+  ],
+  "componentCount": 31
+}

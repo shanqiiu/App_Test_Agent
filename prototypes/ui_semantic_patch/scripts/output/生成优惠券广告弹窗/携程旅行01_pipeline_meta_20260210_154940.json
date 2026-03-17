@@ -1,0 +1,15 @@
+{
+  "timestamp": "20260210_154940",
+  "screenshot": "../data/原图/app首页类-开屏广告弹窗/携程旅行01.jpg",
+  "instruction": "生成优惠券广告弹窗",
+  "outputs": {
+    "stage1_omni_raw": "output\\生成优惠券广告弹窗\\携程旅行01_stage1_omni_raw_20260210_154940.json",
+    "stage1_annotated": "output\\生成优惠券广告弹窗\\携程旅行01_stage1_annotated_20260210_154940.png",
+    "stage2_filtered": "output\\生成优惠券广告弹窗\\携程旅行01_stage2_filtered_20260210_154940.json",
+    "stage2_annotated": "output\\生成优惠券广告弹窗\\携程旅行01_stage2_annotated_20260210_154940.png",
+    "final_image": "output\\生成优惠券广告弹窗\\携程旅行01_final_20260210_154940.png",
+    "meta_driven": true,
+    "gt_category": "弹窗覆盖原UI",
+    "gt_sample": "弹出广告.jpg"
+  }
+}

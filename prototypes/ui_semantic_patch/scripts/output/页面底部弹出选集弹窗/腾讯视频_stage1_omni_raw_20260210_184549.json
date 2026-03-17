@@ -1,0 +1,815 @@
+{
+  "metadata": {
+    "source": "腾讯视频.jpg",
+    "extractionMethod": "OmniParser",
+    "models": {
+      "detection": "YOLO (icon_detect)",
+      "ocr": "PaddleOCR",
+      "caption": "Florence2"
+    },
+    "timestamp": "2026-02-10T18:46:33.141040",
+    "resolution": {
+      "width": 1224,
+      "height": 2776
+    }
+  },
+  "components": [
+    {
+      "index": 0,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 1083,
+        "y": 52,
+        "width": 96,
+        "height": 75
+      },
+      "text": "98, September, 2014",
+      "clickable": true,
+      "source": "box_yolo_content_yolo",
+      "contentDesc": "98, September, 2014"
+    },
+    {
+      "index": 1,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 993,
+        "y": 53,
+        "width": 85,
+        "height": 73
+      },
+      "text": "5A 1.5aker",
+      "clickable": true,
+      "source": "box_yolo_content_yolo",
+      "contentDesc": "5A 1.5aker"
+    },
+    {
+      "index": 2,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 922,
+        "y": 56,
+        "width": 67,
+        "height": 65
+      },
+      "text": "Podcasts",
+      "clickable": true,
+      "source": "box_yolo_content_yolo",
+      "contentDesc": "Podcasts"
+    },
+    {
+      "index": 3,
+      "class": "TextView",
+      "bounds": {
+        "x": 39,
+        "y": 59,
+        "width": 316,
+        "height": 59
+      },
+      "text": "03:31",
+      "clickable": false,
+      "source": "box_ocr_content_ocr"
+    },
+    {
+      "index": 4,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 813,
+        "y": 60,
+        "width": 55,
+        "height": 57
+      },
+      "text": "Clock",
+      "clickable": true,
+      "source": "box_yolo_content_yolo",
+      "contentDesc": "Clock"
+    },
+    {
+      "index": 5,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 869,
+        "y": 60,
+        "width": 53,
+        "height": 58
+      },
+      "text": "Notepad",
+      "clickable": true,
+      "source": "box_yolo_content_yolo",
+      "contentDesc": "Notepad"
+    },
+    {
+      "index": 6,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 752,
+        "y": 61,
+        "width": 58,
+        "height": 56
+      },
+      "text": "News",
+      "clickable": true,
+      "source": "box_yolo_content_yolo",
+      "contentDesc": "News"
+    },
+    {
+      "index": 7,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 35,
+        "y": 178,
+        "width": 86,
+        "height": 104
+      },
+      "text": "Back",
+      "clickable": true,
+      "source": "box_yolo_content_yolo",
+      "contentDesc": "Back"
+    },
+    {
+      "index": 8,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 560,
+        "y": 450,
+        "width": 98,
+        "height": 101
+      },
+      "text": "Play button for video or audio.",
+      "clickable": true,
+      "source": "box_yolo_content_yolo",
+      "contentDesc": "Play button for video or audio."
+    },
+    {
+      "index": 9,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 988,
+        "y": 730,
+        "width": 196,
+        "height": 65
+      },
+      "text": "T ",
+      "clickable": true,
+      "source": "box_yolo_content_ocr",
+      "contentDesc": "T "
+    },
+    {
+      "index": 10,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 48,
+        "y": 733,
+        "width": 424,
+        "height": 59
+      },
+      "text": "Branches",
+      "clickable": true,
+      "source": "box_yolo_content_yolo",
+      "contentDesc": "Branches"
+    },
+    {
+      "index": 11,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 38,
+        "y": 859,
+        "width": 153,
+        "height": 123
+      },
+      "text": "Meituan",
+      "clickable": true,
+      "source": "box_yolo_content_yolo",
+      "contentDesc": "Meituan"
+    },
+    {
+      "index": 12,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 787,
+        "y": 864,
+        "width": 386,
+        "height": 115
+      },
+      "text": "A website or application related to mobile phones or technology.",
+      "clickable": true,
+      "source": "box_yolo_content_yolo",
+      "contentDesc": "A website or application related to mobile phones or technology."
+    },
+    {
+      "index": 13,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 210,
+        "y": 866,
+        "width": 130,
+        "height": 107
+      },
+      "text": "Asian characters",
+      "clickable": true,
+      "source": "box_yolo_content_yolo",
+      "contentDesc": "Asian characters"
+    },
+    {
+      "index": 14,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 316,
+        "y": 873,
+        "width": 89,
+        "height": 70
+      },
+      "text": "345",
+      "clickable": true,
+      "source": "box_yolo_content_yolo",
+      "contentDesc": "345"
+    },
+    {
+      "index": 15,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 44,
+        "y": 995,
+        "width": 217,
+        "height": 83
+      },
+      "text": "Conference",
+      "clickable": true,
+      "source": "box_yolo_content_yolo",
+      "contentDesc": "Conference"
+    },
+    {
+      "index": 16,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 537,
+        "y": 995,
+        "width": 249,
+        "height": 84
+      },
+      "text": " 14520 ",
+      "clickable": true,
+      "source": "box_yolo_content_ocr",
+      "contentDesc": " 14520 "
+    },
+    {
+      "index": 17,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 796,
+        "y": 995,
+        "width": 323,
+        "height": 83
+      },
+      "text": "Knowledge",
+      "clickable": true,
+      "source": "box_yolo_content_yolo",
+      "contentDesc": "Knowledge"
+    },
+    {
+      "index": 18,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 273,
+        "y": 996,
+        "width": 254,
+        "height": 82
+      },
+      "text": "Testimonials",
+      "clickable": true,
+      "source": "box_yolo_content_yolo",
+      "contentDesc": "Testimonials"
+    },
+    {
+      "index": 19,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 1131,
+        "y": 996,
+        "width": 92,
+        "height": 81
+      },
+      "text": "Chinese language translation",
+      "clickable": true,
+      "source": "box_yolo_content_yolo",
+      "contentDesc": "Chinese language translation"
+    },
+    {
+      "index": 20,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 624,
+        "y": 1122,
+        "width": 247,
+        "height": 202
+      },
+      "text": "Miniature",
+      "clickable": true,
+      "source": "box_yolo_content_yolo",
+      "contentDesc": "Miniature"
+    },
+    {
+      "index": 21,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 37,
+        "y": 1129,
+        "width": 105,
+        "height": 148
+      },
+      "text": "M0,0L0,5 4.5,5z",
+      "clickable": true,
+      "source": "box_yolo_content_yolo",
+      "contentDesc": "M0,0L0,5 4.5,5z"
+    },
+    {
+      "index": 22,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 970,
+        "y": 1130,
+        "width": 134,
+        "height": 152
+      },
+      "text": "Beijing Central Library",
+      "clickable": true,
+      "source": "box_yolo_content_yolo",
+      "contentDesc": "Beijing Central Library"
+    },
+    {
+      "index": 23,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 410,
+        "y": 1134,
+        "width": 126,
+        "height": 138
+      },
+      "text": "Download",
+      "clickable": true,
+      "source": "box_yolo_content_yolo",
+      "contentDesc": "Download"
+    },
+    {
+      "index": 24,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 138,
+        "y": 1141,
+        "width": 108,
+        "height": 136
+      },
+      "text": "Supplier",
+      "clickable": true,
+      "source": "box_yolo_content_yolo",
+      "contentDesc": "Supplier"
+    },
+    {
+      "index": 25,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 46,
+        "y": 1332,
+        "width": 120,
+        "height": 81
+      },
+      "text": "Chinese language",
+      "clickable": true,
+      "source": "box_yolo_content_yolo",
+      "contentDesc": "Chinese language"
+    },
+    {
+      "index": 26,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 256,
+        "y": 1443,
+        "width": 266,
+        "height": 102
+      },
+      "text": "Xiaohongshu (Xia)",
+      "clickable": true,
+      "source": "box_yolo_content_yolo",
+      "contentDesc": "Xiaohongshu (Xia)"
+    },
+    {
+      "index": 27,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 47,
+        "y": 1444,
+        "width": 186,
+        "height": 101
+      },
+      "text": "A website or application related to Chinese architecture.",
+      "clickable": true,
+      "source": "box_yolo_content_yolo",
+      "contentDesc": "A website or application related to Chinese architecture."
+    },
+    {
+      "index": 28,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 493,
+        "y": 1575,
+        "width": 208,
+        "height": 200
+      },
+      "text": "3 ",
+      "clickable": true,
+      "source": "box_yolo_content_ocr",
+      "contentDesc": "3 "
+    },
+    {
+      "index": 29,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 717,
+        "y": 1575,
+        "width": 208,
+        "height": 200
+      },
+      "text": "4 ",
+      "clickable": true,
+      "source": "box_yolo_content_ocr",
+      "contentDesc": "4 "
+    },
+    {
+      "index": 30,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 939,
+        "y": 1575,
+        "width": 208,
+        "height": 200
+      },
+      "text": "5 ",
+      "clickable": true,
+      "source": "box_yolo_content_ocr",
+      "contentDesc": "5 "
+    },
+    {
+      "index": 31,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 1167,
+        "y": 1575,
+        "width": 56,
+        "height": 201
+      },
+      "text": "Create new file",
+      "clickable": true,
+      "source": "box_yolo_content_yolo",
+      "contentDesc": "Create new file"
+    },
+    {
+      "index": 32,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 47,
+        "y": 1576,
+        "width": 207,
+        "height": 200
+      },
+      "text": "1, September, 2014",
+      "clickable": true,
+      "source": "box_yolo_content_yolo",
+      "contentDesc": "1, September, 2014"
+    },
+    {
+      "index": 33,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 271,
+        "y": 1576,
+        "width": 207,
+        "height": 200
+      },
+      "text": "2 ",
+      "clickable": true,
+      "source": "box_yolo_content_ocr",
+      "contentDesc": "2 "
+    },
+    {
+      "index": 34,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 783,
+        "y": 1836,
+        "width": 389,
+        "height": 274
+      },
+      "text": "1*3$Swift4, ",
+      "clickable": true,
+      "source": "box_yolo_content_ocr",
+      "contentDesc": "1*3$Swift4, "
+    },
+    {
+      "index": 35,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 634,
+        "y": 1845,
+        "width": 144,
+        "height": 79
+      },
+      "text": "San Francisco City Hall",
+      "clickable": true,
+      "source": "box_yolo_content_yolo",
+      "contentDesc": "San Francisco City Hall"
+    },
+    {
+      "index": 36,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 534,
+        "y": 1869,
+        "width": 240,
+        "height": 348
+      },
+      "text": "A Chinese language translation.",
+      "clickable": true,
+      "source": "box_yolo_content_yolo",
+      "contentDesc": "A Chinese language translation."
+    },
+    {
+      "index": 37,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 312,
+        "y": 1875,
+        "width": 221,
+        "height": 341
+      },
+      "text": "a person taking a photo.",
+      "clickable": true,
+      "source": "box_yolo_content_yolo",
+      "contentDesc": "a person taking a photo."
+    },
+    {
+      "index": 38,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 69,
+        "y": 1877,
+        "width": 238,
+        "height": 341
+      },
+      "text": "A video game or video game.",
+      "clickable": true,
+      "source": "box_yolo_content_yolo",
+      "contentDesc": "A video game or video game."
+    },
+    {
+      "index": 39,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 833,
+        "y": 2103,
+        "width": 282,
+        "height": 85
+      },
+      "text": "A website or application related to Chinese technology.",
+      "clickable": true,
+      "source": "box_yolo_content_yolo",
+      "contentDesc": "A website or application related to Chinese technology."
+    },
+    {
+      "index": 40,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 309,
+        "y": 2292,
+        "width": 125,
+        "height": 120
+      },
+      "text": "Meituan",
+      "clickable": true,
+      "source": "box_yolo_content_yolo",
+      "contentDesc": "Meituan"
+    },
+    {
+      "index": 41,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 45,
+        "y": 2296,
+        "width": 237,
+        "height": 95
+      },
+      "text": "Test Type",
+      "clickable": true,
+      "source": "box_yolo_content_yolo",
+      "contentDesc": "Test Type"
+    },
+    {
+      "index": 42,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 1088,
+        "y": 2296,
+        "width": 101,
+        "height": 105
+      },
+      "text": "Next",
+      "clickable": true,
+      "source": "box_yolo_content_yolo",
+      "contentDesc": "Next"
+    },
+    {
+      "index": 43,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 473,
+        "y": 2312,
+        "width": 119,
+        "height": 65
+      },
+      "text": "Chinese language translation.",
+      "clickable": true,
+      "source": "box_yolo_content_yolo",
+      "contentDesc": "Chinese language translation."
+    },
+    {
+      "index": 44,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 41,
+        "y": 2414,
+        "width": 501,
+        "height": 277
+      },
+      "text": "A person with short hair and a beard.",
+      "clickable": true,
+      "source": "box_yolo_content_yolo",
+      "contentDesc": "A person with short hair and a beard."
+    },
+    {
+      "index": 45,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 1070,
+        "y": 2415,
+        "width": 153,
+        "height": 274
+      },
+      "text": "a person wearing a brown jacket.",
+      "clickable": true,
+      "source": "box_yolo_content_yolo",
+      "contentDesc": "a person wearing a brown jacket."
+    },
+    {
+      "index": 46,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 562,
+        "y": 2607,
+        "width": 85,
+        "height": 82
+      },
+      "text": "Heart",
+      "clickable": true,
+      "source": "box_yolo_content_yolo",
+      "contentDesc": "Heart"
+    },
+    {
+      "index": 47,
+      "class": "TextView",
+      "bounds": {
+        "x": 936,
+        "y": 2625,
+        "width": 97,
+        "height": 40
+      },
+      "text": "01:02",
+      "clickable": false,
+      "source": "box_ocr_content_ocr"
+    },
+    {
+      "index": 48,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 809,
+        "y": 2696,
+        "width": 238,
+        "height": 79
+      },
+      "text": "Asian characters",
+      "clickable": true,
+      "source": "box_yolo_content_yolo",
+      "contentDesc": "Asian characters"
+    },
+    {
+      "index": 49,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 295,
+        "y": 2698,
+        "width": 244,
+        "height": 77
+      },
+      "text": "Asian League",
+      "clickable": true,
+      "source": "box_yolo_content_yolo",
+      "contentDesc": "Asian League"
+    },
+    {
+      "index": 50,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 559,
+        "y": 2702,
+        "width": 244,
+        "height": 73
+      },
+      "text": "Chinese language translation.",
+      "clickable": true,
+      "source": "box_yolo_content_yolo",
+      "contentDesc": "Chinese language translation."
+    },
+    {
+      "index": 51,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 207,
+        "y": 2708,
+        "width": 66,
+        "height": 67
+      },
+      "text": "Asian People",
+      "clickable": true,
+      "source": "box_yolo_content_yolo",
+      "contentDesc": "Asian People"
+    },
+    {
+      "index": 52,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 1069,
+        "y": 2708,
+        "width": 64,
+        "height": 65
+      },
+      "text": "Neck Tower",
+      "clickable": true,
+      "source": "box_yolo_content_yolo",
+      "contentDesc": "Neck Tower"
+    },
+    {
+      "index": 53,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 49,
+        "y": 2709,
+        "width": 64,
+        "height": 64
+      },
+      "text": "Neon Man",
+      "clickable": true,
+      "source": "box_yolo_content_yolo",
+      "contentDesc": "Neon Man"
+    },
+    {
+      "index": 54,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 1180,
+        "y": 2710,
+        "width": 43,
+        "height": 62
+      },
+      "text": "Ground",
+      "clickable": true,
+      "source": "box_yolo_content_yolo",
+      "contentDesc": "Ground"
+    },
+    {
+      "index": 55,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 108,
+        "y": 2711,
+        "width": 46,
+        "height": 57
+      },
+      "text": "Asian characters",
+      "clickable": true,
+      "source": "box_yolo_content_yolo",
+      "contentDesc": "Asian characters"
+    },
+    {
+      "index": 56,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 1130,
+        "y": 2711,
+        "width": 49,
+        "height": 59
+      },
+      "text": "Asian characters",
+      "clickable": true,
+      "source": "box_yolo_content_yolo",
+      "contentDesc": "Asian characters"
+    }
+  ],
+  "componentCount": 57
+}

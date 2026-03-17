@@ -1,0 +1,324 @@
+{
+  "metadata": {
+    "source": "抖音原图01.jpg",
+    "extractionMethod": "OmniParser+VLM_Fusion",
+    "models": {
+      "detection": "OmniParser (YOLO + PaddleOCR + Florence2)",
+      "semantic_filter": "qwen-vl-max"
+    },
+    "timestamp": "2026-02-10T20:04:12.201953",
+    "resolution": {
+      "width": 1224,
+      "height": 2776
+    },
+    "processing": {
+      "omni_raw_count": 29,
+      "final_count": 11,
+      "merge_log": [
+        {
+          "action": "merge",
+          "from": [
+            0,
+            1,
+            2,
+            3,
+            4,
+            5
+          ],
+          "to": 0,
+          "reason": "这些是顶部状态栏中的系统图标和时间，属于同一功能区域，应合并为一个StatusBar组件"
+        },
+        {
+          "action": "merge",
+          "from": [
+            7,
+            8
+          ],
+          "to": 1,
+          "reason": "这两个检测框覆盖了顶部的春节主题Banner，包含图标和背景，应合并为一个图像组件"
+        },
+        {
+          "action": "merge",
+          "from": [
+            6
+          ],
+          "to": 2,
+          "reason": "这是状态栏中的时间文本，单独保留"
+        },
+        {
+          "action": "merge",
+          "from": [
+            9
+          ],
+          "to": 3,
+          "reason": "该区域显示账号数据，属于同一信息块，应合并为一个文本组件"
+        },
+        {
+          "action": "merge",
+          "from": [
+            10,
+            11,
+            12,
+            13,
+            14,
+            15
+          ],
+          "to": 4,
+          "reason": "这些是账号简介文本的不同部分，应合并为一个整体描述"
+        },
+        {
+          "action": "merge",
+          "from": [
+            16,
+            17,
+            18
+          ],
+          "to": 5,
+          "reason": "这是一个包含图标和文字的按钮，应合并为一个可点击按钮"
+        },
+        {
+          "action": "merge",
+          "from": [
+            19
+          ],
+          "to": 6,
+          "reason": "这是关注按钮，应作为一个独立交互组件保留"
+        },
+        {
+          "action": "merge",
+          "from": [
+            20
+          ],
+          "to": 7,
+          "reason": "作品数量标签，应作为独立文本保留"
+        },
+        {
+          "action": "merge",
+          "from": [
+            21,
+            22
+          ],
+          "to": 8,
+          "reason": "这是置顶作品标题，应合并为一个文本组件"
+        },
+        {
+          "action": "merge",
+          "from": [
+            23,
+            24,
+            25
+          ],
+          "to": 9,
+          "reason": "这三个检测框共同构成一个视频卡片，应合并为一个Card组件"
+        },
+        {
+          "action": "merge",
+          "from": [
+            26,
+            27,
+            28
+          ],
+          "to": 10,
+          "reason": "这些是下方视频内容的缩略图，每个应作为一个独立Card保留，但此处因检测重叠需合并为单个Card"
+        }
+      ]
+    }
+  },
+  "components": [
+    {
+      "index": 0,
+      "class": "StatusBar",
+      "bounds": {
+        "x": 744,
+        "y": 37,
+        "width": 444,
+        "height": 117
+      },
+      "text": "状态栏",
+      "clickable": true,
+      "source_indices": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5
+      ],
+      "note": "这些是顶部状态栏中的系统图标和时间，属于同一功能区域，应合并为一个StatusBar组件"
+    },
+    {
+      "index": 1,
+      "class": "TextView",
+      "bounds": {
+        "x": 35,
+        "y": 63,
+        "width": 143,
+        "height": 52
+      },
+      "text": "03:52",
+      "clickable": false,
+      "source_indices": [
+        6
+      ],
+      "note": "这是状态栏中的时间文本，单独保留"
+    },
+    {
+      "index": 2,
+      "class": "ImageView",
+      "bounds": {
+        "x": 36,
+        "y": 158,
+        "width": 382,
+        "height": 510
+      },
+      "text": "央视文艺春节主题Banner",
+      "clickable": true,
+      "source_indices": [
+        7,
+        8
+      ],
+      "note": "这两个检测框覆盖了顶部的春节主题Banner，包含图标和背景，应合并为一个图像组件"
+    },
+    {
+      "index": 3,
+      "class": "TextView",
+      "bounds": {
+        "x": 30,
+        "y": 706,
+        "width": 1179,
+        "height": 173
+      },
+      "text": "1.5亿 获赞 0 关注 1111.2万 粉丝",
+      "clickable": true,
+      "source_indices": [
+        9
+      ],
+      "note": "该区域显示账号数据，属于同一信息块，应合并为一个文本组件"
+    },
+    {
+      "index": 4,
+      "class": "TextView",
+      "bounds": {
+        "x": 40,
+        "y": 953,
+        "width": 844,
+        "height": 150
+      },
+      "text": "账号简介",
+      "clickable": true,
+      "source_indices": [
+        10,
+        11,
+        12,
+        13,
+        14,
+        15
+      ],
+      "note": "这些是账号简介文本的不同部分，应合并为一个整体描述"
+    },
+    {
+      "index": 5,
+      "class": "Button",
+      "bounds": {
+        "x": 48,
+        "y": 1164,
+        "width": 874,
+        "height": 143
+      },
+      "text": "直播动态 查看最新回放",
+      "clickable": true,
+      "source_indices": [
+        16,
+        17,
+        18
+      ],
+      "note": "这是一个包含图标和文字的按钮，应合并为一个可点击按钮"
+    },
+    {
+      "index": 6,
+      "class": "Button",
+      "bounds": {
+        "x": 48,
+        "y": 1370,
+        "width": 1132,
+        "height": 126
+      },
+      "text": "+ 关注",
+      "clickable": true,
+      "source_indices": [
+        19
+      ],
+      "note": "这是关注按钮，应作为一个独立交互组件保留"
+    },
+    {
+      "index": 7,
+      "class": "TextView",
+      "bounds": {
+        "x": 49,
+        "y": 1564,
+        "width": 331,
+        "height": 68
+      },
+      "text": "作品 15773",
+      "clickable": true,
+      "source_indices": [
+        20
+      ],
+      "note": "作品数量标签，应作为独立文本保留"
+    },
+    {
+      "index": 8,
+      "class": "TextView",
+      "bounds": {
+        "x": 33,
+        "y": 1707,
+        "width": 1190,
+        "height": 135
+      },
+      "text": "《扬帆远航大湾区——2026新年音乐会》",
+      "clickable": true,
+      "source_indices": [
+        21,
+        22
+      ],
+      "note": "这是置顶作品标题，应合并为一个文本组件"
+    },
+    {
+      "index": 9,
+      "class": "Card",
+      "bounds": {
+        "x": 0,
+        "y": 1874,
+        "width": 1223,
+        "height": 559
+      },
+      "text": "置顶视频：2026春节联欢晚会",
+      "clickable": true,
+      "source_indices": [
+        23,
+        24,
+        25
+      ],
+      "note": "这三个检测框共同构成一个视频卡片，应合并为一个Card组件"
+    },
+    {
+      "index": 10,
+      "class": "Card",
+      "bounds": {
+        "x": 0,
+        "y": 2414,
+        "width": 1221,
+        "height": 361
+      },
+      "text": "视频内容卡片",
+      "clickable": true,
+      "source_indices": [
+        26,
+        27,
+        28
+      ],
+      "note": "这些是下方视频内容的缩略图，每个应作为一个独立Card保留，但此处因检测重叠需合并为单个Card"
+    }
+  ],
+  "componentCount": 11
+}

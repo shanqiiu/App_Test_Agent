@@ -1,0 +1,659 @@
+{
+  "metadata": {
+    "source": "携程优惠.png",
+    "extractionMethod": "OmniParser",
+    "models": {
+      "detection": "YOLO (icon_detect)",
+      "ocr": "PaddleOCR",
+      "caption": "Florence2"
+    },
+    "timestamp": "2026-03-17T09:25:10.171923",
+    "resolution": {
+      "width": 1290,
+      "height": 2796
+    }
+  },
+  "components": [
+    {
+      "index": 0,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 1074,
+        "y": 48,
+        "width": 106,
+        "height": 75
+      },
+      "text": "100%",
+      "clickable": true,
+      "source": "box_yolo_content_yolo",
+      "contentDesc": "100%"
+    },
+    {
+      "index": 1,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 902,
+        "y": 49,
+        "width": 87,
+        "height": 74
+      },
+      "text": "App Store",
+      "clickable": true,
+      "source": "box_yolo_content_yolo",
+      "contentDesc": "App Store"
+    },
+    {
+      "index": 2,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 128,
+        "y": 50,
+        "width": 226,
+        "height": 75
+      },
+      "text": "20:40  ",
+      "clickable": true,
+      "source": "box_yolo_content_ocr",
+      "contentDesc": "20:40  "
+    },
+    {
+      "index": 3,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 994,
+        "y": 50,
+        "width": 71,
+        "height": 72
+      },
+      "text": "WiFi Network",
+      "clickable": true,
+      "source": "box_yolo_content_yolo",
+      "contentDesc": "WiFi Network"
+    },
+    {
+      "index": 4,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 527,
+        "y": 55,
+        "width": 244,
+        "height": 55
+      },
+      "text": "Creativeive",
+      "clickable": true,
+      "source": "box_yolo_content_yolo",
+      "contentDesc": "Creativeive"
+    },
+    {
+      "index": 5,
+      "class": "TextView",
+      "bounds": {
+        "x": 912,
+        "y": 61,
+        "width": 264,
+        "height": 52
+      },
+      "text": ":!!!  100",
+      "clickable": false,
+      "source": "box_ocr_content_ocr"
+    },
+    {
+      "index": 6,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 22,
+        "y": 196,
+        "width": 88,
+        "height": 107
+      },
+      "text": "Back",
+      "clickable": true,
+      "source": "box_yolo_content_yolo",
+      "contentDesc": "Back"
+    },
+    {
+      "index": 7,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 337,
+        "y": 197,
+        "width": 164,
+        "height": 106
+      },
+      "text": "Chinese language",
+      "clickable": true,
+      "source": "box_yolo_content_yolo",
+      "contentDesc": "Chinese language"
+    },
+    {
+      "index": 8,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 832,
+        "y": 201,
+        "width": 107,
+        "height": 82
+      },
+      "text": "Xray",
+      "clickable": true,
+      "source": "box_yolo_content_yolo",
+      "contentDesc": "Xray"
+    },
+    {
+      "index": 9,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 499,
+        "y": 203,
+        "width": 77,
+        "height": 89
+      },
+      "text": "Line",
+      "clickable": true,
+      "source": "box_yolo_content_yolo",
+      "contentDesc": "Line"
+    },
+    {
+      "index": 10,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 754,
+        "y": 205,
+        "width": 78,
+        "height": 76
+      },
+      "text": "Line",
+      "clickable": true,
+      "source": "box_yolo_content_yolo",
+      "contentDesc": "Line"
+    },
+    {
+      "index": 11,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 572,
+        "y": 206,
+        "width": 178,
+        "height": 77
+      },
+      "text": "Chinese language",
+      "clickable": true,
+      "source": "box_yolo_content_yolo",
+      "contentDesc": "Chinese language"
+    },
+    {
+      "index": 12,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 368,
+        "y": 305,
+        "width": 136,
+        "height": 72
+      },
+      "text": "$611",
+      "clickable": true,
+      "source": "box_yolo_content_yolo",
+      "contentDesc": "$611"
+    },
+    {
+      "index": 13,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 513,
+        "y": 311,
+        "width": 82,
+        "height": 64
+      },
+      "text": "Meituan",
+      "clickable": true,
+      "source": "box_yolo_content_yolo",
+      "contentDesc": "Meituan"
+    },
+    {
+      "index": 14,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 595,
+        "y": 312,
+        "width": 108,
+        "height": 60
+      },
+      "text": "Design",
+      "clickable": true,
+      "source": "box_yolo_content_yolo",
+      "contentDesc": "Design"
+    },
+    {
+      "index": 15,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 164,
+        "y": 439,
+        "width": 82,
+        "height": 90
+      },
+      "text": "66",
+      "clickable": true,
+      "source": "box_yolo_content_yolo",
+      "contentDesc": "66"
+    },
+    {
+      "index": 16,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 476,
+        "y": 539,
+        "width": 227,
+        "height": 69
+      },
+      "text": "Transportation methods.",
+      "clickable": true,
+      "source": "box_yolo_content_yolo",
+      "contentDesc": "Transportation methods."
+    },
+    {
+      "index": 17,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 1135,
+        "y": 700,
+        "width": 71,
+        "height": 76
+      },
+      "text": "Circle",
+      "clickable": true,
+      "source": "box_yolo_content_yolo",
+      "contentDesc": "Circle"
+    },
+    {
+      "index": 18,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 346,
+        "y": 707,
+        "width": 51,
+        "height": 64
+      },
+      "text": "Help",
+      "clickable": true,
+      "source": "box_yolo_content_yolo",
+      "contentDesc": "Help"
+    },
+    {
+      "index": 19,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 104,
+        "y": 828,
+        "width": 262,
+        "height": 88
+      },
+      "text": "V1",
+      "clickable": true,
+      "source": "box_yolo_content_yolo",
+      "contentDesc": "V1"
+    },
+    {
+      "index": 20,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 987,
+        "y": 1122,
+        "width": 145,
+        "height": 104
+      },
+      "text": "53 63 ",
+      "clickable": true,
+      "source": "box_yolo_content_ocr",
+      "contentDesc": "53 63 "
+    },
+    {
+      "index": 21,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 1126,
+        "y": 1125,
+        "width": 89,
+        "height": 109
+      },
+      "text": "Circle",
+      "clickable": true,
+      "source": "box_yolo_content_yolo",
+      "contentDesc": "Circle"
+    },
+    {
+      "index": 22,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 527,
+        "y": 1140,
+        "width": 50,
+        "height": 71
+      },
+      "text": "Help",
+      "clickable": true,
+      "source": "box_yolo_content_yolo",
+      "contentDesc": "Help"
+    },
+    {
+      "index": 23,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 484,
+        "y": 1219,
+        "width": 196,
+        "height": 62
+      },
+      "text": "Chinese language translation",
+      "clickable": true,
+      "source": "box_yolo_content_yolo",
+      "contentDesc": "Chinese language translation"
+    },
+    {
+      "index": 24,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 414,
+        "y": 1293,
+        "width": 282,
+        "height": 53
+      },
+      "text": "scanning a QR code.",
+      "clickable": true,
+      "source": "box_yolo_content_yolo",
+      "contentDesc": "scanning a QR code."
+    },
+    {
+      "index": 25,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 77,
+        "y": 1294,
+        "width": 324,
+        "height": 53
+      },
+      "text": "A grid layout or grid layout.",
+      "clickable": true,
+      "source": "box_yolo_content_yolo",
+      "contentDesc": "A grid layout or grid layout."
+    },
+    {
+      "index": 26,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 708,
+        "y": 1294,
+        "width": 286,
+        "height": 53
+      },
+      "text": "A grid layout or grid layout layout.",
+      "clickable": true,
+      "source": "box_yolo_content_yolo",
+      "contentDesc": "A grid layout or grid layout layout."
+    },
+    {
+      "index": 27,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 1137,
+        "y": 1460,
+        "width": 69,
+        "height": 77
+      },
+      "text": "Circle",
+      "clickable": true,
+      "source": "box_yolo_content_yolo",
+      "contentDesc": "Circle"
+    },
+    {
+      "index": 28,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 76,
+        "y": 1533,
+        "width": 270,
+        "height": 58
+      },
+      "text": "Extensions",
+      "clickable": true,
+      "source": "box_yolo_content_yolo",
+      "contentDesc": "Extensions"
+    },
+    {
+      "index": 29,
+      "class": "TextView",
+      "bounds": {
+        "x": 83,
+        "y": 1616,
+        "width": 771,
+        "height": 37
+      },
+      "text": "3503",
+      "clickable": false,
+      "source": "box_ocr_content_ocr"
+    },
+    {
+      "index": 30,
+      "class": "TextView",
+      "bounds": {
+        "x": 83,
+        "y": 1671,
+        "width": 327,
+        "height": 38
+      },
+      "text": "#1000",
+      "clickable": false,
+      "source": "box_ocr_content_ocr"
+    },
+    {
+      "index": 31,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 793,
+        "y": 1753,
+        "width": 408,
+        "height": 52
+      },
+      "text": "Conference",
+      "clickable": true,
+      "source": "box_yolo_content_yolo",
+      "contentDesc": "Conference"
+    },
+    {
+      "index": 32,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 1128,
+        "y": 1916,
+        "width": 84,
+        "height": 99
+      },
+      "text": "Circle",
+      "clickable": true,
+      "source": "box_yolo_content_yolo",
+      "contentDesc": "Circle"
+    },
+    {
+      "index": 33,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 301,
+        "y": 1929,
+        "width": 46,
+        "height": 66
+      },
+      "text": "Help",
+      "clickable": true,
+      "source": "box_yolo_content_yolo",
+      "contentDesc": "Help"
+    },
+    {
+      "index": 34,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 73,
+        "y": 2081,
+        "width": 374,
+        "height": 59
+      },
+      "text": "QR code scanner",
+      "clickable": true,
+      "source": "box_yolo_content_yolo",
+      "contentDesc": "QR code scanner"
+    },
+    {
+      "index": 35,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 282,
+        "y": 2279,
+        "width": 61,
+        "height": 64
+      },
+      "text": "Slow motion",
+      "clickable": true,
+      "source": "box_yolo_content_yolo",
+      "contentDesc": "Slow motion"
+    },
+    {
+      "index": 36,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 1168,
+        "y": 2407,
+        "width": 83,
+        "height": 92
+      },
+      "text": "Circle",
+      "clickable": true,
+      "source": "box_yolo_content_yolo",
+      "contentDesc": "Circle"
+    },
+    {
+      "index": 37,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 467,
+        "y": 2417,
+        "width": 299,
+        "height": 55
+      },
+      "text": "Newcastlecastle",
+      "clickable": true,
+      "source": "box_yolo_content_yolo",
+      "contentDesc": "Newcastlecastle"
+    },
+    {
+      "index": 38,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 786,
+        "y": 2419,
+        "width": 349,
+        "height": 50
+      },
+      "text": "Conference",
+      "clickable": true,
+      "source": "box_yolo_content_yolo",
+      "contentDesc": "Conference"
+    },
+    {
+      "index": 39,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 262,
+        "y": 2420,
+        "width": 31,
+        "height": 50
+      },
+      "text": "Language or translation function.",
+      "clickable": true,
+      "source": "box_yolo_content_yolo",
+      "contentDesc": "Language or translation function."
+    },
+    {
+      "index": 40,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 296,
+        "y": 2422,
+        "width": 33,
+        "height": 45
+      },
+      "text": "A railway station platform.",
+      "clickable": true,
+      "source": "box_yolo_content_yolo",
+      "contentDesc": "A railway station platform."
+    },
+    {
+      "index": 41,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 905,
+        "y": 2536,
+        "width": 337,
+        "height": 138
+      },
+      "text": "14:50 ",
+      "clickable": true,
+      "source": "box_yolo_content_ocr",
+      "contentDesc": "14:50 "
+    },
+    {
+      "index": 42,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 32,
+        "y": 2541,
+        "width": 137,
+        "height": 130
+      },
+      "text": "Xinguish (XinguISH)",
+      "clickable": true,
+      "source": "box_yolo_content_yolo",
+      "contentDesc": "Xinguish (XinguISH)"
+    },
+    {
+      "index": 43,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 179,
+        "y": 2553,
+        "width": 203,
+        "height": 63
+      },
+      "text": "Vietnam",
+      "clickable": true,
+      "source": "box_yolo_content_yolo",
+      "contentDesc": "Vietnam"
+    },
+    {
+      "index": 44,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 731,
+        "y": 2554,
+        "width": 149,
+        "height": 99
+      },
+      "text": "Asian Men",
+      "clickable": true,
+      "source": "box_yolo_content_yolo",
+      "contentDesc": "Asian Men"
+    },
+    {
+      "index": 45,
+      "class": "TextView",
+      "bounds": {
+        "x": 49,
+        "y": 2559,
+        "width": 328,
+        "height": 50
+      },
+      "text": "611 E17",
+      "clickable": false,
+      "source": "box_ocr_content_ocr"
+    }
+  ],
+  "componentCount": 46
+}

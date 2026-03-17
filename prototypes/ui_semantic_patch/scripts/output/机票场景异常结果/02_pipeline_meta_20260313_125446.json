@@ -1,0 +1,98 @@
+{
+  "timestamp": "20260313_125446",
+  "screenshot": "../data/原图/app首页类-开屏广告弹窗/02.jpg",
+  "instruction": "携程开屏广告弹窗",
+  "outputs": {
+    "stage1_omni_raw": "output\\机票场景异常结果\\02_stage1_omni_raw_20260313_125446.json",
+    "stage1_annotated": "output\\机票场景异常结果\\02_stage1_annotated_20260313_125446.png",
+    "stage2_filtered": "output\\机票场景异常结果\\02_stage2_filtered_20260313_125446.json",
+    "stage2_annotated": "output\\机票场景异常结果\\02_stage2_annotated_20260313_125446.png",
+    "final_image": "output\\机票场景异常结果\\final_20260313_125621.png",
+    "meta_driven": true
+  },
+  "stage2_status": "success",
+  "render_metadata": {
+    "gt_category": "弹窗覆盖原UI",
+    "gt_sample": "广告弹窗.jpg",
+    "meta_driven": true,
+    "warnings": [
+      {
+        "type": "position_fallback",
+        "message": "位置回退：未找到关键词对应组件，使用百分比定位 (212, 961)"
+      }
+    ],
+    "render_info": {
+      "dialog_bounds": {
+        "x": 212,
+        "y": 961,
+        "width": 800,
+        "height": 854
+      },
+      "screen_size": {
+        "width": 1224,
+        "height": 2776
+      },
+      "position_method": "fallback",
+      "dialog_position_type": "center",
+      "ui_components_count": 12,
+      "ui_components_preview": [
+        {
+          "index": 0,
+          "class": "StatusBar",
+          "bounds": {
+            "x": 32,
+            "y": 53,
+            "width": 1161,
+            "height": 78
+          }
+        },
+        {
+          "index": 1,
+          "class": "SearchBar",
+          "bounds": {
+            "x": 27,
+            "y": 165,
+            "width": 1166,
+            "height": 138
+          }
+        },
+        {
+          "index": 2,
+          "class": "Button",
+          "bounds": {
+            "x": 27,
+            "y": 320,
+            "width": 1161,
+            "height": 216
+          }
+        },
+        {
+          "index": 3,
+          "class": "Button",
+          "bounds": {
+            "x": 30,
+            "y": 533,
+            "width": 1156,
+            "height": 195
+          }
+        },
+        {
+          "index": 4,
+          "class": "Button",
+          "bounds": {
+            "x": 32,
+            "y": 725,
+            "width": 1155,
+            "height": 210
+          }
+        }
+      ]
+    }
+  },
+  "warnings": [
+    {
+      "type": "position_fallback",
+      "message": "位置回退：未找到关键词对应组件，使用百分比定位 (212, 961)"
+    }
+  ]
+}

@@ -1,0 +1,244 @@
+{
+  "app_type": "旅行预订App",
+  "page_description": "机票订单选服务页面，用户可选择附加服务如休息室、接送机、保险和租车等。",
+  "regions": [
+    {
+      "name": "顶部状态栏",
+      "y_range": [
+        0,
+        80
+      ],
+      "is_atomic": true,
+      "merge_as_class": "StatusBar",
+      "merge_as_text": "系统状态栏，显示时间、信号、电池等信息",
+      "description": "包含时间、运营商、Wi-Fi、电池状态等系统信息，为不可拆分的整体"
+    },
+    {
+      "name": "导航栏",
+      "y_range": [
+        80,
+        175
+      ],
+      "is_atomic": false,
+      "expected_components": [
+        {
+          "type": "BackButton",
+          "text": "返回按钮"
+        },
+        {
+          "type": "Text",
+          "text": "填订单 → 选服务 → 支付"
+        },
+        {
+          "type": "Text",
+          "text": "北京 - 上海 02-10"
+        }
+      ],
+      "description": "包含返回按钮、流程指示和航班信息，由多个独立组件构成"
+    },
+    {
+      "name": "宣传横幅",
+      "y_range": [
+        175,
+        390
+      ],
+      "is_atomic": true,
+      "merge_as_class": "ImageView",
+      "merge_as_text": "宣传图，提示避开人群喧闹，在休息室舒适候机",
+      "description": "图文结合的广告区域，整体视觉设计统一，不可拆分"
+    },
+    {
+      "name": "贵宾休息室服务",
+      "y_range": [
+        390,
+        640
+      ],
+      "is_atomic": false,
+      "expected_components": [
+        {
+          "type": "Checkbox",
+          "text": "贵宾休息室"
+        },
+        {
+          "type": "Text",
+          "text": "¥138/份"
+        },
+        {
+          "type": "Text",
+          "text": "小食饮料"
+        },
+        {
+          "type": "Text",
+          "text": "按摩椅"
+        },
+        {
+          "type": "Text",
+          "text": "报刊杂志"
+        },
+        {
+          "type": "Text",
+          "text": "专属wifi"
+        }
+      ],
+      "description": "包含标题、价格、勾选框和多项服务内容，各部分可独立交互"
+    },
+    {
+      "name": "接送机服务",
+      "y_range": [
+        640,
+        830
+      ],
+      "is_atomic": false,
+      "expected_components": [
+        {
+          "type": "Checkbox",
+          "text": "北京送机/上海接机"
+        },
+        {
+          "type": "Text",
+          "text": "¥53起"
+        },
+        {
+          "type": "Text",
+          "text": "车辆消毒 司机佩戴口罩 延误免费等"
+        },
+        {
+          "type": "Tag",
+          "text": "接送机最高8折满减券"
+        },
+        {
+          "type": "Tag",
+          "text": "接送机70元满减券"
+        },
+        {
+          "type": "Tag",
+          "text": "接送机40元满减券"
+        }
+      ],
+      "description": "包含服务名称、价格、描述和优惠标签，均为可独立识别的组件"
+    },
+    {
+      "name": "航空意外险服务",
+      "y_range": [
+        830,
+        1105
+      ],
+      "is_atomic": false,
+      "expected_components": [
+        {
+          "type": "Checkbox",
+          "text": "航空意外险"
+        },
+        {
+          "type": "Text",
+          "text": "¥29/人"
+        },
+        {
+          "type": "Text",
+          "text": "更换出行保险"
+        },
+        {
+          "type": "Text",
+          "text": "航空意外最高¥350万"
+        },
+        {
+          "type": "Text",
+          "text": "意外医疗最高¥3万"
+        },
+        {
+          "type": "Text",
+          "text": "行李物品损失最高¥1000"
+        },
+        {
+          "type": "Text",
+          "text": "携程旗下保险代理自营平台"
+        }
+      ],
+      "description": "包含保险选项、价格、保障内容和平台说明，结构清晰，组件独立"
+    },
+    {
+      "name": "上海租车服务",
+      "y_range": [
+        1105,
+        1300
+      ],
+      "is_atomic": false,
+      "expected_components": [
+        {
+          "type": "Checkbox",
+          "text": "上海租车"
+        },
+        {
+          "type": "Text",
+          "text": "免费送车上门 免费取消"
+        },
+        {
+          "type": "Tag",
+          "text": "机票租车同时下单85折起"
+        }
+      ],
+      "description": "包含租车选项、服务说明和优惠标签，各部分可独立交互"
+    },
+    {
+      "name": "报销凭证提示",
+      "y_range": [
+        1300,
+        1420
+      ],
+      "is_atomic": true,
+      "merge_as_class": "TextView",
+      "merge_as_text": "支付完成后可开具报销凭证，安心购票",
+      "description": "纯文本提示区域，无交互元素，视为整体"
+    },
+    {
+      "name": "协议勾选区",
+      "y_range": [
+        1420,
+        1495
+      ],
+      "is_atomic": false,
+      "expected_components": [
+        {
+          "type": "Checkbox",
+          "text": "我已阅读并同意购票须知，个人信息授权声明，部分充电宝禁止携..."
+        },
+        {
+          "type": "Link",
+          "text": "购票须知"
+        },
+        {
+          "type": "Link",
+          "text": "个人信息授权声明"
+        }
+      ],
+      "description": "包含复选框和多个链接文本，属于可拆分的交互组件集合"
+    },
+    {
+      "name": "底部结算栏",
+      "y_range": [
+        1495,
+        1630
+      ],
+      "is_atomic": false,
+      "expected_components": [
+        {
+          "type": "Text",
+          "text": "¥611 已优惠¥17"
+        },
+        {
+          "type": "Text",
+          "text": "经济舱"
+        },
+        {
+          "type": "Button",
+          "text": "去支付"
+        },
+        {
+          "type": "Text",
+          "text": "明细"
+        }
+      ],
+      "description": "包含价格、优惠信息、舱位、明细按钮和支付按钮，均为独立功能组件"
+    }
+  ]
+}

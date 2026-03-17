@@ -1,0 +1,407 @@
+{
+  "metadata": {
+    "source": "饿了么.jpg",
+    "extractionMethod": "OmniParser+VLM_Fusion",
+    "models": {
+      "detection": "OmniParser (YOLO + PaddleOCR + Florence2)",
+      "semantic_filter": "qwen-vl-max"
+    },
+    "timestamp": "2026-02-11T14:54:36.438593",
+    "resolution": {
+      "width": 1224,
+      "height": 2776
+    },
+    "processing": {
+      "omni_raw_count": 56,
+      "final_count": 12,
+      "merge_log": [
+        {
+          "action": "merge",
+          "from": [
+            0,
+            1,
+            9,
+            10,
+            11
+          ],
+          "to": 0,
+          "reason": "这些是状态栏区域内的多个图标和文字，属于同一系统状态栏组件"
+        },
+        {
+          "action": "merge",
+          "from": [
+            2,
+            3,
+            4,
+            6,
+            7,
+            8
+          ],
+          "to": 1,
+          "reason": "这些是状态栏右侧的系统状态图标，应合并为一个状态栏组件"
+        },
+        {
+          "action": "merge",
+          "from": [
+            5,
+            12,
+            13,
+            14,
+            15,
+            16
+          ],
+          "to": 2,
+          "reason": "这些是顶部导航栏的组成部分，包括返回箭头、搜索框、更多按钮等"
+        },
+        {
+          "action": "merge",
+          "from": [
+            17,
+            18,
+            19,
+            20,
+            21
+          ],
+          "to": 3,
+          "reason": "该区域包含店铺头图、评分、月售、配送时间等，属于同一信息卡片"
+        },
+        {
+          "action": "merge",
+          "from": [
+            22,
+            23,
+            24,
+            25,
+            26
+          ],
+          "to": 4,
+          "reason": "这些是优惠券和折扣标签，属于同一优惠展示区域"
+        },
+        {
+          "action": "merge",
+          "from": [
+            27,
+            28,
+            29
+          ],
+          "to": 5,
+          "reason": "这三个是页面底部的功能标签，应合并为一个TabBar组件"
+        },
+        {
+          "action": "merge",
+          "from": [
+            30,
+            31,
+            32,
+            33,
+            34,
+            35,
+            36
+          ],
+          "to": 6,
+          "reason": "这些是‘比利时黑巧系列’的宣传海报，属于同一广告内容"
+        },
+        {
+          "action": "merge",
+          "from": [
+            37,
+            38,
+            39
+          ],
+          "to": 7,
+          "reason": "这是‘修狗邀你喝大咖’的主视觉广告，应作为一个整体图像处理"
+        },
+        {
+          "action": "merge",
+          "from": [
+            40,
+            41,
+            42
+          ],
+          "to": 8,
+          "reason": "包含商品图片、名称、价格、加购按钮，是一个完整的商品卡片"
+        },
+        {
+          "action": "merge",
+          "from": [
+            43,
+            44,
+            45,
+            46
+          ],
+          "to": 9,
+          "reason": "包含商品图片、名称、价格、加购按钮，是一个完整的商品卡片"
+        },
+        {
+          "action": "merge",
+          "from": [
+            47,
+            48,
+            49,
+            50,
+            51
+          ],
+          "to": 10,
+          "reason": "包含商品图片、名称、价格、加购按钮，是一个完整的商品卡片"
+        },
+        {
+          "action": "merge",
+          "from": [
+            52,
+            53,
+            54,
+            55
+          ],
+          "to": 11,
+          "reason": "购物车图标、金额、免配送费提示、起送价按钮构成底部统一操作区"
+        },
+        {
+          "action": "delete",
+          "indices": [
+            56
+          ],
+          "reason": "索引超出范围，不存在"
+        }
+      ]
+    }
+  },
+  "components": [
+    {
+      "index": 0,
+      "class": "StatusBar",
+      "bounds": {
+        "x": 112,
+        "y": 1,
+        "width": 420,
+        "height": 118
+      },
+      "text": "状态栏（时间、应用图标）",
+      "clickable": true,
+      "source_indices": [
+        0,
+        1,
+        9,
+        10,
+        11
+      ],
+      "note": "这些是状态栏区域内的多个图标和文字，属于同一系统状态栏组件"
+    },
+    {
+      "index": 1,
+      "class": "StatusBar",
+      "bounds": {
+        "x": 752,
+        "y": 52,
+        "width": 430,
+        "height": 85
+      },
+      "text": "状态栏（网络、电量、通知等）",
+      "clickable": true,
+      "source_indices": [
+        2,
+        3,
+        4,
+        6,
+        7,
+        8
+      ],
+      "note": "这些是状态栏右侧的系统状态图标，应合并为一个状态栏组件"
+    },
+    {
+      "index": 2,
+      "class": "NavigationBar",
+      "bounds": {
+        "x": 24,
+        "y": 54,
+        "width": 1152,
+        "height": 401
+      },
+      "text": "导航栏（返回、搜索、更多）",
+      "clickable": true,
+      "source_indices": [
+        5,
+        12,
+        13,
+        14,
+        15,
+        16
+      ],
+      "note": "这些是顶部导航栏的组成部分，包括返回箭头、搜索框、更多按钮等"
+    },
+    {
+      "index": 3,
+      "class": "ImageView",
+      "bounds": {
+        "x": 32,
+        "y": 515,
+        "width": 1159,
+        "height": 276
+      },
+      "text": "店铺信息与评分区域",
+      "clickable": true,
+      "source_indices": [
+        17,
+        18,
+        19,
+        20,
+        21
+      ],
+      "note": "该区域包含店铺头图、评分、月售、配送时间等，属于同一信息卡片"
+    },
+    {
+      "index": 4,
+      "class": "ImageView",
+      "bounds": {
+        "x": 32,
+        "y": 814,
+        "width": 1162,
+        "height": 188
+      },
+      "text": "优惠信息横幅",
+      "clickable": true,
+      "source_indices": [
+        22,
+        23,
+        24,
+        25,
+        26
+      ],
+      "note": "这些是优惠券和折扣标签，属于同一优惠展示区域"
+    },
+    {
+      "index": 5,
+      "class": "TabBar",
+      "bounds": {
+        "x": 28,
+        "y": 1070,
+        "width": 554,
+        "height": 129
+      },
+      "text": "功能标签栏（点餐、评价、品牌）",
+      "clickable": true,
+      "source_indices": [
+        27,
+        28,
+        29
+      ],
+      "note": "这三个是页面底部的功能标签，应合并为一个TabBar组件"
+    },
+    {
+      "index": 6,
+      "class": "ImageView",
+      "bounds": {
+        "x": 43,
+        "y": 1213,
+        "width": 1079,
+        "height": 497
+      },
+      "text": "联名系列宣传图",
+      "clickable": true,
+      "source_indices": [
+        30,
+        31,
+        32,
+        33,
+        34,
+        35,
+        36
+      ],
+      "note": "这些是‘比利时黑巧系列’的宣传海报，属于同一广告内容"
+    },
+    {
+      "index": 7,
+      "class": "ImageView",
+      "bounds": {
+        "x": 58,
+        "y": 1791,
+        "width": 1035,
+        "height": 470
+      },
+      "text": "主推商品轮播图",
+      "clickable": true,
+      "source_indices": [
+        37,
+        38,
+        39
+      ],
+      "note": "这是‘修狗邀你喝大咖’的主视觉广告，应作为一个整体图像处理"
+    },
+    {
+      "index": 8,
+      "class": "Card",
+      "bounds": {
+        "x": 66,
+        "y": 2087,
+        "width": 1120,
+        "height": 134
+      },
+      "text": "生椰拿铁商品卡片",
+      "clickable": true,
+      "source_indices": [
+        40,
+        41,
+        42
+      ],
+      "note": "包含商品图片、名称、价格、加购按钮，是一个完整的商品卡片"
+    },
+    {
+      "index": 9,
+      "class": "Card",
+      "bounds": {
+        "x": 65,
+        "y": 2211,
+        "width": 1022,
+        "height": 102
+      },
+      "text": "比利时黑巧商品卡片",
+      "clickable": true,
+      "source_indices": [
+        43,
+        44,
+        45,
+        46
+      ],
+      "note": "包含商品图片、名称、价格、加购按钮，是一个完整的商品卡片"
+    },
+    {
+      "index": 10,
+      "class": "Card",
+      "bounds": {
+        "x": 435,
+        "y": 2219,
+        "width": 750,
+        "height": 98
+      },
+      "text": "鲜萃轻轻茉商品卡片",
+      "clickable": true,
+      "source_indices": [
+        47,
+        48,
+        49,
+        50,
+        51
+      ],
+      "note": "包含商品图片、名称、价格、加购按钮，是一个完整的商品卡片"
+    },
+    {
+      "index": 11,
+      "class": "BottomBar",
+      "bounds": {
+        "x": 44,
+        "y": 2503,
+        "width": 1149,
+        "height": 142
+      },
+      "text": "底部操作栏（购物车与起送价）",
+      "clickable": true,
+      "source_indices": [
+        52,
+        53,
+        54,
+        55
+      ],
+      "note": "购物车图标、金额、免配送费提示、起送价按钮构成底部统一操作区"
+    }
+  ],
+  "componentCount": 12
+}

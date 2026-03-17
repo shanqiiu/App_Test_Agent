@@ -1,0 +1,633 @@
+{
+  "metadata": {
+    "source": "腾讯视频.jpg",
+    "extractionMethod": "OmniParser+VLM_Fusion",
+    "models": {
+      "detection": "OmniParser (YOLO + PaddleOCR + Florence2)",
+      "semantic_filter": "qwen-vl-max"
+    },
+    "timestamp": "2026-02-10T18:47:57.150783",
+    "resolution": {
+      "width": 1224,
+      "height": 2776
+    },
+    "processing": {
+      "omni_raw_count": 57,
+      "final_count": 34,
+      "merge_log": [
+        {
+          "action": "merge",
+          "from": [
+            0,
+            1,
+            2,
+            4,
+            5,
+            6
+          ],
+          "to": 0,
+          "reason": "这些是状态栏中的系统图标和时间，属于同一功能区域，应合并为一个 StatusBar 组件"
+        },
+        {
+          "action": "merge",
+          "from": [
+            7
+          ],
+          "to": 1,
+          "reason": "返回按钮独立可交互，保留为单独组件"
+        },
+        {
+          "action": "merge",
+          "from": [
+            8
+          ],
+          "to": 2,
+          "reason": "视频播放按钮，独立可交互"
+        },
+        {
+          "action": "merge",
+          "from": [
+            9,
+            10,
+            11,
+            12,
+            13,
+            14,
+            15,
+            16,
+            17,
+            18,
+            19
+          ],
+          "to": 3,
+          "reason": "这些检测框位于顶部Banner区域，包含剧名、主演、评分、播放量等信息，属于同一视觉元素，应合并为一个 ImageView"
+        },
+        {
+          "action": "merge",
+          "from": [
+            20,
+            21,
+            22,
+            23,
+            24
+          ],
+          "to": 4,
+          "reason": "这些是底部功能按钮，每个按钮包含图标和文字，应分别保留为独立按钮"
+        },
+        {
+          "action": "merge",
+          "from": [
+            34,
+            35,
+            36,
+            37,
+            38
+          ],
+          "to": 14,
+          "reason": "广告区域内的多个图像和文字属于同一广告组件，应合并为一个 ImageView"
+        }
+      ]
+    }
+  },
+  "components": [
+    {
+      "index": 0,
+      "class": "StatusBar",
+      "bounds": {
+        "x": 752,
+        "y": 52,
+        "width": 427,
+        "height": 75
+      },
+      "text": "状态栏",
+      "clickable": true,
+      "source_indices": [
+        0,
+        1,
+        2,
+        4,
+        5,
+        6
+      ],
+      "note": "这些是状态栏中的系统图标和时间，属于同一功能区域，应合并为一个 StatusBar 组件"
+    },
+    {
+      "index": 1,
+      "class": "TextView",
+      "bounds": {
+        "x": 39,
+        "y": 59,
+        "width": 316,
+        "height": 59
+      },
+      "text": "03:31",
+      "clickable": false,
+      "source": "box_ocr_content_ocr",
+      "original_index": 3,
+      "note": "未被 VLM 处理，默认保留"
+    },
+    {
+      "index": 2,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 35,
+        "y": 178,
+        "width": 86,
+        "height": 104
+      },
+      "text": "返回",
+      "clickable": true,
+      "source_indices": [
+        7
+      ],
+      "note": "返回按钮独立可交互，保留为单独组件"
+    },
+    {
+      "index": 3,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 560,
+        "y": 450,
+        "width": 98,
+        "height": 101
+      },
+      "text": "播放按钮",
+      "clickable": true,
+      "source_indices": [
+        8
+      ],
+      "note": "视频播放按钮，独立可交互"
+    },
+    {
+      "index": 4,
+      "class": "ImageView",
+      "bounds": {
+        "x": 38,
+        "y": 730,
+        "width": 1185,
+        "height": 349
+      },
+      "text": "剧集详情Banner",
+      "clickable": true,
+      "source_indices": [
+        9,
+        10,
+        11,
+        12,
+        13,
+        14,
+        15,
+        16,
+        17,
+        18,
+        19
+      ],
+      "note": "这些检测框位于顶部Banner区域，包含剧名、主演、评分、播放量等信息，属于同一视觉元素，应合并为一个 ImageView"
+    },
+    {
+      "index": 5,
+      "class": "Button",
+      "bounds": {
+        "x": 37,
+        "y": 1122,
+        "width": 1067,
+        "height": 202
+      },
+      "text": "加追、下载、投屏、一起看",
+      "clickable": true,
+      "source_indices": [
+        20,
+        21,
+        22,
+        23,
+        24
+      ],
+      "note": "这些是底部功能按钮，每个按钮包含图标和文字，应分别保留为独立按钮"
+    },
+    {
+      "index": 6,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 46,
+        "y": 1332,
+        "width": 120,
+        "height": 81
+      },
+      "text": "Chinese language",
+      "clickable": true,
+      "source": "box_yolo_content_yolo",
+      "contentDesc": "Chinese language",
+      "original_index": 25
+    },
+    {
+      "index": 7,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 256,
+        "y": 1443,
+        "width": 266,
+        "height": 102
+      },
+      "text": "Xiaohongshu (Xia)",
+      "clickable": true,
+      "source": "box_yolo_content_yolo",
+      "contentDesc": "Xiaohongshu (Xia)",
+      "original_index": 26
+    },
+    {
+      "index": 8,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 47,
+        "y": 1444,
+        "width": 186,
+        "height": 101
+      },
+      "text": "A website or application related to Chinese architecture.",
+      "clickable": true,
+      "source": "box_yolo_content_yolo",
+      "contentDesc": "A website or application related to Chinese architecture.",
+      "original_index": 27
+    },
+    {
+      "index": 9,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 493,
+        "y": 1575,
+        "width": 208,
+        "height": 200
+      },
+      "text": "3 ",
+      "clickable": true,
+      "source": "box_yolo_content_ocr",
+      "contentDesc": "3 ",
+      "original_index": 28
+    },
+    {
+      "index": 10,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 717,
+        "y": 1575,
+        "width": 208,
+        "height": 200
+      },
+      "text": "4 ",
+      "clickable": true,
+      "source": "box_yolo_content_ocr",
+      "contentDesc": "4 ",
+      "original_index": 29
+    },
+    {
+      "index": 11,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 939,
+        "y": 1575,
+        "width": 208,
+        "height": 200
+      },
+      "text": "5 ",
+      "clickable": true,
+      "source": "box_yolo_content_ocr",
+      "contentDesc": "5 ",
+      "original_index": 30
+    },
+    {
+      "index": 12,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 1167,
+        "y": 1575,
+        "width": 56,
+        "height": 201
+      },
+      "text": "Create new file",
+      "clickable": true,
+      "source": "box_yolo_content_yolo",
+      "contentDesc": "Create new file",
+      "original_index": 31
+    },
+    {
+      "index": 13,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 47,
+        "y": 1576,
+        "width": 207,
+        "height": 200
+      },
+      "text": "1, September, 2014",
+      "clickable": true,
+      "source": "box_yolo_content_yolo",
+      "contentDesc": "1, September, 2014",
+      "original_index": 32
+    },
+    {
+      "index": 14,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 271,
+        "y": 1576,
+        "width": 207,
+        "height": 200
+      },
+      "text": "2 ",
+      "clickable": true,
+      "source": "box_yolo_content_ocr",
+      "contentDesc": "2 ",
+      "original_index": 33
+    },
+    {
+      "index": 15,
+      "class": "ImageView",
+      "bounds": {
+        "x": 69,
+        "y": 1836,
+        "width": 1103,
+        "height": 382
+      },
+      "text": "广告横幅",
+      "clickable": true,
+      "source_indices": [
+        34,
+        35,
+        36,
+        37,
+        38
+      ],
+      "note": "广告区域内的多个图像和文字属于同一广告组件，应合并为一个 ImageView"
+    },
+    {
+      "index": 16,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 833,
+        "y": 2103,
+        "width": 282,
+        "height": 85
+      },
+      "text": "A website or application related to Chinese technology.",
+      "clickable": true,
+      "source": "box_yolo_content_yolo",
+      "contentDesc": "A website or application related to Chinese technology.",
+      "original_index": 39
+    },
+    {
+      "index": 17,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 309,
+        "y": 2292,
+        "width": 125,
+        "height": 120
+      },
+      "text": "Meituan",
+      "clickable": true,
+      "source": "box_yolo_content_yolo",
+      "contentDesc": "Meituan",
+      "original_index": 40
+    },
+    {
+      "index": 18,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 45,
+        "y": 2296,
+        "width": 237,
+        "height": 95
+      },
+      "text": "Test Type",
+      "clickable": true,
+      "source": "box_yolo_content_yolo",
+      "contentDesc": "Test Type",
+      "original_index": 41
+    },
+    {
+      "index": 19,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 1088,
+        "y": 2296,
+        "width": 101,
+        "height": 105
+      },
+      "text": "Next",
+      "clickable": true,
+      "source": "box_yolo_content_yolo",
+      "contentDesc": "Next",
+      "original_index": 42
+    },
+    {
+      "index": 20,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 473,
+        "y": 2312,
+        "width": 119,
+        "height": 65
+      },
+      "text": "Chinese language translation.",
+      "clickable": true,
+      "source": "box_yolo_content_yolo",
+      "contentDesc": "Chinese language translation.",
+      "original_index": 43
+    },
+    {
+      "index": 21,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 41,
+        "y": 2414,
+        "width": 501,
+        "height": 277
+      },
+      "text": "A person with short hair and a beard.",
+      "clickable": true,
+      "source": "box_yolo_content_yolo",
+      "contentDesc": "A person with short hair and a beard.",
+      "original_index": 44
+    },
+    {
+      "index": 22,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 1070,
+        "y": 2415,
+        "width": 153,
+        "height": 274
+      },
+      "text": "a person wearing a brown jacket.",
+      "clickable": true,
+      "source": "box_yolo_content_yolo",
+      "contentDesc": "a person wearing a brown jacket.",
+      "original_index": 45
+    },
+    {
+      "index": 23,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 562,
+        "y": 2607,
+        "width": 85,
+        "height": 82
+      },
+      "text": "Heart",
+      "clickable": true,
+      "source": "box_yolo_content_yolo",
+      "contentDesc": "Heart",
+      "original_index": 46
+    },
+    {
+      "index": 24,
+      "class": "TextView",
+      "bounds": {
+        "x": 936,
+        "y": 2625,
+        "width": 97,
+        "height": 40
+      },
+      "text": "01:02",
+      "clickable": false,
+      "source": "box_ocr_content_ocr",
+      "original_index": 47
+    },
+    {
+      "index": 25,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 809,
+        "y": 2696,
+        "width": 238,
+        "height": 79
+      },
+      "text": "Asian characters",
+      "clickable": true,
+      "source": "box_yolo_content_yolo",
+      "contentDesc": "Asian characters",
+      "original_index": 48
+    },
+    {
+      "index": 26,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 295,
+        "y": 2698,
+        "width": 244,
+        "height": 77
+      },
+      "text": "Asian League",
+      "clickable": true,
+      "source": "box_yolo_content_yolo",
+      "contentDesc": "Asian League",
+      "original_index": 49
+    },
+    {
+      "index": 27,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 559,
+        "y": 2702,
+        "width": 244,
+        "height": 73
+      },
+      "text": "Chinese language translation.",
+      "clickable": true,
+      "source": "box_yolo_content_yolo",
+      "contentDesc": "Chinese language translation.",
+      "original_index": 50
+    },
+    {
+      "index": 28,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 207,
+        "y": 2708,
+        "width": 66,
+        "height": 67
+      },
+      "text": "Asian People",
+      "clickable": true,
+      "source": "box_yolo_content_yolo",
+      "contentDesc": "Asian People",
+      "original_index": 51
+    },
+    {
+      "index": 29,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 1069,
+        "y": 2708,
+        "width": 64,
+        "height": 65
+      },
+      "text": "Neck Tower",
+      "clickable": true,
+      "source": "box_yolo_content_yolo",
+      "contentDesc": "Neck Tower",
+      "original_index": 52
+    },
+    {
+      "index": 30,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 49,
+        "y": 2709,
+        "width": 64,
+        "height": 64
+      },
+      "text": "Neon Man",
+      "clickable": true,
+      "source": "box_yolo_content_yolo",
+      "contentDesc": "Neon Man",
+      "original_index": 53
+    },
+    {
+      "index": 31,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 1180,
+        "y": 2710,
+        "width": 43,
+        "height": 62
+      },
+      "text": "Ground",
+      "clickable": true,
+      "source": "box_yolo_content_yolo",
+      "contentDesc": "Ground",
+      "original_index": 54
+    },
+    {
+      "index": 32,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 108,
+        "y": 2711,
+        "width": 46,
+        "height": 57
+      },
+      "text": "Asian characters",
+      "clickable": true,
+      "source": "box_yolo_content_yolo",
+      "contentDesc": "Asian characters",
+      "original_index": 55
+    },
+    {
+      "index": 33,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 1130,
+        "y": 2711,
+        "width": 49,
+        "height": 59
+      },
+      "text": "Asian characters",
+      "clickable": true,
+      "source": "box_yolo_content_yolo",
+      "contentDesc": "Asian characters",
+      "original_index": 56
+    }
+  ],
+  "componentCount": 34
+}

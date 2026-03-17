@@ -1,0 +1,601 @@
+{
+  "metadata": {
+    "source": "携程优惠.png",
+    "extractionMethod": "OmniParser+VLM_Fusion",
+    "models": {
+      "detection": "OmniParser (YOLO + PaddleOCR + Florence2)",
+      "semantic_filter": "qwen-vl-max"
+    },
+    "timestamp": "2026-02-26T11:34:01.104355",
+    "resolution": {
+      "width": 1290,
+      "height": 2796
+    },
+    "processing": {
+      "omni_raw_count": 46,
+      "final_count": 33,
+      "merge_log": [
+        {
+          "action": "merge",
+          "from": [
+            15,
+            16
+          ],
+          "to": 0,
+          "reason": "属于同一Banner广告内的文字内容，应合并为一个图像组件"
+        },
+        {
+          "action": "merge",
+          "from": [
+            0,
+            1,
+            2,
+            3,
+            4,
+            5
+          ],
+          "to": 1,
+          "reason": "状态栏区域的多个系统图标和文本属于同一UI组件，应合并"
+        },
+        {
+          "action": "merge",
+          "from": [
+            6,
+            7,
+            8,
+            9,
+            10,
+            11
+          ],
+          "to": 2,
+          "reason": "导航栏中的返回按钮、流程指示和航班信息属于同一导航区域，应合并"
+        },
+        {
+          "action": "merge",
+          "from": [
+            12,
+            13,
+            14
+          ],
+          "to": 3,
+          "reason": "航班信息区域的文字内容，属于同一信息条目，可合并"
+        },
+        {
+          "action": "delete",
+          "indices": [
+            41
+          ],
+          "reason": "该检测框与底部‘去支付’按钮重叠，且内容为时间戳，属于噪声，应删除"
+        },
+        {
+          "action": "delete",
+          "indices": [
+            42,
+            43,
+            44
+          ],
+          "reason": "这些是底部按钮区域的误检，实际为‘去支付’按钮的一部分，应删除"
+        },
+        {
+          "action": "delete",
+          "indices": [
+            45
+          ],
+          "reason": "该文本为底部总价的OCR误读，已由其他组件覆盖，应删除"
+        }
+      ]
+    }
+  },
+  "components": [
+    {
+      "index": 0,
+      "class": "StatusBar",
+      "bounds": {
+        "x": 128,
+        "y": 48,
+        "width": 1052,
+        "height": 77
+      },
+      "text": "20:40 100% WiFi",
+      "clickable": true,
+      "source_indices": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5
+      ],
+      "note": "状态栏区域的多个系统图标和文本属于同一UI组件，应合并"
+    },
+    {
+      "index": 1,
+      "class": "NavigationBar",
+      "bounds": {
+        "x": 22,
+        "y": 196,
+        "width": 917,
+        "height": 107
+      },
+      "text": "← 填订单 → 选服务 → 支付",
+      "clickable": true,
+      "source_indices": [
+        6,
+        7,
+        8,
+        9,
+        10,
+        11
+      ],
+      "note": "导航栏中的返回按钮、流程指示和航班信息属于同一导航区域，应合并"
+    },
+    {
+      "index": 2,
+      "class": "TextView",
+      "bounds": {
+        "x": 368,
+        "y": 305,
+        "width": 335,
+        "height": 72
+      },
+      "text": "¥611 北京-上海 02-10",
+      "clickable": true,
+      "source_indices": [
+        12,
+        13,
+        14
+      ],
+      "note": "航班信息区域的文字内容，属于同一信息条目，可合并"
+    },
+    {
+      "index": 3,
+      "class": "ImageView",
+      "bounds": {
+        "x": 164,
+        "y": 439,
+        "width": 539,
+        "height": 169
+      },
+      "text": "避开人群喧闹 在休息室舒适候机",
+      "clickable": true,
+      "source_indices": [
+        15,
+        16
+      ],
+      "note": "属于同一Banner广告内的文字内容，应合并为一个图像组件"
+    },
+    {
+      "index": 4,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 1135,
+        "y": 700,
+        "width": 71,
+        "height": 76
+      },
+      "text": "Circle",
+      "clickable": true,
+      "source": "box_yolo_content_yolo",
+      "contentDesc": "Circle",
+      "original_index": 17
+    },
+    {
+      "index": 5,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 346,
+        "y": 707,
+        "width": 51,
+        "height": 64
+      },
+      "text": "Help",
+      "clickable": true,
+      "source": "box_yolo_content_yolo",
+      "contentDesc": "Help",
+      "original_index": 18
+    },
+    {
+      "index": 6,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 104,
+        "y": 828,
+        "width": 262,
+        "height": 88
+      },
+      "text": "V1",
+      "clickable": true,
+      "source": "box_yolo_content_yolo",
+      "contentDesc": "V1",
+      "original_index": 19
+    },
+    {
+      "index": 7,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 987,
+        "y": 1122,
+        "width": 145,
+        "height": 104
+      },
+      "text": "53 63 ",
+      "clickable": true,
+      "source": "box_yolo_content_ocr",
+      "contentDesc": "53 63 ",
+      "original_index": 20
+    },
+    {
+      "index": 8,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 1126,
+        "y": 1125,
+        "width": 89,
+        "height": 109
+      },
+      "text": "Circle",
+      "clickable": true,
+      "source": "box_yolo_content_yolo",
+      "contentDesc": "Circle",
+      "original_index": 21
+    },
+    {
+      "index": 9,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 527,
+        "y": 1140,
+        "width": 50,
+        "height": 71
+      },
+      "text": "Help",
+      "clickable": true,
+      "source": "box_yolo_content_yolo",
+      "contentDesc": "Help",
+      "original_index": 22
+    },
+    {
+      "index": 10,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 484,
+        "y": 1219,
+        "width": 196,
+        "height": 62
+      },
+      "text": "Chinese language translation",
+      "clickable": true,
+      "source": "box_yolo_content_yolo",
+      "contentDesc": "Chinese language translation",
+      "original_index": 23
+    },
+    {
+      "index": 11,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 414,
+        "y": 1293,
+        "width": 282,
+        "height": 53
+      },
+      "text": "scanning a QR code.",
+      "clickable": true,
+      "source": "box_yolo_content_yolo",
+      "contentDesc": "scanning a QR code.",
+      "original_index": 24
+    },
+    {
+      "index": 12,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 77,
+        "y": 1294,
+        "width": 324,
+        "height": 53
+      },
+      "text": "A grid layout or grid layout.",
+      "clickable": true,
+      "source": "box_yolo_content_yolo",
+      "contentDesc": "A grid layout or grid layout.",
+      "original_index": 25
+    },
+    {
+      "index": 13,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 708,
+        "y": 1294,
+        "width": 286,
+        "height": 53
+      },
+      "text": "A grid layout or grid layout layout.",
+      "clickable": true,
+      "source": "box_yolo_content_yolo",
+      "contentDesc": "A grid layout or grid layout layout.",
+      "original_index": 26
+    },
+    {
+      "index": 14,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 1137,
+        "y": 1460,
+        "width": 69,
+        "height": 77
+      },
+      "text": "Circle",
+      "clickable": true,
+      "source": "box_yolo_content_yolo",
+      "contentDesc": "Circle",
+      "original_index": 27
+    },
+    {
+      "index": 15,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 76,
+        "y": 1533,
+        "width": 270,
+        "height": 58
+      },
+      "text": "Extensions",
+      "clickable": true,
+      "source": "box_yolo_content_yolo",
+      "contentDesc": "Extensions",
+      "original_index": 28
+    },
+    {
+      "index": 16,
+      "class": "TextView",
+      "bounds": {
+        "x": 83,
+        "y": 1616,
+        "width": 771,
+        "height": 37
+      },
+      "text": "3503",
+      "clickable": false,
+      "source": "box_ocr_content_ocr",
+      "original_index": 29
+    },
+    {
+      "index": 17,
+      "class": "TextView",
+      "bounds": {
+        "x": 83,
+        "y": 1671,
+        "width": 327,
+        "height": 38
+      },
+      "text": "#1000",
+      "clickable": false,
+      "source": "box_ocr_content_ocr",
+      "original_index": 30
+    },
+    {
+      "index": 18,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 793,
+        "y": 1753,
+        "width": 408,
+        "height": 52
+      },
+      "text": "Conference",
+      "clickable": true,
+      "source": "box_yolo_content_yolo",
+      "contentDesc": "Conference",
+      "original_index": 31
+    },
+    {
+      "index": 19,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 1128,
+        "y": 1916,
+        "width": 84,
+        "height": 99
+      },
+      "text": "Circle",
+      "clickable": true,
+      "source": "box_yolo_content_yolo",
+      "contentDesc": "Circle",
+      "original_index": 32
+    },
+    {
+      "index": 20,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 301,
+        "y": 1929,
+        "width": 46,
+        "height": 66
+      },
+      "text": "Help",
+      "clickable": true,
+      "source": "box_yolo_content_yolo",
+      "contentDesc": "Help",
+      "original_index": 33
+    },
+    {
+      "index": 21,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 73,
+        "y": 2081,
+        "width": 374,
+        "height": 59
+      },
+      "text": "QR code scanner",
+      "clickable": true,
+      "source": "box_yolo_content_yolo",
+      "contentDesc": "QR code scanner",
+      "original_index": 34
+    },
+    {
+      "index": 22,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 282,
+        "y": 2279,
+        "width": 61,
+        "height": 64
+      },
+      "text": "Slow motion",
+      "clickable": true,
+      "source": "box_yolo_content_yolo",
+      "contentDesc": "Slow motion",
+      "original_index": 35
+    },
+    {
+      "index": 23,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 1168,
+        "y": 2407,
+        "width": 83,
+        "height": 92
+      },
+      "text": "Circle",
+      "clickable": true,
+      "source": "box_yolo_content_yolo",
+      "contentDesc": "Circle",
+      "original_index": 36
+    },
+    {
+      "index": 24,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 467,
+        "y": 2417,
+        "width": 299,
+        "height": 55
+      },
+      "text": "Newcastlecastle",
+      "clickable": true,
+      "source": "box_yolo_content_yolo",
+      "contentDesc": "Newcastlecastle",
+      "original_index": 37
+    },
+    {
+      "index": 25,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 786,
+        "y": 2419,
+        "width": 349,
+        "height": 50
+      },
+      "text": "Conference",
+      "clickable": true,
+      "source": "box_yolo_content_yolo",
+      "contentDesc": "Conference",
+      "original_index": 38
+    },
+    {
+      "index": 26,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 262,
+        "y": 2420,
+        "width": 31,
+        "height": 50
+      },
+      "text": "Language or translation function.",
+      "clickable": true,
+      "source": "box_yolo_content_yolo",
+      "contentDesc": "Language or translation function.",
+      "original_index": 39
+    },
+    {
+      "index": 27,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 296,
+        "y": 2422,
+        "width": 33,
+        "height": 45
+      },
+      "text": "A railway station platform.",
+      "clickable": true,
+      "source": "box_yolo_content_yolo",
+      "contentDesc": "A railway station platform.",
+      "original_index": 40
+    },
+    {
+      "index": 28,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 905,
+        "y": 2536,
+        "width": 337,
+        "height": 138
+      },
+      "text": "14:50 ",
+      "clickable": true,
+      "source": "box_yolo_content_ocr",
+      "contentDesc": "14:50 ",
+      "original_index": 41
+    },
+    {
+      "index": 29,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 32,
+        "y": 2541,
+        "width": 137,
+        "height": 130
+      },
+      "text": "Xinguish (XinguISH)",
+      "clickable": true,
+      "source": "box_yolo_content_yolo",
+      "contentDesc": "Xinguish (XinguISH)",
+      "original_index": 42
+    },
+    {
+      "index": 30,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 179,
+        "y": 2553,
+        "width": 203,
+        "height": 63
+      },
+      "text": "Vietnam",
+      "clickable": true,
+      "source": "box_yolo_content_yolo",
+      "contentDesc": "Vietnam",
+      "original_index": 43
+    },
+    {
+      "index": 31,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 731,
+        "y": 2554,
+        "width": 149,
+        "height": 99
+      },
+      "text": "Asian Men",
+      "clickable": true,
+      "source": "box_yolo_content_yolo",
+      "contentDesc": "Asian Men",
+      "original_index": 44
+    },
+    {
+      "index": 32,
+      "class": "TextView",
+      "bounds": {
+        "x": 49,
+        "y": 2559,
+        "width": 328,
+        "height": 50
+      },
+      "text": "611 E17",
+      "clickable": false,
+      "source": "box_ocr_content_ocr",
+      "original_index": 45
+    }
+  ],
+  "componentCount": 33
+}

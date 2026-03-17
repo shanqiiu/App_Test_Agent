@@ -1,0 +1,630 @@
+{
+  "metadata": {
+    "source": "携程优惠.png",
+    "extractionMethod": "OmniParser+VLM_Fusion_v2",
+    "models": {
+      "detection": "OmniParser (YOLO + PaddleOCR + Florence2)",
+      "layout_analysis": "qwen-vl-max",
+      "semantic_filter": "qwen-vl-max"
+    },
+    "timestamp": "2026-02-26T16:50:38.727026",
+    "resolution": {
+      "width": 1290,
+      "height": 2796
+    },
+    "processing": {
+      "omni_raw_count": 46,
+      "final_count": 27,
+      "layout_analysis": {
+        "app_type": "旅行预订",
+        "page_description": "航班附加服务选择页面，用户可在购票后选择贵宾休息室、接送机、保险等附加服务",
+        "regions": [
+          {
+            "name": "状态栏",
+            "y_range": [
+              0,
+              80
+            ],
+            "granularity": "atomic",
+            "merge_as_class": "StatusBar",
+            "merge_as_text": "系统状态栏，显示时间、信号、电量等信息",
+            "description": "顶部系统状态栏，包含时间、运营商、Wi-Fi和电池状态"
+          },
+          {
+            "name": "导航栏",
+            "y_range": [
+              80,
+              170
+            ],
+            "granularity": "fine",
+            "expected_components": [
+              {
+                "type": "Button",
+                "text": "< 返回"
+              },
+              {
+                "type": "TextView",
+                "text": "填订单 → 选服务 → 支付"
+              }
+            ],
+            "description": "返回按钮与流程指示文本功能不同，应独立处理"
+          },
+          {
+            "name": "航班信息条",
+            "y_range": [
+              170,
+              230
+            ],
+            "granularity": "atomic",
+            "merge_as_class": "FlightInfoBar",
+            "merge_as_text": "北京-上海 航班 02-10 ¥611",
+            "description": "航班基础信息展示区域，整体为一个不可拆分的信息条"
+          },
+          {
+            "name": "宣传标语区",
+            "y_range": [
+              230,
+              390
+            ],
+            "granularity": "atomic",
+            "merge_as_class": "PromoBanner",
+            "merge_as_text": "避开人群喧闹，在休息室舒适候机",
+            "description": "图文结合的宣传横幅，用于引导用户选择增值服务"
+          },
+          {
+            "name": "贵宾休息室服务卡片",
+            "y_range": [
+              390,
+              640
+            ],
+            "granularity": "card",
+            "merge_as_class": "Card",
+            "merge_as_text": "贵宾休息室 ¥138/份，含小食饮料、按摩椅、报刊杂志、专属WiFi",
+            "description": "完整的服务卡片，所有内容共同描述‘贵宾休息室’这一服务项目"
+          },
+          {
+            "name": "接送机服务卡片",
+            "y_range": [
+              650,
+              830
+            ],
+            "granularity": "card",
+            "merge_as_class": "Card",
+            "merge_as_text": "北京送机/上海接机 ¥53起，含车辆消毒、司机戴口罩等服务",
+            "description": "一张完整的接送机服务卡片，包含价格、服务说明和优惠券信息"
+          },
+          {
+            "name": "航空意外险服务卡片",
+            "y_range": [
+              840,
+              1100
+            ],
+            "granularity": "card",
+            "merge_as_class": "Card",
+            "merge_as_text": "航空意外险 ¥29/人，最高保额350万，含医疗及行李保障",
+            "description": "保险服务卡片，所有内容围绕‘航空意外险’展开，构成一个完整服务项"
+          },
+          {
+            "name": "租车服务卡片",
+            "y_range": [
+              1110,
+              1300
+            ],
+            "granularity": "card",
+            "merge_as_class": "Card",
+            "merge_as_text": "上海租车 免费送车上门，免费取消，机票租车同订享85折起",
+            "description": "租车服务卡片，包含服务名称、核心卖点和优惠信息，共同描述一项服务"
+          },
+          {
+            "name": "报销提示区",
+            "y_range": [
+              1300,
+              1420
+            ],
+            "granularity": "atomic",
+            "merge_as_class": "NoticeBanner",
+            "merge_as_text": "支付完成后可开具报销凭证，安心购票",
+            "description": "纯提示性文字区域，无交互元素，作为整体展示"
+          },
+          {
+            "name": "协议勾选区",
+            "y_range": [
+              1420,
+              1495
+            ],
+            "granularity": "fine",
+            "expected_components": [
+              {
+                "type": "TextView",
+                "text": "我已阅读并同意购票须知，个人信息授权声明，部分充电宝禁止携..."
+              },
+              {
+                "type": "CheckBox",
+                "text": ""
+              }
+            ],
+            "description": "文本说明与复选框功能不同，需分别处理"
+          },
+          {
+            "name": "底部结算栏",
+            "y_range": [
+              1495,
+              1630
+            ],
+            "granularity": "fine",
+            "expected_components": [
+              {
+                "type": "TextView",
+                "text": "¥611 已优惠¥17 经济舱"
+              },
+              {
+                "type": "Button",
+                "text": "去支付 14:50"
+              },
+              {
+                "type": "TextView",
+                "text": "明细 ▲"
+              }
+            ],
+            "description": "价格显示、支付按钮和明细展开功能各不相同，应独立组件化"
+          }
+        ]
+      },
+      "merge_log": [
+        {
+          "action": "force_merge",
+          "region": "状态栏",
+          "granularity": "atomic",
+          "from_count": 6,
+          "reason": "atomic 分区 [状态栏] 内 6 个组件强制合并"
+        },
+        {
+          "action": "force_merge",
+          "region": "航班信息条",
+          "granularity": "atomic",
+          "from_count": 2,
+          "reason": "atomic 分区 [航班信息条] 内 2 个组件强制合并"
+        },
+        {
+          "action": "force_merge",
+          "region": "宣传标语区",
+          "granularity": "atomic",
+          "from_count": 3,
+          "reason": "atomic 分区 [宣传标语区] 内 3 个组件强制合并"
+        },
+        {
+          "action": "force_merge",
+          "region": "贵宾休息室服务卡片",
+          "granularity": "card",
+          "from_count": 7,
+          "reason": "card 分区 [贵宾休息室服务卡片] 内 7 个组件强制合并"
+        },
+        {
+          "action": "force_merge",
+          "region": "接送机服务卡片",
+          "granularity": "card",
+          "from_count": 5,
+          "reason": "card 分区 [接送机服务卡片] 内 5 个组件强制合并"
+        },
+        {
+          "action": "force_merge",
+          "region": "航空意外险服务卡片",
+          "granularity": "card",
+          "from_count": 2,
+          "reason": "card 分区 [航空意外险服务卡片] 内 2 个组件强制合并"
+        }
+      ]
+    }
+  },
+  "components": [
+    {
+      "index": 0,
+      "class": "StatusBar",
+      "bounds": {
+        "x": 128,
+        "y": 48,
+        "width": 1052,
+        "height": 77
+      },
+      "text": "系统状态栏，显示时间、信号、电量等信息",
+      "clickable": true,
+      "source_indices": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5
+      ],
+      "note": "布局强制合并: 状态栏"
+    },
+    {
+      "index": 1,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 22,
+        "y": 196,
+        "width": 88,
+        "height": 107
+      },
+      "text": "Back",
+      "clickable": true,
+      "source": "box_yolo_content_yolo",
+      "contentDesc": "Back"
+    },
+    {
+      "index": 2,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 337,
+        "y": 197,
+        "width": 164,
+        "height": 106
+      },
+      "text": "Chinese language",
+      "clickable": true,
+      "source": "box_yolo_content_yolo",
+      "contentDesc": "Chinese language"
+    },
+    {
+      "index": 3,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 832,
+        "y": 201,
+        "width": 107,
+        "height": 82
+      },
+      "text": "Xray",
+      "clickable": true,
+      "source": "box_yolo_content_yolo",
+      "contentDesc": "Xray"
+    },
+    {
+      "index": 4,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 499,
+        "y": 203,
+        "width": 77,
+        "height": 89
+      },
+      "text": "Line",
+      "clickable": true,
+      "source": "box_yolo_content_yolo",
+      "contentDesc": "Line"
+    },
+    {
+      "index": 5,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 754,
+        "y": 205,
+        "width": 78,
+        "height": 76
+      },
+      "text": "Line",
+      "clickable": true,
+      "source": "box_yolo_content_yolo",
+      "contentDesc": "Line"
+    },
+    {
+      "index": 6,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 572,
+        "y": 206,
+        "width": 178,
+        "height": 77
+      },
+      "text": "Chinese language",
+      "clickable": true,
+      "source": "box_yolo_content_yolo",
+      "contentDesc": "Chinese language"
+    },
+    {
+      "index": 7,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 368,
+        "y": 305,
+        "width": 136,
+        "height": 72
+      },
+      "text": "$611",
+      "clickable": true,
+      "source": "box_yolo_content_yolo",
+      "contentDesc": "$611"
+    },
+    {
+      "index": 8,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 513,
+        "y": 311,
+        "width": 82,
+        "height": 64
+      },
+      "text": "Meituan",
+      "clickable": true,
+      "source": "box_yolo_content_yolo",
+      "contentDesc": "Meituan"
+    },
+    {
+      "index": 9,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 595,
+        "y": 312,
+        "width": 108,
+        "height": 60
+      },
+      "text": "Design",
+      "clickable": true,
+      "source": "box_yolo_content_yolo",
+      "contentDesc": "Design"
+    },
+    {
+      "index": 10,
+      "class": "FlightInfoBar",
+      "bounds": {
+        "x": 164,
+        "y": 439,
+        "width": 539,
+        "height": 169
+      },
+      "text": "北京-上海 航班 02-10 ¥611",
+      "clickable": true,
+      "source_indices": [
+        15,
+        16
+      ],
+      "note": "布局强制合并: 航班信息条"
+    },
+    {
+      "index": 11,
+      "class": "PromoBanner",
+      "bounds": {
+        "x": 104,
+        "y": 700,
+        "width": 1102,
+        "height": 216
+      },
+      "text": "避开人群喧闹，在休息室舒适候机",
+      "clickable": true,
+      "source_indices": [
+        17,
+        18,
+        19
+      ],
+      "note": "布局强制合并: 宣传标语区"
+    },
+    {
+      "index": 12,
+      "class": "Card",
+      "bounds": {
+        "x": 77,
+        "y": 1122,
+        "width": 1138,
+        "height": 225
+      },
+      "text": "贵宾休息室 ¥138/份，含小食饮料、按摩椅、报刊杂志、专属WiFi",
+      "clickable": true,
+      "source_indices": [
+        20,
+        21,
+        22,
+        23,
+        24,
+        25,
+        26
+      ],
+      "note": "布局强制合并: 贵宾休息室服务卡片"
+    },
+    {
+      "index": 13,
+      "class": "Card",
+      "bounds": {
+        "x": 76,
+        "y": 1460,
+        "width": 1130,
+        "height": 345
+      },
+      "text": "北京送机/上海接机 ¥53起，含车辆消毒、司机戴口罩等服务",
+      "clickable": true,
+      "source_indices": [
+        27,
+        28,
+        29,
+        30,
+        31
+      ],
+      "note": "布局强制合并: 接送机服务卡片"
+    },
+    {
+      "index": 14,
+      "class": "Card",
+      "bounds": {
+        "x": 301,
+        "y": 1916,
+        "width": 911,
+        "height": 99
+      },
+      "text": "航空意外险 ¥29/人，最高保额350万，含医疗及行李保障",
+      "clickable": true,
+      "source_indices": [
+        32,
+        33
+      ],
+      "note": "布局强制合并: 航空意外险服务卡片"
+    },
+    {
+      "index": 15,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 73,
+        "y": 2081,
+        "width": 374,
+        "height": 59
+      },
+      "text": "QR code scanner",
+      "clickable": true,
+      "source": "box_yolo_content_yolo",
+      "contentDesc": "QR code scanner"
+    },
+    {
+      "index": 16,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 282,
+        "y": 2279,
+        "width": 61,
+        "height": 64
+      },
+      "text": "Slow motion",
+      "clickable": true,
+      "source": "box_yolo_content_yolo",
+      "contentDesc": "Slow motion"
+    },
+    {
+      "index": 17,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 1168,
+        "y": 2407,
+        "width": 83,
+        "height": 92
+      },
+      "text": "Circle",
+      "clickable": true,
+      "source": "box_yolo_content_yolo",
+      "contentDesc": "Circle"
+    },
+    {
+      "index": 18,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 467,
+        "y": 2417,
+        "width": 299,
+        "height": 55
+      },
+      "text": "Newcastlecastle",
+      "clickable": true,
+      "source": "box_yolo_content_yolo",
+      "contentDesc": "Newcastlecastle"
+    },
+    {
+      "index": 19,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 786,
+        "y": 2419,
+        "width": 349,
+        "height": 50
+      },
+      "text": "Conference",
+      "clickable": true,
+      "source": "box_yolo_content_yolo",
+      "contentDesc": "Conference"
+    },
+    {
+      "index": 20,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 262,
+        "y": 2420,
+        "width": 31,
+        "height": 50
+      },
+      "text": "Language or translation function.",
+      "clickable": true,
+      "source": "box_yolo_content_yolo",
+      "contentDesc": "Language or translation function."
+    },
+    {
+      "index": 21,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 296,
+        "y": 2422,
+        "width": 33,
+        "height": 45
+      },
+      "text": "A railway station platform.",
+      "clickable": true,
+      "source": "box_yolo_content_yolo",
+      "contentDesc": "A railway station platform."
+    },
+    {
+      "index": 22,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 905,
+        "y": 2536,
+        "width": 337,
+        "height": 138
+      },
+      "text": "14:50 ",
+      "clickable": true,
+      "source": "box_yolo_content_ocr",
+      "contentDesc": "14:50 "
+    },
+    {
+      "index": 23,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 32,
+        "y": 2541,
+        "width": 137,
+        "height": 130
+      },
+      "text": "Xinguish (XinguISH)",
+      "clickable": true,
+      "source": "box_yolo_content_yolo",
+      "contentDesc": "Xinguish (XinguISH)"
+    },
+    {
+      "index": 24,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 179,
+        "y": 2553,
+        "width": 203,
+        "height": 63
+      },
+      "text": "Vietnam",
+      "clickable": true,
+      "source": "box_yolo_content_yolo",
+      "contentDesc": "Vietnam"
+    },
+    {
+      "index": 25,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 731,
+        "y": 2554,
+        "width": 149,
+        "height": 99
+      },
+      "text": "Asian Men",
+      "clickable": true,
+      "source": "box_yolo_content_yolo",
+      "contentDesc": "Asian Men"
+    },
+    {
+      "index": 26,
+      "class": "TextView",
+      "bounds": {
+        "x": 49,
+        "y": 2559,
+        "width": 328,
+        "height": 50
+      },
+      "text": "611 E17",
+      "clickable": false,
+      "source": "box_ocr_content_ocr"
+    }
+  ],
+  "componentCount": 27
+}

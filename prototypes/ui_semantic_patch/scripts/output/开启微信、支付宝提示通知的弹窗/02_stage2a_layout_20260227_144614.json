@@ -1,0 +1,130 @@
+{
+  "app_type": "旅游出行类App",
+  "page_description": "首页展示各类旅行服务入口、推荐内容和热门目的地信息",
+  "regions": [
+    {
+      "name": "状态栏",
+      "y_range": [
+        0,
+        80
+      ],
+      "granularity": "atomic",
+      "merge_as_class": "StatusBar",
+      "merge_as_text": "系统状态栏",
+      "description": "显示时间、电池、信号等系统信息的区域，不可交互"
+    },
+    {
+      "name": "搜索栏",
+      "y_range": [
+        80,
+        185
+      ],
+      "granularity": "fine",
+      "expected_components": [
+        {
+          "type": "EditText",
+          "text": "目的地/酒店/景点/机票"
+        },
+        {
+          "type": "Button",
+          "text": "搜索"
+        }
+      ],
+      "description": "包含输入框和搜索按钮的独立功能区，两个组件功能不同，需分开处理"
+    },
+    {
+      "name": "服务分类图标区",
+      "y_range": [
+        185,
+        570
+      ],
+      "granularity": "fine",
+      "expected_components": [
+        {
+          "type": "IconGrid",
+          "count": 15
+        },
+        {
+          "type": "Indicator",
+          "text": "当前页指示器"
+        }
+      ],
+      "description": "由多个独立功能图标组成的网格布局，每个图标代表不同服务类型，应作为独立组件处理"
+    },
+    {
+      "name": "口碑榜与旅行热点卡片",
+      "y_range": [
+        570,
+        890
+      ],
+      "granularity": "card",
+      "merge_as_class": "Card",
+      "merge_as_text": "口碑榜：高档酒店（埃文）；旅行热点：梵蒂冈游（飙升23%）",
+      "description": "两个并列的推荐卡片，分别描述不同目的地或服务，但整体属于同一类推荐内容，可合并为一个Card组件"
+    },
+    {
+      "name": "特价专区与直播团购卡片",
+      "y_range": [
+        570,
+        890
+      ],
+      "granularity": "card",
+      "merge_as_class": "Card",
+      "merge_as_text": "特价专区：全球特价出行；直播团购：大理市预囤（爆款5折起）",
+      "description": "两个并列的促销卡片，共同构成“优惠推荐”区域，内容围绕促销活动展开，可合并为一个Card组件"
+    },
+    {
+      "name": "春季旅行推荐卡片",
+      "y_range": [
+        890,
+        1520
+      ],
+      "granularity": "card",
+      "merge_as_class": "Card",
+      "merge_as_text": "3-4月份说走就走的三个城市，春花烂漫季节推荐，来自芊宝旅行",
+      "description": "一张完整的图文推荐卡片，包含标题、图片、文字描述和发布者信息，共同描述一个主题内容"
+    },
+    {
+      "name": "上海景点推荐卡片",
+      "y_range": [
+        890,
+        1520
+      ],
+      "granularity": "card",
+      "merge_as_class": "Card",
+      "merge_as_text": "上海必打卡景点榜，官方剧透顶流景点，携程榜单推荐",
+      "description": "另一张完整的图文推荐卡片，聚焦于上海景点推荐，所有元素共同构成一个推荐项"
+    },
+    {
+      "name": "底部导航栏",
+      "y_range": [
+        1520,
+        1670
+      ],
+      "granularity": "fine",
+      "expected_components": [
+        {
+          "type": "TabButton",
+          "text": "首页"
+        },
+        {
+          "type": "TabButton",
+          "text": "视频"
+        },
+        {
+          "type": "TabButton",
+          "text": "消息"
+        },
+        {
+          "type": "TabButton",
+          "text": "行程"
+        },
+        {
+          "type": "TabButton",
+          "text": "我的"
+        }
+      ],
+      "description": "五个功能不同的标签页按钮，各自承担跳转功能，必须独立保留"
+    }
+  ]
+}

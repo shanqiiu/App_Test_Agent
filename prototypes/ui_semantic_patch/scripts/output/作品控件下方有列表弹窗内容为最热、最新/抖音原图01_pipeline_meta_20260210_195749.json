@@ -1,0 +1,15 @@
+{
+  "timestamp": "20260210_195749",
+  "screenshot": "../data/原图/个人主页类-控件点击弹窗/抖音原图01.jpg",
+  "instruction": "作品控件下方有列表弹窗 内容为最热、最新",
+  "outputs": {
+    "stage1_omni_raw": "output\\作品控件下方有列表弹窗内容为最热、最新\\抖音原图01_stage1_omni_raw_20260210_195749.json",
+    "stage1_annotated": "output\\作品控件下方有列表弹窗内容为最热、最新\\抖音原图01_stage1_annotated_20260210_195749.png",
+    "stage2_filtered": "output\\作品控件下方有列表弹窗内容为最热、最新\\抖音原图01_stage2_filtered_20260210_195749.json",
+    "stage2_annotated": "output\\作品控件下方有列表弹窗内容为最热、最新\\抖音原图01_stage2_annotated_20260210_195749.png",
+    "final_image": "output\\作品控件下方有列表弹窗内容为最热、最新\\抖音原图01_final_20260210_195749.png",
+    "meta_driven": true,
+    "gt_category": "弹窗覆盖原UI",
+    "gt_sample": "弹出提示.jpg"
+  }
+}

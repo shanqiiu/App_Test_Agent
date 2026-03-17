@@ -1,0 +1,793 @@
+{
+  "metadata": {
+    "source": "饿了么.jpg",
+    "extractionMethod": "OmniParser",
+    "models": {
+      "detection": "YOLO (icon_detect)",
+      "ocr": "PaddleOCR",
+      "caption": "Florence2"
+    },
+    "timestamp": "2026-02-11T17:34:00.706472",
+    "resolution": {
+      "width": 1224,
+      "height": 2776
+    }
+  },
+  "components": [
+    {
+      "index": 0,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 112,
+        "y": 1,
+        "width": 62,
+        "height": 67
+      },
+      "text": "crabs",
+      "clickable": true,
+      "source": "box_yolo_content_yolo",
+      "contentDesc": "crabs"
+    },
+    {
+      "index": 1,
+      "class": "TextView",
+      "bounds": {
+        "x": 121,
+        "y": 14,
+        "width": 411,
+        "height": 46
+      },
+      "text": "luckin coffee x",
+      "clickable": false,
+      "source": "box_ocr_content_ocr"
+    },
+    {
+      "index": 2,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 993,
+        "y": 52,
+        "width": 88,
+        "height": 85
+      },
+      "text": "Sound measurement.",
+      "clickable": true,
+      "source": "box_yolo_content_yolo",
+      "contentDesc": "Sound measurement."
+    },
+    {
+      "index": 3,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 1083,
+        "y": 52,
+        "width": 99,
+        "height": 84
+      },
+      "text": "45 seconds",
+      "clickable": true,
+      "source": "box_yolo_content_yolo",
+      "contentDesc": "45 seconds"
+    },
+    {
+      "index": 4,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 923,
+        "y": 53,
+        "width": 62,
+        "height": 75
+      },
+      "text": "Wireless Network",
+      "clickable": true,
+      "source": "box_yolo_content_yolo",
+      "contentDesc": "Wireless Network"
+    },
+    {
+      "index": 5,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 24,
+        "y": 54,
+        "width": 150,
+        "height": 70
+      },
+      "text": "09:59",
+      "clickable": true,
+      "source": "box_yolo_content_yolo",
+      "contentDesc": "09:59"
+    },
+    {
+      "index": 6,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 871,
+        "y": 54,
+        "width": 54,
+        "height": 75
+      },
+      "text": "Saturn",
+      "clickable": true,
+      "source": "box_yolo_content_yolo",
+      "contentDesc": "Saturn"
+    },
+    {
+      "index": 7,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 752,
+        "y": 55,
+        "width": 59,
+        "height": 70
+      },
+      "text": "News",
+      "clickable": true,
+      "source": "box_yolo_content_yolo",
+      "contentDesc": "News"
+    },
+    {
+      "index": 8,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 814,
+        "y": 55,
+        "width": 53,
+        "height": 71
+      },
+      "text": "QuickTime",
+      "clickable": true,
+      "source": "box_yolo_content_yolo",
+      "contentDesc": "QuickTime"
+    },
+    {
+      "index": 9,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 177,
+        "y": 60,
+        "width": 61,
+        "height": 59
+      },
+      "text": "WeLink",
+      "clickable": true,
+      "source": "box_yolo_content_yolo",
+      "contentDesc": "WeLink"
+    },
+    {
+      "index": 10,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 302,
+        "y": 63,
+        "width": 56,
+        "height": 56
+      },
+      "text": "Bibbiti",
+      "clickable": true,
+      "source": "box_yolo_content_yolo",
+      "contentDesc": "Bibbiti"
+    },
+    {
+      "index": 11,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 243,
+        "y": 64,
+        "width": 52,
+        "height": 55
+      },
+      "text": "penguin",
+      "clickable": true,
+      "source": "box_yolo_content_yolo",
+      "contentDesc": "penguin"
+    },
+    {
+      "index": 12,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 635,
+        "y": 97,
+        "width": 60,
+        "height": 74
+      },
+      "text": "Chinese language translation.",
+      "clickable": true,
+      "source": "box_yolo_content_yolo",
+      "contentDesc": "Chinese language translation."
+    },
+    {
+      "index": 13,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 732,
+        "y": 185,
+        "width": 85,
+        "height": 87
+      },
+      "text": "Mail",
+      "clickable": true,
+      "source": "box_yolo_content_yolo",
+      "contentDesc": "Mail"
+    },
+    {
+      "index": 14,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 942,
+        "y": 384,
+        "width": 123,
+        "height": 71
+      },
+      "text": "Highway Station",
+      "clickable": true,
+      "source": "box_yolo_content_yolo",
+      "contentDesc": "Highway Station"
+    },
+    {
+      "index": 15,
+      "class": "TextView",
+      "bounds": {
+        "x": 1117,
+        "y": 401,
+        "width": 59,
+        "height": 35
+      },
+      "text": "1/4",
+      "clickable": false,
+      "source": "box_ocr_content_ocr"
+    },
+    {
+      "index": 16,
+      "class": "TextView",
+      "bounds": {
+        "x": 35,
+        "y": 416,
+        "width": 112,
+        "height": 28
+      },
+      "text": "OMALTESE",
+      "clickable": false,
+      "source": "box_ocr_content_ocr"
+    },
+    {
+      "index": 17,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 32,
+        "y": 515,
+        "width": 216,
+        "height": 216
+      },
+      "text": "Star Wars Wars",
+      "clickable": true,
+      "source": "box_yolo_content_yolo",
+      "contentDesc": "Star Wars Wars"
+    },
+    {
+      "index": 18,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 249,
+        "y": 661,
+        "width": 89,
+        "height": 68
+      },
+      "text": "4.8 ",
+      "clickable": true,
+      "source": "box_yolo_content_ocr",
+      "contentDesc": "4.8 "
+    },
+    {
+      "index": 19,
+      "class": "TextView",
+      "bounds": {
+        "x": 400,
+        "y": 671,
+        "width": 126,
+        "height": 43
+      },
+      "text": "3000+",
+      "clickable": false,
+      "source": "box_ocr_content_ocr"
+    },
+    {
+      "index": 20,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 881,
+        "y": 734,
+        "width": 310,
+        "height": 57
+      },
+      "text": "Extendedended Chart",
+      "clickable": true,
+      "source": "box_yolo_content_yolo",
+      "contentDesc": "Extendedended Chart"
+    },
+    {
+      "index": 21,
+      "class": "TextView",
+      "bounds": {
+        "x": 32,
+        "y": 745,
+        "width": 38,
+        "height": 38
+      },
+      "text": "3)",
+      "clickable": false,
+      "source": "box_ocr_content_ocr"
+    },
+    {
+      "index": 22,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 32,
+        "y": 814,
+        "width": 274,
+        "height": 90
+      },
+      "text": "Xiaohongshu",
+      "clickable": true,
+      "source": "box_yolo_content_yolo",
+      "contentDesc": "Xiaohongshu"
+    },
+    {
+      "index": 23,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 953,
+        "y": 903,
+        "width": 241,
+        "height": 99
+      },
+      "text": "Vitamin V",
+      "clickable": true,
+      "source": "box_yolo_content_yolo",
+      "contentDesc": "Vitamin V"
+    },
+    {
+      "index": 24,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 33,
+        "y": 919,
+        "width": 185,
+        "height": 65
+      },
+      "text": "Xiaohongshu (Xiao)",
+      "clickable": true,
+      "source": "box_yolo_content_yolo",
+      "contentDesc": "Xiaohongshu (Xiao)"
+    },
+    {
+      "index": 25,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 224,
+        "y": 922,
+        "width": 185,
+        "height": 61
+      },
+      "text": "A Chinese shopping platform.",
+      "clickable": true,
+      "source": "box_yolo_content_yolo",
+      "contentDesc": "A Chinese shopping platform."
+    },
+    {
+      "index": 26,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 412,
+        "y": 922,
+        "width": 186,
+        "height": 61
+      },
+      "text": "A Chinese shopping platform.",
+      "clickable": true,
+      "source": "box_yolo_content_yolo",
+      "contentDesc": "A Chinese shopping platform."
+    },
+    {
+      "index": 27,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 28,
+        "y": 1070,
+        "width": 114,
+        "height": 129
+      },
+      "text": "Level",
+      "clickable": true,
+      "source": "box_yolo_content_yolo",
+      "contentDesc": "Level"
+    },
+    {
+      "index": 28,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 467,
+        "y": 1077,
+        "width": 115,
+        "height": 69
+      },
+      "text": "Factory",
+      "clickable": true,
+      "source": "box_yolo_content_yolo",
+      "contentDesc": "Factory"
+    },
+    {
+      "index": 29,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 247,
+        "y": 1079,
+        "width": 188,
+        "height": 67
+      },
+      "text": "i1758 ",
+      "clickable": true,
+      "source": "box_yolo_content_ocr",
+      "contentDesc": "i1758 "
+    },
+    {
+      "index": 30,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 43,
+        "y": 1213,
+        "width": 70,
+        "height": 85
+      },
+      "text": "Depto",
+      "clickable": true,
+      "source": "box_yolo_content_yolo",
+      "contentDesc": "Depto"
+    },
+    {
+      "index": 31,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 118,
+        "y": 1296,
+        "width": 77,
+        "height": 83
+      },
+      "text": "Teams",
+      "clickable": true,
+      "source": "box_yolo_content_yolo",
+      "contentDesc": "Teams"
+    },
+    {
+      "index": 32,
+      "class": "TextView",
+      "bounds": {
+        "x": 59,
+        "y": 1425,
+        "width": 84,
+        "height": 29
+      },
+      "text": "MALTESE",
+      "clickable": false,
+      "source": "box_ocr_content_ocr"
+    },
+    {
+      "index": 33,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 236,
+        "y": 1514,
+        "width": 56,
+        "height": 63
+      },
+      "text": "Strawberry",
+      "clickable": true,
+      "source": "box_yolo_content_yolo",
+      "contentDesc": "Strawberry"
+    },
+    {
+      "index": 34,
+      "class": "TextView",
+      "bounds": {
+        "x": 996,
+        "y": 1535,
+        "width": 126,
+        "height": 31
+      },
+      "text": "OMALTESE",
+      "clickable": false,
+      "source": "box_ocr_content_ocr"
+    },
+    {
+      "index": 35,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 501,
+        "y": 1588,
+        "width": 127,
+        "height": 119
+      },
+      "text": "Chinese writing.",
+      "clickable": true,
+      "source": "box_yolo_content_yolo",
+      "contentDesc": "Chinese writing."
+    },
+    {
+      "index": 36,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 617,
+        "y": 1595,
+        "width": 97,
+        "height": 115
+      },
+      "text": "Whole Foods",
+      "clickable": true,
+      "source": "box_yolo_content_yolo",
+      "contentDesc": "Whole Foods"
+    },
+    {
+      "index": 37,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 753,
+        "y": 1791,
+        "width": 340,
+        "height": 344
+      },
+      "text": " Juckin coffe ",
+      "clickable": true,
+      "source": "box_yolo_content_ocr",
+      "contentDesc": " Juckin coffe "
+    },
+    {
+      "index": 38,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 58,
+        "y": 1797,
+        "width": 343,
+        "height": 331
+      },
+      "text": "DrawDraw",
+      "clickable": true,
+      "source": "box_yolo_content_yolo",
+      "contentDesc": "DrawDraw"
+    },
+    {
+      "index": 39,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 408,
+        "y": 1797,
+        "width": 340,
+        "height": 464
+      },
+      "text": "Vitaliciousiciousiciously beautiful",
+      "clickable": true,
+      "source": "box_yolo_content_yolo",
+      "contentDesc": "Vitaliciousiciousiciously beautiful"
+    },
+    {
+      "index": 40,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 1093,
+        "y": 2087,
+        "width": 71,
+        "height": 58
+      },
+      "text": "Someone sticking their head out of the page.",
+      "clickable": true,
+      "source": "box_yolo_content_yolo",
+      "contentDesc": "Someone sticking their head out of the page."
+    },
+    {
+      "index": 41,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 66,
+        "y": 2124,
+        "width": 326,
+        "height": 83
+      },
+      "text": "Models",
+      "clickable": true,
+      "source": "box_yolo_content_yolo",
+      "contentDesc": "Models"
+    },
+    {
+      "index": 42,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 1108,
+        "y": 2129,
+        "width": 78,
+        "height": 92
+      },
+      "text": "Jello",
+      "clickable": true,
+      "source": "box_yolo_content_yolo",
+      "contentDesc": "Jello"
+    },
+    {
+      "index": 43,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 65,
+        "y": 2211,
+        "width": 225,
+        "height": 100
+      },
+      "text": "21 24 ",
+      "clickable": true,
+      "source": "box_yolo_content_ocr",
+      "contentDesc": "21 24 "
+    },
+    {
+      "index": 44,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 417,
+        "y": 2211,
+        "width": 173,
+        "height": 102
+      },
+      "text": "22.8",
+      "clickable": true,
+      "source": "box_yolo_content_yolo",
+      "contentDesc": "22.8"
+    },
+    {
+      "index": 45,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 999,
+        "y": 2215,
+        "width": 88,
+        "height": 97
+      },
+      "text": "Add",
+      "clickable": true,
+      "source": "box_yolo_content_yolo",
+      "contentDesc": "Add"
+    },
+    {
+      "index": 46,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 289,
+        "y": 2217,
+        "width": 101,
+        "height": 93
+      },
+      "text": "Add",
+      "clickable": true,
+      "source": "box_yolo_content_yolo",
+      "contentDesc": "Add"
+    },
+    {
+      "index": 47,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 586,
+        "y": 2219,
+        "width": 68,
+        "height": 85
+      },
+      "text": "Supplier Dollar",
+      "clickable": true,
+      "source": "box_yolo_content_yolo",
+      "contentDesc": "Supplier Dollar"
+    },
+    {
+      "index": 48,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 1104,
+        "y": 2219,
+        "width": 81,
+        "height": 98
+      },
+      "text": "Currency exchange",
+      "clickable": true,
+      "source": "box_yolo_content_yolo",
+      "contentDesc": "Currency exchange"
+    },
+    {
+      "index": 49,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 655,
+        "y": 2220,
+        "width": 82,
+        "height": 86
+      },
+      "text": "Add",
+      "clickable": true,
+      "source": "box_yolo_content_yolo",
+      "contentDesc": "Add"
+    },
+    {
+      "index": 50,
+      "class": "TextView",
+      "bounds": {
+        "x": 777,
+        "y": 2227,
+        "width": 102,
+        "height": 56
+      },
+      "text": "23",
+      "clickable": false,
+      "source": "box_ocr_content_ocr"
+    },
+    {
+      "index": 51,
+      "class": "TextView",
+      "bounds": {
+        "x": 435,
+        "y": 2232,
+        "width": 212,
+        "height": 51
+      },
+      "text": "22.82",
+      "clickable": false,
+      "source": "box_ocr_content_ocr"
+    },
+    {
+      "index": 52,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 44,
+        "y": 2503,
+        "width": 144,
+        "height": 142
+      },
+      "text": "Mail",
+      "clickable": true,
+      "source": "box_yolo_content_yolo",
+      "contentDesc": "Mail"
+    },
+    {
+      "index": 53,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 827,
+        "y": 2504,
+        "width": 366,
+        "height": 137
+      },
+      "text": "A timer or timer app.",
+      "clickable": true,
+      "source": "box_yolo_content_yolo",
+      "contentDesc": "A timer or timer app."
+    },
+    {
+      "index": 54,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 204,
+        "y": 2507,
+        "width": 77,
+        "height": 135
+      },
+      "text": "Chinese currency",
+      "clickable": true,
+      "source": "box_yolo_content_yolo",
+      "contentDesc": "Chinese currency"
+    },
+    {
+      "index": 55,
+      "class": "TextView",
+      "bounds": {
+        "x": 212,
+        "y": 2585,
+        "width": 195,
+        "height": 46
+      },
+      "text": "6",
+      "clickable": false,
+      "source": "box_ocr_content_ocr"
+    }
+  ],
+  "componentCount": 56
+}

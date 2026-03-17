@@ -1,0 +1,631 @@
+{
+  "metadata": {
+    "source": "携程旅行02.jpg",
+    "extractionMethod": "OmniParser",
+    "models": {
+      "detection": "YOLO (icon_detect)",
+      "ocr": "PaddleOCR",
+      "caption": "Florence2"
+    },
+    "timestamp": "2026-02-10T15:58:11.720851",
+    "resolution": {
+      "width": 1280,
+      "height": 2774
+    }
+  },
+  "components": [
+    {
+      "index": 0,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 1067,
+        "y": 52,
+        "width": 98,
+        "height": 67
+      },
+      "text": "37 ",
+      "clickable": true,
+      "source": "box_yolo_content_ocr",
+      "contentDesc": "37 "
+    },
+    {
+      "index": 1,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 898,
+        "y": 53,
+        "width": 81,
+        "height": 76
+      },
+      "text": "a menu or list options.",
+      "clickable": true,
+      "source": "box_yolo_content_yolo",
+      "contentDesc": "a menu or list options."
+    },
+    {
+      "index": 2,
+      "class": "TextView",
+      "bounds": {
+        "x": 896,
+        "y": 58,
+        "width": 172,
+        "height": 60
+      },
+      "text": "5G",
+      "clickable": false,
+      "source": "box_ocr_content_ocr"
+    },
+    {
+      "index": 3,
+      "class": "TextView",
+      "bounds": {
+        "x": 140,
+        "y": 60,
+        "width": 194,
+        "height": 49
+      },
+      "text": "14:04",
+      "clickable": false,
+      "source": "box_ocr_content_ocr"
+    },
+    {
+      "index": 4,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 1141,
+        "y": 186,
+        "width": 99,
+        "height": 128
+      },
+      "text": "A disc golf club.",
+      "clickable": true,
+      "source": "box_yolo_content_yolo",
+      "contentDesc": "A disc golf club."
+    },
+    {
+      "index": 5,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 14,
+        "y": 191,
+        "width": 109,
+        "height": 112
+      },
+      "text": "Back",
+      "clickable": true,
+      "source": "box_yolo_content_yolo",
+      "contentDesc": "Back"
+    },
+    {
+      "index": 6,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 619,
+        "y": 199,
+        "width": 84,
+        "height": 88
+      },
+      "text": "Vietnam",
+      "clickable": true,
+      "source": "box_yolo_content_yolo",
+      "contentDesc": "Vietnam"
+    },
+    {
+      "index": 7,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 874,
+        "y": 206,
+        "width": 163,
+        "height": 63
+      },
+      "text": "A website or application related to Chinese technology.",
+      "clickable": true,
+      "source": "box_yolo_content_yolo",
+      "contentDesc": "A website or application related to Chinese technology."
+    },
+    {
+      "index": 8,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 133,
+        "y": 325,
+        "width": 301,
+        "height": 72
+      },
+      "text": "A calendar app or calendar app.",
+      "clickable": true,
+      "source": "box_yolo_content_yolo",
+      "contentDesc": "A calendar app or calendar app."
+    },
+    {
+      "index": 9,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 434,
+        "y": 326,
+        "width": 224,
+        "height": 74
+      },
+      "text": "Xiaohongshu (Xiao) app.",
+      "clickable": true,
+      "source": "box_yolo_content_yolo",
+      "contentDesc": "Xiaohongshu (Xiao) app."
+    },
+    {
+      "index": 10,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 0,
+        "y": 403,
+        "width": 87,
+        "height": 58
+      },
+      "text": "Highlight (⌘H)",
+      "clickable": true,
+      "source": "box_yolo_content_yolo",
+      "contentDesc": "Highlight (⌘H)"
+    },
+    {
+      "index": 11,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 1125,
+        "y": 416,
+        "width": 53,
+        "height": 53
+      },
+      "text": "Last",
+      "clickable": true,
+      "source": "box_yolo_content_yolo",
+      "contentDesc": "Last"
+    },
+    {
+      "index": 12,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 295,
+        "y": 461,
+        "width": 390,
+        "height": 176
+      },
+      "text": "Xiaohongshu (Xia)",
+      "clickable": true,
+      "source": "box_yolo_content_yolo",
+      "contentDesc": "Xiaohongshu (Xia)"
+    },
+    {
+      "index": 13,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 61,
+        "y": 462,
+        "width": 247,
+        "height": 176
+      },
+      "text": "Foreign language",
+      "clickable": true,
+      "source": "box_yolo_content_yolo",
+      "contentDesc": "Foreign language"
+    },
+    {
+      "index": 14,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 701,
+        "y": 476,
+        "width": 288,
+        "height": 158
+      },
+      "text": "Xiaohongshu (Xia)",
+      "clickable": true,
+      "source": "box_yolo_content_yolo",
+      "contentDesc": "Xiaohongshu (Xia)"
+    },
+    {
+      "index": 15,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 991,
+        "y": 476,
+        "width": 208,
+        "height": 154
+      },
+      "text": "Korean Text Box",
+      "clickable": true,
+      "source": "box_yolo_content_yolo",
+      "contentDesc": "Korean Text Box"
+    },
+    {
+      "index": 16,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 86,
+        "y": 647,
+        "width": 372,
+        "height": 98
+      },
+      "text": "The date and time of the month.",
+      "clickable": true,
+      "source": "box_yolo_content_yolo",
+      "contentDesc": "The date and time of the month."
+    },
+    {
+      "index": 17,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 817,
+        "y": 648,
+        "width": 371,
+        "height": 98
+      },
+      "text": "Sunset",
+      "clickable": true,
+      "source": "box_yolo_content_yolo",
+      "contentDesc": "Sunset"
+    },
+    {
+      "index": 18,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 457,
+        "y": 649,
+        "width": 356,
+        "height": 96
+      },
+      "text": "Designer",
+      "clickable": true,
+      "source": "box_yolo_content_yolo",
+      "contentDesc": "Designer"
+    },
+    {
+      "index": 19,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 1106,
+        "y": 777,
+        "width": 68,
+        "height": 86
+      },
+      "text": "Close",
+      "clickable": true,
+      "source": "box_yolo_content_yolo",
+      "contentDesc": "Close"
+    },
+    {
+      "index": 20,
+      "class": "TextView",
+      "bounds": {
+        "x": 128,
+        "y": 798,
+        "width": 560,
+        "height": 40
+      },
+      "text": "1888",
+      "clickable": false,
+      "source": "box_ocr_content_ocr"
+    },
+    {
+      "index": 21,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 83,
+        "y": 877,
+        "width": 1109,
+        "height": 158
+      },
+      "text": "Interior",
+      "clickable": true,
+      "source": "box_yolo_content_yolo",
+      "contentDesc": "Interior"
+    },
+    {
+      "index": 22,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 379,
+        "y": 1083,
+        "width": 100,
+        "height": 82
+      },
+      "text": "Chinese language",
+      "clickable": true,
+      "source": "box_yolo_content_yolo",
+      "contentDesc": "Chinese language"
+    },
+    {
+      "index": 23,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 956,
+        "y": 1198,
+        "width": 244,
+        "height": 130
+      },
+      "text": "14-2 ",
+      "clickable": true,
+      "source": "box_yolo_content_ocr",
+      "contentDesc": "14-2 "
+    },
+    {
+      "index": 24,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 789,
+        "y": 1206,
+        "width": 146,
+        "height": 119
+      },
+      "text": "2-12 hours",
+      "clickable": true,
+      "source": "box_yolo_content_yolo",
+      "contentDesc": "2-12 hours"
+    },
+    {
+      "index": 25,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 85,
+        "y": 1213,
+        "width": 494,
+        "height": 106
+      },
+      "text": "Conference Center",
+      "clickable": true,
+      "source": "box_yolo_content_yolo",
+      "contentDesc": "Conference Center"
+    },
+    {
+      "index": 26,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 721,
+        "y": 1230,
+        "width": 73,
+        "height": 86
+      },
+      "text": "Circle",
+      "clickable": true,
+      "source": "box_yolo_content_yolo",
+      "contentDesc": "Circle"
+    },
+    {
+      "index": 27,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 71,
+        "y": 1368,
+        "width": 1133,
+        "height": 176
+      },
+      "text": "Bookmarks",
+      "clickable": true,
+      "source": "box_yolo_content_yolo",
+      "contentDesc": "Bookmarks"
+    },
+    {
+      "index": 28,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 59,
+        "y": 1758,
+        "width": 229,
+        "height": 176
+      },
+      "text": "Xiaohongshu (Little Red Book)",
+      "clickable": true,
+      "source": "box_yolo_content_yolo",
+      "contentDesc": "Xiaohongshu (Little Red Book)"
+    },
+    {
+      "index": 29,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 299,
+        "y": 1760,
+        "width": 213,
+        "height": 172
+      },
+      "text": "Xiaohongshu (Xia)",
+      "clickable": true,
+      "source": "box_yolo_content_yolo",
+      "contentDesc": "Xiaohongshu (Xia)"
+    },
+    {
+      "index": 30,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 994,
+        "y": 1762,
+        "width": 206,
+        "height": 175
+      },
+      "text": "Xiaohongshu (Little Red Book)",
+      "clickable": true,
+      "source": "box_yolo_content_yolo",
+      "contentDesc": "Xiaohongshu (Little Red Book)"
+    },
+    {
+      "index": 31,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 522,
+        "y": 1763,
+        "width": 223,
+        "height": 168
+      },
+      "text": "Hong kong University",
+      "clickable": true,
+      "source": "box_yolo_content_yolo",
+      "contentDesc": "Hong kong University"
+    },
+    {
+      "index": 32,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 758,
+        "y": 1763,
+        "width": 215,
+        "height": 172
+      },
+      "text": "Korean language translation (K)",
+      "clickable": true,
+      "source": "box_yolo_content_yolo",
+      "contentDesc": "Korean language translation (K)"
+    },
+    {
+      "index": 33,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 943,
+        "y": 2043,
+        "width": 219,
+        "height": 92
+      },
+      "text": "Vietnam",
+      "clickable": true,
+      "source": "box_yolo_content_yolo",
+      "contentDesc": "Vietnam"
+    },
+    {
+      "index": 34,
+      "class": "TextView",
+      "bounds": {
+        "x": 434,
+        "y": 2066,
+        "width": 211,
+        "height": 40
+      },
+      "text": "1888",
+      "clickable": false,
+      "source": "box_ocr_content_ocr"
+    },
+    {
+      "index": 35,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 66,
+        "y": 2147,
+        "width": 352,
+        "height": 237
+      },
+      "text": "XIMX 20",
+      "clickable": true,
+      "source": "box_yolo_content_yolo",
+      "contentDesc": "XIMX 20"
+    },
+    {
+      "index": 36,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 413,
+        "y": 2147,
+        "width": 387,
+        "height": 237
+      },
+      "text": "8.2# ",
+      "clickable": true,
+      "source": "box_yolo_content_ocr",
+      "contentDesc": "8.2# "
+    },
+    {
+      "index": 37,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 794,
+        "y": 2147,
+        "width": 381,
+        "height": 234
+      },
+      "text": "1688 ",
+      "clickable": true,
+      "source": "box_yolo_content_ocr",
+      "contentDesc": "1688 "
+    },
+    {
+      "index": 38,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 514,
+        "y": 2499,
+        "width": 47,
+        "height": 41
+      },
+      "text": "Roadway",
+      "clickable": true,
+      "source": "box_yolo_content_yolo",
+      "contentDesc": "Roadway"
+    },
+    {
+      "index": 39,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 267,
+        "y": 2503,
+        "width": 280,
+        "height": 182
+      },
+      "text": "Kraftraft",
+      "clickable": true,
+      "source": "box_yolo_content_yolo",
+      "contentDesc": "Kraftraft"
+    },
+    {
+      "index": 40,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 533,
+        "y": 2514,
+        "width": 209,
+        "height": 186
+      },
+      "text": "Korean language translation (Korean)",
+      "clickable": true,
+      "source": "box_yolo_content_yolo",
+      "contentDesc": "Korean language translation (Korean)"
+    },
+    {
+      "index": 41,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 14,
+        "y": 2518,
+        "width": 235,
+        "height": 170
+      },
+      "text": "Xiaohongshu (Xia)",
+      "clickable": true,
+      "source": "box_yolo_content_yolo",
+      "contentDesc": "Xiaohongshu (Xia)"
+    },
+    {
+      "index": 42,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 773,
+        "y": 2521,
+        "width": 234,
+        "height": 186
+      },
+      "text": "Handsome | Handsome|HandsOME | HOLDING HOLDERS",
+      "clickable": true,
+      "source": "box_yolo_content_yolo",
+      "contentDesc": "Handsome | Handsome|HandsOME | HOLDING HOLDERS"
+    },
+    {
+      "index": 43,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 1046,
+        "y": 2525,
+        "width": 198,
+        "height": 177
+      },
+      "text": "Feastingasting OnTV",
+      "clickable": true,
+      "source": "box_yolo_content_yolo",
+      "contentDesc": "Feastingasting OnTV"
+    }
+  ],
+  "componentCount": 44
+}

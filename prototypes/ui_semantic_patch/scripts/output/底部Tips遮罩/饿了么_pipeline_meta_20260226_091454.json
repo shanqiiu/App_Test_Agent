@@ -1,0 +1,12 @@
+{
+  "timestamp": "20260226_091454",
+  "screenshot": "../data/原图/外卖类优惠信息干扰/饿了么.jpg",
+  "instruction": "底部价格处上方生成Tips遮罩，内容为到店自取更便宜",
+  "outputs": {
+    "stage1_omni_raw": "output\\底部Tips遮罩\\饿了么_stage1_omni_raw_20260226_091454.json",
+    "stage1_annotated": "output\\底部Tips遮罩\\饿了么_stage1_annotated_20260226_091454.png",
+    "stage2_filtered": "output\\底部Tips遮罩\\饿了么_stage2_filtered_20260226_091454.json",
+    "stage2_annotated": "output\\底部Tips遮罩\\饿了么_stage2_annotated_20260226_091454.png",
+    "final_image": "output\\底部Tips遮罩\\饿了么_final_20260226_091454.png"
+  }
+}

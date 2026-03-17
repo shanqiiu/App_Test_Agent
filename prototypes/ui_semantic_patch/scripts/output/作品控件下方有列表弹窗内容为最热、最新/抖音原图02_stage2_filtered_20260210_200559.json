@@ -1,0 +1,315 @@
+{
+  "metadata": {
+    "source": "抖音原图02.jpg",
+    "extractionMethod": "OmniParser+VLM_Fusion",
+    "models": {
+      "detection": "OmniParser (YOLO + PaddleOCR + Florence2)",
+      "semantic_filter": "qwen-vl-max"
+    },
+    "timestamp": "2026-02-10T20:08:30.668411",
+    "resolution": {
+      "width": 1224,
+      "height": 2776
+    },
+    "processing": {
+      "omni_raw_count": 32,
+      "final_count": 12,
+      "merge_log": [
+        {
+          "action": "merge",
+          "from": [
+            0,
+            1,
+            2,
+            3,
+            4,
+            5,
+            6
+          ],
+          "to": 0,
+          "reason": "这些组件属于顶部状态栏区域，包含时间、电池、信号、WiFi等系统信息，应合并为一个整体"
+        },
+        {
+          "action": "merge",
+          "from": [
+            7,
+            8
+          ],
+          "to": 1,
+          "reason": "左侧返回按钮和右侧更多选项按钮属于同一导航栏，应合并为一个导航组件"
+        },
+        {
+          "action": "merge",
+          "from": [
+            9,
+            10,
+            11,
+            12,
+            13,
+            14
+          ],
+          "to": 2,
+          "reason": "这些是Banner区域内的元素，包括校徽、文字、认证标识等，属于同一视觉单元，应合并为一个ImageView"
+        },
+        {
+          "action": "merge",
+          "from": [
+            18
+          ],
+          "to": 6,
+          "reason": "这是一个完整的关注按钮，包含图标和文字，应作为单一按钮保留"
+        },
+        {
+          "action": "merge",
+          "from": [
+            20,
+            21,
+            22
+          ],
+          "to": 8,
+          "reason": "这三个是横向排列的快捷入口标签，属于同一功能区，应合并为一个TabBar"
+        },
+        {
+          "action": "merge",
+          "from": [
+            23,
+            24,
+            25,
+            26,
+            27,
+            28,
+            29
+          ],
+          "to": 9,
+          "reason": "这些是第一个置顶视频的组成部分，包括图片、标题、年份、点赞数等，应合并为一个视频列表项"
+        },
+        {
+          "action": "merge",
+          "from": [
+            30
+          ],
+          "to": 10,
+          "reason": "这是第二个置顶视频的完整缩略图，应作为一个独立列表项保留"
+        },
+        {
+          "action": "merge",
+          "from": [
+            31
+          ],
+          "to": 11,
+          "reason": "这是第三个置顶视频的完整缩略图，应作为一个独立列表项保留"
+        }
+      ]
+    }
+  },
+  "components": [
+    {
+      "index": 0,
+      "class": "StatusBar",
+      "bounds": {
+        "x": 33,
+        "y": 48,
+        "width": 1146,
+        "height": 82
+      },
+      "text": "状态栏",
+      "clickable": true,
+      "source_indices": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6
+      ],
+      "note": "这些组件属于顶部状态栏区域，包含时间、电池、信号、WiFi等系统信息，应合并为一个整体"
+    },
+    {
+      "index": 1,
+      "class": "NavigationBar",
+      "bounds": {
+        "x": 46,
+        "y": 167,
+        "width": 1129,
+        "height": 122
+      },
+      "text": "导航栏",
+      "clickable": true,
+      "source_indices": [
+        7,
+        8
+      ],
+      "note": "左侧返回按钮和右侧更多选项按钮属于同一导航栏，应合并为一个导航组件"
+    },
+    {
+      "index": 2,
+      "class": "ImageView",
+      "bounds": {
+        "x": 194,
+        "y": 495,
+        "width": 867,
+        "height": 337
+      },
+      "text": "清华大学官方账号头像与名称",
+      "clickable": true,
+      "source_indices": [
+        9,
+        10,
+        11,
+        12,
+        13,
+        14
+      ],
+      "note": "这些是Banner区域内的元素，包括校徽、文字、认证标识等，属于同一视觉单元，应合并为一个ImageView"
+    },
+    {
+      "index": 3,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 51,
+        "y": 1046,
+        "width": 73,
+        "height": 72
+      },
+      "text": "IP:",
+      "clickable": true,
+      "source": "box_yolo_content_yolo",
+      "contentDesc": "IP:",
+      "original_index": 15
+    },
+    {
+      "index": 4,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 49,
+        "y": 1180,
+        "width": 144,
+        "height": 139
+      },
+      "text": "Box",
+      "clickable": true,
+      "source": "box_yolo_content_yolo",
+      "contentDesc": "Box",
+      "original_index": 16
+    },
+    {
+      "index": 5,
+      "class": "TextView",
+      "bounds": {
+        "x": 206,
+        "y": 1254,
+        "width": 180,
+        "height": 56
+      },
+      "text": "51",
+      "clickable": false,
+      "source": "box_ocr_content_ocr",
+      "original_index": 17
+    },
+    {
+      "index": 6,
+      "class": "Button",
+      "bounds": {
+        "x": 43,
+        "y": 1382,
+        "width": 1135,
+        "height": 130
+      },
+      "text": "+ 关注",
+      "clickable": true,
+      "source_indices": [
+        18
+      ],
+      "note": "这是一个完整的关注按钮，包含图标和文字，应作为单一按钮保留"
+    },
+    {
+      "index": 7,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 49,
+        "y": 1577,
+        "width": 296,
+        "height": 64
+      },
+      "text": "1F 2744  ",
+      "clickable": true,
+      "source": "box_yolo_content_ocr",
+      "contentDesc": "1F 2744  ",
+      "original_index": 19
+    },
+    {
+      "index": 8,
+      "class": "TabBar",
+      "bounds": {
+        "x": 35,
+        "y": 1720,
+        "width": 1188,
+        "height": 133
+      },
+      "text": "快捷标签栏",
+      "clickable": true,
+      "source_indices": [
+        20,
+        21,
+        22
+      ],
+      "note": "这三个是横向排列的快捷入口标签，属于同一功能区，应合并为一个TabBar"
+    },
+    {
+      "index": 9,
+      "class": "ListItem",
+      "bounds": {
+        "x": 20,
+        "y": 1911,
+        "width": 1203,
+        "height": 500
+      },
+      "text": "置顶视频1",
+      "clickable": true,
+      "source_indices": [
+        23,
+        24,
+        25,
+        26,
+        27,
+        28,
+        29
+      ],
+      "note": "这些是第一个置顶视频的组成部分，包括图片、标题、年份、点赞数等，应合并为一个视频列表项"
+    },
+    {
+      "index": 10,
+      "class": "ListItem",
+      "bounds": {
+        "x": 0,
+        "y": 2430,
+        "width": 818,
+        "height": 345
+      },
+      "text": "置顶视频2",
+      "clickable": true,
+      "source_indices": [
+        30
+      ],
+      "note": "这是第二个置顶视频的完整缩略图，应作为一个独立列表项保留"
+    },
+    {
+      "index": 11,
+      "class": "ListItem",
+      "bounds": {
+        "x": 815,
+        "y": 2432,
+        "width": 408,
+        "height": 343
+      },
+      "text": "置顶视频3",
+      "clickable": true,
+      "source_indices": [
+        31
+      ],
+      "note": "这是第三个置顶视频的完整缩略图，应作为一个独立列表项保留"
+    }
+  ],
+  "componentCount": 12
+}

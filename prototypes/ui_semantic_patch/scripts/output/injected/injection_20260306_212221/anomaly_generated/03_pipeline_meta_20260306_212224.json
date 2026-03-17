@@ -1,0 +1,31 @@
+{
+  "timestamp": "20260306_212224",
+  "screenshot": "..\\examples\\injection_demo\\screenshots\\03.jpg",
+  "instruction": "加入优惠广告弹窗",
+  "outputs": {
+    "stage1_omni_raw": "output\\injected\\injection_20260306_212221\\anomaly_generated\\03_stage1_omni_raw_20260306_212224.json",
+    "stage1_annotated": "output\\injected\\injection_20260306_212221\\anomaly_generated\\03_stage1_annotated_20260306_212224.png",
+    "stage2_filtered": "output\\injected\\injection_20260306_212221\\anomaly_generated\\03_stage2_filtered_20260306_212224.json",
+    "stage2_annotated": "output\\injected\\injection_20260306_212221\\anomaly_generated\\03_stage2_annotated_20260306_212224.png",
+    "final_image": "output\\injected\\injection_20260306_212221\\anomaly_generated\\final_20260306_212508.png",
+    "meta_driven": true
+  },
+  "stage2_status": "success",
+  "render_metadata": {
+    "gt_category": "弹窗覆盖原UI",
+    "gt_sample": "使用教程遮挡.jpg",
+    "meta_driven": true,
+    "warnings": [
+      {
+        "type": "position_fallback",
+        "message": "位置回退：未找到关键词对应组件，使用百分比定位 (122, 694)"
+      }
+    ]
+  },
+  "warnings": [
+    {
+      "type": "position_fallback",
+      "message": "位置回退：未找到关键词对应组件，使用百分比定位 (122, 694)"
+    }
+  ]
+}

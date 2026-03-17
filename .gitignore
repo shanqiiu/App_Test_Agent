@@ -68,8 +68,6 @@ htmlcov/
 node_modules/
 
 # 原型代码生成的数据
-prototypes/**/data/
-prototypes/**/output/
 prototypes/**/*.pkl
 prototypes/**/*.h5
 
@@ -83,10 +81,5 @@ prototypes/img2text2html2img/scripts/test_resume/
 prototypes/img2text2html2img/scripts/parse_json/
 prototypes/img2text2html2img/scripts/outputs/
 prototypes/img2text2html2img/scripts/output_images/
-
-# ui_semantic_patch 生成文件
-prototypes/ui_semantic_patch/scripts/debug_dialog_output/
-prototypes/ui_semantic_patch/data/stage*.json
-prototypes/ui_semantic_patch/data/final_*.png
 
 .worktrees/

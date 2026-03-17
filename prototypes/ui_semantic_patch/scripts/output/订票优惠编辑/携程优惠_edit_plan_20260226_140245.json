@@ -1,0 +1,20 @@
+[
+  {
+    "action": "expand_card",
+    "region": {
+      "x": 83,
+      "y": 1671,
+      "width": 327,
+      "height": 38
+    },
+    "content": "优惠：订阅该服务，机票满500减200元",
+    "target_component": 30,
+    "reference_component": 29,
+    "style_hint": {
+      "color_type": "accent",
+      "font_scale": 0.85,
+      "padding_top": 8,
+      "padding_bottom": 12
+    }
+  }
+]

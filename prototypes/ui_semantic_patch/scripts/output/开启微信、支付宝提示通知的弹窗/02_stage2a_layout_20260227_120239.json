@@ -1,0 +1,182 @@
+{
+  "app_type": "旅游出行类App",
+  "page_description": "首页展示各类旅行服务入口、推荐内容和热门目的地信息",
+  "regions": [
+    {
+      "name": "状态栏",
+      "y_range": [
+        0,
+        80
+      ],
+      "granularity": "atomic",
+      "merge_as_class": "StatusBar",
+      "merge_as_text": "系统状态栏",
+      "description": "显示时间、电池、信号等系统信息的区域，不可交互，纯展示"
+    },
+    {
+      "name": "搜索栏",
+      "y_range": [
+        80,
+        180
+      ],
+      "granularity": "fine",
+      "expected_components": [
+        {
+          "type": "EditText",
+          "text": "目的地/酒店/景点/机票"
+        },
+        {
+          "type": "Button",
+          "text": "搜索"
+        }
+      ],
+      "description": "包含输入框和搜索按钮，两个功能独立组件，需分开处理"
+    },
+    {
+      "name": "服务分类图标区",
+      "y_range": [
+        180,
+        570
+      ],
+      "granularity": "fine",
+      "expected_components": [
+        {
+          "type": "IconButton",
+          "text": "酒店"
+        },
+        {
+          "type": "IconButton",
+          "text": "机票"
+        },
+        {
+          "type": "IconButton",
+          "text": "火车票"
+        },
+        {
+          "type": "IconButton",
+          "text": "旅游"
+        },
+        {
+          "type": "IconButton",
+          "text": "攻略/景点"
+        },
+        {
+          "type": "IconButton",
+          "text": "民宿/客栈"
+        },
+        {
+          "type": "IconButton",
+          "text": "机票+酒店"
+        },
+        {
+          "type": "IconButton",
+          "text": "汽车/船票"
+        },
+        {
+          "type": "IconButton",
+          "text": "门票/玩乐"
+        },
+        {
+          "type": "IconButton",
+          "text": "美食/购物"
+        },
+        {
+          "type": "IconButton",
+          "text": "酒店套餐"
+        },
+        {
+          "type": "IconButton",
+          "text": "接送机/包车"
+        },
+        {
+          "type": "IconButton",
+          "text": "租车"
+        },
+        {
+          "type": "IconButton",
+          "text": "签证/换外币"
+        },
+        {
+          "type": "IconButton",
+          "text": "借钱/分期"
+        }
+      ],
+      "description": "多个独立的服务入口按钮，每个承担不同功能，应各自作为独立组件"
+    },
+    {
+      "name": "口碑榜与旅行热点卡片区",
+      "y_range": [
+        570,
+        890
+      ],
+      "granularity": "card",
+      "merge_as_class": "Card",
+      "merge_as_text": "口碑榜：高档酒店（埃文）；旅行热点：梵蒂冈游（飙升23%）",
+      "description": "左侧为口碑榜推荐，右侧为旅行热点，每项共同描述一个推荐内容，属于完整卡片"
+    },
+    {
+      "name": "特价专区与直播团购卡片区",
+      "y_range": [
+        570,
+        890
+      ],
+      "granularity": "card",
+      "merge_as_class": "Card",
+      "merge_as_text": "特价专区：全球特价出行（机酒低价订）；直播团购：大理市预囤（爆款5折起）",
+      "description": "两个并列的促销卡片，每个都包含标题、图片和标签，共同描述一项促销活动"
+    },
+    {
+      "name": "说走就走的城市推荐卡片",
+      "y_range": [
+        890,
+        1510
+      ],
+      "granularity": "card",
+      "merge_as_class": "Card",
+      "merge_as_text": "3-4月份推荐旅行城市，春花烂漫季节，含多个城市拼图和文字介绍",
+      "description": "一张完整的图文推荐卡片，所有元素共同描述‘3-4月适合出行的城市’这一主题"
+    },
+    {
+      "name": "上海景点推荐卡片",
+      "y_range": [
+        890,
+        1510
+      ],
+      "granularity": "card",
+      "merge_as_class": "Card",
+      "merge_as_text": "上海必打卡景点榜，官方剧透顶流景点，配夜景图",
+      "description": "一张完整的景点推荐卡片，包含标题、图片、副标题和来源标识，共同构成一个推荐项"
+    },
+    {
+      "name": "底部导航栏",
+      "y_range": [
+        1510,
+        1670
+      ],
+      "granularity": "fine",
+      "expected_components": [
+        {
+          "type": "TabButton",
+          "text": "首页"
+        },
+        {
+          "type": "TabButton",
+          "text": "视频"
+        },
+        {
+          "type": "TabButton",
+          "text": "消息"
+        },
+        {
+          "type": "TabButton",
+          "text": "行程"
+        },
+        {
+          "type": "TabButton",
+          "text": "我的"
+        }
+      ],
+      "description": "五个独立的导航标签，分别对应不同页面，功能独立，需拆分为多个组件"
+    }
+  ]
+}

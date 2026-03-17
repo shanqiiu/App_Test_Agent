@@ -1,0 +1,155 @@
+{
+  "app_type": "旅行出行类App",
+  "page_description": "机票订单选服务页面，用户可选择附加服务如贵宾休息室、接送机、保险等",
+  "regions": [
+    {
+      "name": "状态栏",
+      "y_range": [
+        0,
+        80
+      ],
+      "granularity": "atomic",
+      "merge_as_class": "StatusBar",
+      "merge_as_text": "系统状态栏",
+      "description": "显示时间、电池、信号等系统信息的区域"
+    },
+    {
+      "name": "导航栏",
+      "y_range": [
+        80,
+        170
+      ],
+      "granularity": "fine",
+      "expected_components": [
+        {
+          "type": "Button",
+          "text": "< 返回"
+        },
+        {
+          "type": "TextView",
+          "text": "填订单 → 选服务 → 支付"
+        }
+      ],
+      "description": "包含返回按钮和流程指示文字，功能不同，应独立处理"
+    },
+    {
+      "name": "航班信息条",
+      "y_range": [
+        170,
+        235
+      ],
+      "granularity": "atomic",
+      "merge_as_class": "FlightInfoBar",
+      "merge_as_text": "北京-上海 02-10 ¥611",
+      "description": "展示航班基础信息的横幅区域，整体不可拆分"
+    },
+    {
+      "name": "宣传Banner",
+      "y_range": [
+        235,
+        390
+      ],
+      "granularity": "atomic",
+      "merge_as_class": "PromotionBanner",
+      "merge_as_text": "避开人群喧闹，在休息室舒适候机",
+      "description": "图文结合的宣传标语区域，用于引导用户选择增值服务"
+    },
+    {
+      "name": "贵宾休息室服务卡片",
+      "y_range": [
+        390,
+        640
+      ],
+      "granularity": "card",
+      "merge_as_class": "Card",
+      "merge_as_text": "贵宾休息室 ¥138/份，含小食饮料、按摩椅、报刊杂志、专属wifi",
+      "description": "完整描述一项服务的卡片，所有内容共同说明'贵宾休息室'这一服务"
+    },
+    {
+      "name": "接送机服务卡片",
+      "y_range": [
+        640,
+        830
+      ],
+      "granularity": "card",
+      "merge_as_class": "Card",
+      "merge_as_text": "北京送机/上海接机 ¥53起，含车辆消毒、司机戴口罩等服务",
+      "description": "一张完整的接送机服务卡片，包含价格、服务内容和优惠券信息"
+    },
+    {
+      "name": "航空意外险服务卡片",
+      "y_range": [
+        830,
+        1105
+      ],
+      "granularity": "card",
+      "merge_as_class": "Card",
+      "merge_as_text": "航空意外险 ¥29/人，最高赔付350万，含医疗和行李保障",
+      "description": "完整描述保险产品的卡片，包含投保须知、保障内容和代理信息"
+    },
+    {
+      "name": "租车服务卡片",
+      "y_range": [
+        1105,
+        1300
+      ],
+      "granularity": "card",
+      "merge_as_class": "Card",
+      "merge_as_text": "上海租车 免费送车上门，免费取消，机票租车同时下单85折起",
+      "description": "一张完整的租车服务卡片，所有内容共同描述租车服务"
+    },
+    {
+      "name": "报销提示区域",
+      "y_range": [
+        1300,
+        1420
+      ],
+      "granularity": "atomic",
+      "merge_as_class": "NoticeBanner",
+      "merge_as_text": "支付完成后可开具报销凭证，安心购票",
+      "description": "纯提示性文本区域，无交互组件，合并为一个展示单元"
+    },
+    {
+      "name": "协议勾选区",
+      "y_range": [
+        1420,
+        1495
+      ],
+      "granularity": "fine",
+      "expected_components": [
+        {
+          "type": "TextView",
+          "text": "我已阅读并同意购票须知，个人信息授权声明，部分充电宝禁止携..."
+        },
+        {
+          "type": "CheckBox",
+          "text": ""
+        }
+      ],
+      "description": "包含文本说明和复选框，功能不同，需独立处理"
+    },
+    {
+      "name": "底部结算栏",
+      "y_range": [
+        1495,
+        1630
+      ],
+      "granularity": "fine",
+      "expected_components": [
+        {
+          "type": "TextView",
+          "text": "¥611 已优惠¥17 经济舱"
+        },
+        {
+          "type": "Button",
+          "text": "去支付 14:50"
+        },
+        {
+          "type": "TextView",
+          "text": "明细 ▲"
+        }
+      ],
+      "description": "价格显示、支付按钮和明细展开功能各不相同，应独立保留"
+    }
+  ]
+}

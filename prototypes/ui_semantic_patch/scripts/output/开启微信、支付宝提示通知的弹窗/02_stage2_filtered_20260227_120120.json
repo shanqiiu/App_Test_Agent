@@ -1,0 +1,595 @@
+{
+  "metadata": {
+    "source": "02.jpg",
+    "extractionMethod": "OmniParser+VLM_Fusion_v2",
+    "models": {
+      "detection": "OmniParser (YOLO + PaddleOCR + Florence2)",
+      "layout_analysis": "qwen-vl-max",
+      "semantic_filter": "qwen-vl-max"
+    },
+    "timestamp": "2026-02-27T12:13:08.155338",
+    "resolution": {
+      "width": 1224,
+      "height": 2776
+    },
+    "processing": {
+      "omni_raw_count": 41,
+      "final_count": 23,
+      "layout_analysis": {
+        "app_type": "旅游出行类App",
+        "page_description": "首页展示各类旅行服务入口、推荐内容和热门目的地信息",
+        "regions": [
+          {
+            "name": "状态栏",
+            "y_range": [
+              0,
+              80
+            ],
+            "granularity": "atomic",
+            "merge_as_class": "StatusBar",
+            "merge_as_text": "系统状态栏",
+            "description": "显示时间、电池、信号等系统信息的区域，不可交互，纯展示"
+          },
+          {
+            "name": "搜索栏",
+            "y_range": [
+              80,
+              180
+            ],
+            "granularity": "fine",
+            "expected_components": [
+              {
+                "type": "EditText",
+                "text": "目的地/酒店/景点/机票"
+              },
+              {
+                "type": "Button",
+                "text": "搜索"
+              }
+            ],
+            "description": "包含输入框和搜索按钮，两个功能独立组件，需分开处理"
+          },
+          {
+            "name": "服务分类图标区",
+            "y_range": [
+              180,
+              570
+            ],
+            "granularity": "fine",
+            "expected_components": [
+              {
+                "type": "IconButton",
+                "text": "酒店"
+              },
+              {
+                "type": "IconButton",
+                "text": "机票"
+              },
+              {
+                "type": "IconButton",
+                "text": "火车票"
+              },
+              {
+                "type": "IconButton",
+                "text": "旅游"
+              },
+              {
+                "type": "IconButton",
+                "text": "攻略/景点"
+              },
+              {
+                "type": "IconButton",
+                "text": "民宿/客栈"
+              },
+              {
+                "type": "IconButton",
+                "text": "机票+酒店"
+              },
+              {
+                "type": "IconButton",
+                "text": "汽车/船票"
+              },
+              {
+                "type": "IconButton",
+                "text": "门票/玩乐"
+              },
+              {
+                "type": "IconButton",
+                "text": "美食/购物"
+              },
+              {
+                "type": "IconButton",
+                "text": "酒店套餐"
+              },
+              {
+                "type": "IconButton",
+                "text": "接送机/包车"
+              },
+              {
+                "type": "IconButton",
+                "text": "租车"
+              },
+              {
+                "type": "IconButton",
+                "text": "签证/换外币"
+              },
+              {
+                "type": "IconButton",
+                "text": "借钱/分期"
+              }
+            ],
+            "description": "多个独立的服务入口按钮，每个承担不同功能，应各自作为独立组件"
+          },
+          {
+            "name": "口碑榜与旅行热点卡片区",
+            "y_range": [
+              570,
+              890
+            ],
+            "granularity": "card",
+            "merge_as_class": "Card",
+            "merge_as_text": "口碑榜：高档酒店（埃文）；旅行热点：梵蒂冈游（飙升23%）",
+            "description": "左侧为口碑榜推荐，右侧为旅行热点，每项共同描述一个推荐内容，属于完整卡片"
+          },
+          {
+            "name": "特价专区与直播团购卡片区",
+            "y_range": [
+              570,
+              890
+            ],
+            "granularity": "card",
+            "merge_as_class": "Card",
+            "merge_as_text": "特价专区：全球特价出行（机酒低价订）；直播团购：大理市预囤（爆款5折起）",
+            "description": "两个并列的促销卡片，每个都包含标题、图片和标签，共同描述一项促销活动"
+          },
+          {
+            "name": "说走就走的城市推荐卡片",
+            "y_range": [
+              890,
+              1510
+            ],
+            "granularity": "card",
+            "merge_as_class": "Card",
+            "merge_as_text": "3-4月份推荐旅行城市，春花烂漫季节，含多个城市拼图和文字介绍",
+            "description": "一张完整的图文推荐卡片，所有元素共同描述‘3-4月适合出行的城市’这一主题"
+          },
+          {
+            "name": "上海景点推荐卡片",
+            "y_range": [
+              890,
+              1510
+            ],
+            "granularity": "card",
+            "merge_as_class": "Card",
+            "merge_as_text": "上海必打卡景点榜，官方剧透顶流景点，配夜景图",
+            "description": "一张完整的景点推荐卡片，包含标题、图片、副标题和来源标识，共同构成一个推荐项"
+          },
+          {
+            "name": "底部导航栏",
+            "y_range": [
+              1510,
+              1670
+            ],
+            "granularity": "fine",
+            "expected_components": [
+              {
+                "type": "TabButton",
+                "text": "首页"
+              },
+              {
+                "type": "TabButton",
+                "text": "视频"
+              },
+              {
+                "type": "TabButton",
+                "text": "消息"
+              },
+              {
+                "type": "TabButton",
+                "text": "行程"
+              },
+              {
+                "type": "TabButton",
+                "text": "我的"
+              }
+            ],
+            "description": "五个独立的导航标签，分别对应不同页面，功能独立，需拆分为多个组件"
+          }
+        ]
+      },
+      "merge_log": [
+        {
+          "action": "stage2_failed",
+          "reason": "VLM 语义整合失败，已重试 5 次。最后错误: 服务器错误 (524)"
+        },
+        {
+          "action": "force_merge",
+          "region": "状态栏",
+          "granularity": "atomic",
+          "from_count": 9,
+          "matched_region_index": 0,
+          "group_index": 0,
+          "reason": "atomic 分区 [状态栏] 内 9 个组件强制合并"
+        },
+        {
+          "action": "force_merge",
+          "region": "特价专区与直播团购卡片区",
+          "granularity": "card",
+          "from_count": 2,
+          "matched_region_index": 4,
+          "group_index": 3,
+          "reason": "card 分区 [特价专区与直播团购卡片区] 内 2 个组件强制合并"
+        },
+        {
+          "action": "force_merge",
+          "region": "说走就走的城市推荐卡片",
+          "granularity": "card",
+          "from_count": 6,
+          "matched_region_index": 5,
+          "group_index": 4,
+          "reason": "card 分区 [说走就走的城市推荐卡片] 内 6 个组件强制合并"
+        },
+        {
+          "action": "force_merge",
+          "region": "上海景点推荐卡片",
+          "granularity": "card",
+          "from_count": 5,
+          "matched_region_index": 6,
+          "group_index": 5,
+          "reason": "card 分区 [上海景点推荐卡片] 内 5 个组件强制合并"
+        }
+      ]
+    }
+  },
+  "components": [
+    {
+      "index": 0,
+      "class": "StatusBar",
+      "bounds": {
+        "x": 32,
+        "y": 53,
+        "width": 1161,
+        "height": 78
+      },
+      "text": "系统状态栏",
+      "clickable": true,
+      "source_indices": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8
+      ],
+      "note": "布局强制合并: 状态栏"
+    },
+    {
+      "index": 1,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 27,
+        "y": 165,
+        "width": 1166,
+        "height": 138
+      },
+      "text": "Handwritten notes",
+      "clickable": true,
+      "source": "box_yolo_content_yolo",
+      "contentDesc": "Handwritten notes"
+    },
+    {
+      "index": 2,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 27,
+        "y": 320,
+        "width": 241,
+        "height": 216
+      },
+      "text": "A website or application related to technology.",
+      "clickable": true,
+      "source": "box_yolo_content_yolo",
+      "contentDesc": "A website or application related to technology."
+    },
+    {
+      "index": 3,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 951,
+        "y": 322,
+        "width": 237,
+        "height": 212
+      },
+      "text": "A website or application related to Chinese architecture.",
+      "clickable": true,
+      "source": "box_yolo_content_yolo",
+      "contentDesc": "A website or application related to Chinese architecture."
+    },
+    {
+      "index": 4,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 723,
+        "y": 324,
+        "width": 233,
+        "height": 209
+      },
+      "text": "KTM - KTM - XTM - EKTM",
+      "clickable": true,
+      "source": "box_yolo_content_yolo",
+      "contentDesc": "KTM - KTM - XTM - EKTM"
+    },
+    {
+      "index": 5,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 265,
+        "y": 326,
+        "width": 234,
+        "height": 207
+      },
+      "text": "Airplane flight.",
+      "clickable": true,
+      "source": "box_yolo_content_yolo",
+      "contentDesc": "Airplane flight."
+    },
+    {
+      "index": 6,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 494,
+        "y": 327,
+        "width": 232,
+        "height": 206
+      },
+      "text": "Xiaohongshu (Korean language) website.",
+      "clickable": true,
+      "source": "box_yolo_content_yolo",
+      "contentDesc": "Xiaohongshu (Korean language) website."
+    },
+    {
+      "index": 7,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 954,
+        "y": 533,
+        "width": 232,
+        "height": 194
+      },
+      "text": "Korean People People",
+      "clickable": true,
+      "source": "box_yolo_content_yolo",
+      "contentDesc": "Korean People People"
+    },
+    {
+      "index": 8,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 725,
+        "y": 534,
+        "width": 230,
+        "height": 194
+      },
+      "text": "Xiaohongshu (Little Red Book)",
+      "clickable": true,
+      "source": "box_yolo_content_yolo",
+      "contentDesc": "Xiaohongshu (Little Red Book)"
+    },
+    {
+      "index": 9,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 498,
+        "y": 536,
+        "width": 228,
+        "height": 192
+      },
+      "text": "Xiaohongshu (Chinese)",
+      "clickable": true,
+      "source": "box_yolo_content_yolo",
+      "contentDesc": "Xiaohongshu (Chinese)"
+    },
+    {
+      "index": 10,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 267,
+        "y": 537,
+        "width": 231,
+        "height": 189
+      },
+      "text": "Xiaohongshu (Little Red Book)",
+      "clickable": true,
+      "source": "box_yolo_content_yolo",
+      "contentDesc": "Xiaohongshu (Little Red Book)"
+    },
+    {
+      "index": 11,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 30,
+        "y": 538,
+        "width": 238,
+        "height": 190
+      },
+      "text": "Home (Hongshu)",
+      "clickable": true,
+      "source": "box_yolo_content_yolo",
+      "contentDesc": "Home (Hongshu)"
+    },
+    {
+      "index": 12,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 724,
+        "y": 725,
+        "width": 231,
+        "height": 209
+      },
+      "text": "Xiaohongshu (Little Red Book)",
+      "clickable": true,
+      "source": "box_yolo_content_yolo",
+      "contentDesc": "Xiaohongshu (Little Red Book)"
+    },
+    {
+      "index": 13,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 266,
+        "y": 726,
+        "width": 232,
+        "height": 206
+      },
+      "text": "Korean Children's Hospital",
+      "clickable": true,
+      "source": "box_yolo_content_yolo",
+      "contentDesc": "Korean Children's Hospital"
+    },
+    {
+      "index": 14,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 498,
+        "y": 727,
+        "width": 227,
+        "height": 208
+      },
+      "text": "Korean automobile manufacturer",
+      "clickable": true,
+      "source": "box_yolo_content_yolo",
+      "contentDesc": "Korean automobile manufacturer"
+    },
+    {
+      "index": 15,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 953,
+        "y": 727,
+        "width": 234,
+        "height": 206
+      },
+      "text": "Xiaohongshu (Little Red Book)",
+      "clickable": true,
+      "source": "box_yolo_content_yolo",
+      "contentDesc": "Xiaohongshu (Little Red Book)"
+    },
+    {
+      "index": 16,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 32,
+        "y": 728,
+        "width": 237,
+        "height": 206
+      },
+      "text": "Xiaohongshu (Little Red Book)",
+      "clickable": true,
+      "source": "box_yolo_content_yolo",
+      "contentDesc": "Xiaohongshu (Little Red Book)"
+    },
+    {
+      "index": 17,
+      "class": "Card",
+      "bounds": {
+        "x": 28,
+        "y": 985,
+        "width": 1155,
+        "height": 468
+      },
+      "text": "特价专区：全球特价出行（机酒低价订）；直播团购：大理市预囤（爆款5折起）",
+      "clickable": true,
+      "source_indices": [
+        25,
+        26
+      ],
+      "note": "布局强制合并: 特价专区与直播团购卡片区"
+    },
+    {
+      "index": 18,
+      "class": "Card",
+      "bounds": {
+        "x": 30,
+        "y": 1478,
+        "width": 1161,
+        "height": 1000
+      },
+      "text": "3-4月份推荐旅行城市，春花烂漫季节，含多个城市拼图和文字介绍",
+      "clickable": true,
+      "source_indices": [
+        27,
+        28,
+        29,
+        30,
+        31,
+        32
+      ],
+      "note": "布局强制合并: 说走就走的城市推荐卡片"
+    },
+    {
+      "index": 19,
+      "class": "Card",
+      "bounds": {
+        "x": 20,
+        "y": 2503,
+        "width": 1174,
+        "height": 223
+      },
+      "text": "上海必打卡景点榜，官方剧透顶流景点，配夜景图",
+      "clickable": true,
+      "source_indices": [
+        33,
+        34,
+        35,
+        36,
+        37
+      ],
+      "note": "布局强制合并: 上海景点推荐卡片"
+    },
+    {
+      "index": 20,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 9,
+        "y": 2730,
+        "width": 407,
+        "height": 45
+      },
+      "text": "M0,0L0,5 4.5,5z",
+      "clickable": true,
+      "source": "box_yolo_content_yolo",
+      "contentDesc": "M0,0L0,5 4.5,5z"
+    },
+    {
+      "index": 21,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 418,
+        "y": 2732,
+        "width": 385,
+        "height": 43
+      },
+      "text": "Gray Bar",
+      "clickable": true,
+      "source": "box_yolo_content_yolo",
+      "contentDesc": "Gray Bar"
+    },
+    {
+      "index": 22,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 805,
+        "y": 2734,
+        "width": 417,
+        "height": 41
+      },
+      "text": "M0,0L0,5 4.5,5z",
+      "clickable": true,
+      "source": "box_yolo_content_yolo",
+      "contentDesc": "M0,0L0,5 4.5,5z"
+    }
+  ],
+  "componentCount": 23
+}

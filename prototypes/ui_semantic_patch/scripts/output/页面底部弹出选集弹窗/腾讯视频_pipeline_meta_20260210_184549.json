@@ -1,0 +1,14 @@
+{
+  "timestamp": "20260210_184549",
+  "screenshot": "../data/原图/影视剧集类-内容歧义、重复/腾讯视频.jpg",
+  "instruction": "页面底部弹出选集弹窗",
+  "outputs": {
+    "stage1_omni_raw": "output\\页面底部弹出选集弹窗\\腾讯视频_stage1_omni_raw_20260210_184549.json",
+    "stage1_annotated": "output\\页面底部弹出选集弹窗\\腾讯视频_stage1_annotated_20260210_184549.png",
+    "stage2_filtered": "output\\页面底部弹出选集弹窗\\腾讯视频_stage2_filtered_20260210_184549.json",
+    "stage2_annotated": "output\\页面底部弹出选集弹窗\\腾讯视频_stage2_annotated_20260210_184549.png",
+    "final_image": "output\\页面底部弹出选集弹窗\\腾讯视频_final_20260210_184549.png",
+    "anomaly_mode": "content_duplicate",
+    "duplicate_mode": "expanded_view"
+  }
+}

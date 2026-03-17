@@ -1,0 +1,16 @@
+{
+  "timestamp": "20260227_101409",
+  "screenshot": "../data/原图/订票优惠编辑/13.jpg",
+  "instruction": "在航空意外险服务卡片中插入优惠信息：订阅该服务，机票满500减200元",
+  "outputs": {
+    "stage1_omni_raw": "output\\订票优惠编辑\\13_stage1_omni_raw_20260227_101409.json",
+    "stage1_annotated": "output\\订票优惠编辑\\13_stage1_annotated_20260227_101409.png",
+    "stage2_filtered": "output\\订票优惠编辑\\13_stage2_filtered_20260227_101409.json",
+    "stage2_annotated": "output\\订票优惠编辑\\13_stage2_annotated_20260227_101409.png",
+    "final_image": "output\\订票优惠编辑\\13_final_20260227_101409.png",
+    "anomaly_mode": "text_overlay",
+    "edit_count": 1,
+    "diff_image": "output\\订票优惠编辑\\13_diff_20260227_101409.png",
+    "edit_plan": "output\\订票优惠编辑\\13_edit_plan_20260227_101409.json"
+  }
+}

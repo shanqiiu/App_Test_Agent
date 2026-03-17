@@ -1,0 +1,908 @@
+{
+  "metadata": {
+    "source": "携程优惠.png",
+    "extractionMethod": "OmniParser+VLM_Fusion_v2",
+    "models": {
+      "detection": "OmniParser (YOLO + PaddleOCR + Florence2)",
+      "layout_analysis": "qwen-vl-max",
+      "semantic_filter": "qwen-vl-max"
+    },
+    "timestamp": "2026-02-26T14:20:10.031545",
+    "resolution": {
+      "width": 1290,
+      "height": 2796
+    },
+    "processing": {
+      "omni_raw_count": 46,
+      "final_count": 46,
+      "layout_analysis": {
+        "app_type": "旅行预订App",
+        "page_description": "机票订单选服务页面，用户可选择附加服务如休息室、接送机、保险和租车等。",
+        "regions": [
+          {
+            "name": "顶部状态栏",
+            "y_range": [
+              0,
+              80
+            ],
+            "is_atomic": true,
+            "merge_as_class": "StatusBar",
+            "merge_as_text": "系统状态栏，显示时间、信号、电池等信息",
+            "description": "包含时间、运营商、Wi-Fi、电池状态等系统信息，为不可拆分的整体"
+          },
+          {
+            "name": "导航栏",
+            "y_range": [
+              80,
+              175
+            ],
+            "is_atomic": false,
+            "expected_components": [
+              {
+                "type": "BackButton",
+                "text": "返回按钮"
+              },
+              {
+                "type": "Text",
+                "text": "填订单 → 选服务 → 支付"
+              },
+              {
+                "type": "Text",
+                "text": "北京 - 上海 02-10"
+              }
+            ],
+            "description": "包含返回按钮、流程指示和航班信息，由多个独立组件构成"
+          },
+          {
+            "name": "宣传横幅",
+            "y_range": [
+              175,
+              390
+            ],
+            "is_atomic": true,
+            "merge_as_class": "ImageView",
+            "merge_as_text": "宣传图，提示避开人群喧闹，在休息室舒适候机",
+            "description": "图文结合的广告区域，整体视觉设计统一，不可拆分"
+          },
+          {
+            "name": "贵宾休息室服务",
+            "y_range": [
+              390,
+              640
+            ],
+            "is_atomic": false,
+            "expected_components": [
+              {
+                "type": "Checkbox",
+                "text": "贵宾休息室"
+              },
+              {
+                "type": "Text",
+                "text": "¥138/份"
+              },
+              {
+                "type": "Text",
+                "text": "小食饮料"
+              },
+              {
+                "type": "Text",
+                "text": "按摩椅"
+              },
+              {
+                "type": "Text",
+                "text": "报刊杂志"
+              },
+              {
+                "type": "Text",
+                "text": "专属wifi"
+              }
+            ],
+            "description": "包含标题、价格、勾选框和多项服务内容，各部分可独立交互"
+          },
+          {
+            "name": "接送机服务",
+            "y_range": [
+              640,
+              830
+            ],
+            "is_atomic": false,
+            "expected_components": [
+              {
+                "type": "Checkbox",
+                "text": "北京送机/上海接机"
+              },
+              {
+                "type": "Text",
+                "text": "¥53起"
+              },
+              {
+                "type": "Text",
+                "text": "车辆消毒 司机佩戴口罩 延误免费等"
+              },
+              {
+                "type": "Tag",
+                "text": "接送机最高8折满减券"
+              },
+              {
+                "type": "Tag",
+                "text": "接送机70元满减券"
+              },
+              {
+                "type": "Tag",
+                "text": "接送机40元满减券"
+              }
+            ],
+            "description": "包含服务名称、价格、描述和优惠标签，均为可独立识别的组件"
+          },
+          {
+            "name": "航空意外险服务",
+            "y_range": [
+              830,
+              1105
+            ],
+            "is_atomic": false,
+            "expected_components": [
+              {
+                "type": "Checkbox",
+                "text": "航空意外险"
+              },
+              {
+                "type": "Text",
+                "text": "¥29/人"
+              },
+              {
+                "type": "Text",
+                "text": "更换出行保险"
+              },
+              {
+                "type": "Text",
+                "text": "航空意外最高¥350万"
+              },
+              {
+                "type": "Text",
+                "text": "意外医疗最高¥3万"
+              },
+              {
+                "type": "Text",
+                "text": "行李物品损失最高¥1000"
+              },
+              {
+                "type": "Text",
+                "text": "携程旗下保险代理自营平台"
+              }
+            ],
+            "description": "包含保险选项、价格、保障内容和平台说明，结构清晰，组件独立"
+          },
+          {
+            "name": "上海租车服务",
+            "y_range": [
+              1105,
+              1300
+            ],
+            "is_atomic": false,
+            "expected_components": [
+              {
+                "type": "Checkbox",
+                "text": "上海租车"
+              },
+              {
+                "type": "Text",
+                "text": "免费送车上门 免费取消"
+              },
+              {
+                "type": "Tag",
+                "text": "机票租车同时下单85折起"
+              }
+            ],
+            "description": "包含租车选项、服务说明和优惠标签，各部分可独立交互"
+          },
+          {
+            "name": "报销凭证提示",
+            "y_range": [
+              1300,
+              1420
+            ],
+            "is_atomic": true,
+            "merge_as_class": "TextView",
+            "merge_as_text": "支付完成后可开具报销凭证，安心购票",
+            "description": "纯文本提示区域，无交互元素，视为整体"
+          },
+          {
+            "name": "协议勾选区",
+            "y_range": [
+              1420,
+              1495
+            ],
+            "is_atomic": false,
+            "expected_components": [
+              {
+                "type": "Checkbox",
+                "text": "我已阅读并同意购票须知，个人信息授权声明，部分充电宝禁止携..."
+              },
+              {
+                "type": "Link",
+                "text": "购票须知"
+              },
+              {
+                "type": "Link",
+                "text": "个人信息授权声明"
+              }
+            ],
+            "description": "包含复选框和多个链接文本，属于可拆分的交互组件集合"
+          },
+          {
+            "name": "底部结算栏",
+            "y_range": [
+              1495,
+              1630
+            ],
+            "is_atomic": false,
+            "expected_components": [
+              {
+                "type": "Text",
+                "text": "¥611 已优惠¥17"
+              },
+              {
+                "type": "Text",
+                "text": "经济舱"
+              },
+              {
+                "type": "Button",
+                "text": "去支付"
+              },
+              {
+                "type": "Text",
+                "text": "明细"
+              }
+            ],
+            "description": "包含价格、优惠信息、舱位、明细按钮和支付按钮，均为独立功能组件"
+          }
+        ]
+      },
+      "merge_log": []
+    }
+  },
+  "components": [
+    {
+      "index": 0,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 1074,
+        "y": 48,
+        "width": 106,
+        "height": 75
+      },
+      "text": "100%",
+      "clickable": true,
+      "source": "box_yolo_content_yolo",
+      "contentDesc": "100%"
+    },
+    {
+      "index": 1,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 902,
+        "y": 49,
+        "width": 87,
+        "height": 74
+      },
+      "text": "App Store",
+      "clickable": true,
+      "source": "box_yolo_content_yolo",
+      "contentDesc": "App Store"
+    },
+    {
+      "index": 2,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 128,
+        "y": 50,
+        "width": 226,
+        "height": 75
+      },
+      "text": "20:40  ",
+      "clickable": true,
+      "source": "box_yolo_content_ocr",
+      "contentDesc": "20:40  "
+    },
+    {
+      "index": 3,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 994,
+        "y": 50,
+        "width": 71,
+        "height": 72
+      },
+      "text": "WiFi Network",
+      "clickable": true,
+      "source": "box_yolo_content_yolo",
+      "contentDesc": "WiFi Network"
+    },
+    {
+      "index": 4,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 527,
+        "y": 55,
+        "width": 244,
+        "height": 55
+      },
+      "text": "Creativeive",
+      "clickable": true,
+      "source": "box_yolo_content_yolo",
+      "contentDesc": "Creativeive"
+    },
+    {
+      "index": 5,
+      "class": "TextView",
+      "bounds": {
+        "x": 912,
+        "y": 61,
+        "width": 264,
+        "height": 52
+      },
+      "text": ":!!!  100",
+      "clickable": false,
+      "source": "box_ocr_content_ocr"
+    },
+    {
+      "index": 6,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 22,
+        "y": 196,
+        "width": 88,
+        "height": 107
+      },
+      "text": "Back",
+      "clickable": true,
+      "source": "box_yolo_content_yolo",
+      "contentDesc": "Back"
+    },
+    {
+      "index": 7,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 337,
+        "y": 197,
+        "width": 164,
+        "height": 106
+      },
+      "text": "Chinese language",
+      "clickable": true,
+      "source": "box_yolo_content_yolo",
+      "contentDesc": "Chinese language"
+    },
+    {
+      "index": 8,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 832,
+        "y": 201,
+        "width": 107,
+        "height": 82
+      },
+      "text": "Xray",
+      "clickable": true,
+      "source": "box_yolo_content_yolo",
+      "contentDesc": "Xray"
+    },
+    {
+      "index": 9,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 499,
+        "y": 203,
+        "width": 77,
+        "height": 89
+      },
+      "text": "Line",
+      "clickable": true,
+      "source": "box_yolo_content_yolo",
+      "contentDesc": "Line"
+    },
+    {
+      "index": 10,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 754,
+        "y": 205,
+        "width": 78,
+        "height": 76
+      },
+      "text": "Line",
+      "clickable": true,
+      "source": "box_yolo_content_yolo",
+      "contentDesc": "Line"
+    },
+    {
+      "index": 11,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 572,
+        "y": 206,
+        "width": 178,
+        "height": 77
+      },
+      "text": "Chinese language",
+      "clickable": true,
+      "source": "box_yolo_content_yolo",
+      "contentDesc": "Chinese language"
+    },
+    {
+      "index": 12,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 368,
+        "y": 305,
+        "width": 136,
+        "height": 72
+      },
+      "text": "$611",
+      "clickable": true,
+      "source": "box_yolo_content_yolo",
+      "contentDesc": "$611"
+    },
+    {
+      "index": 13,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 513,
+        "y": 311,
+        "width": 82,
+        "height": 64
+      },
+      "text": "Meituan",
+      "clickable": true,
+      "source": "box_yolo_content_yolo",
+      "contentDesc": "Meituan"
+    },
+    {
+      "index": 14,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 595,
+        "y": 312,
+        "width": 108,
+        "height": 60
+      },
+      "text": "Design",
+      "clickable": true,
+      "source": "box_yolo_content_yolo",
+      "contentDesc": "Design"
+    },
+    {
+      "index": 15,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 164,
+        "y": 439,
+        "width": 82,
+        "height": 90
+      },
+      "text": "66",
+      "clickable": true,
+      "source": "box_yolo_content_yolo",
+      "contentDesc": "66"
+    },
+    {
+      "index": 16,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 476,
+        "y": 539,
+        "width": 227,
+        "height": 69
+      },
+      "text": "Transportation methods.",
+      "clickable": true,
+      "source": "box_yolo_content_yolo",
+      "contentDesc": "Transportation methods."
+    },
+    {
+      "index": 17,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 1135,
+        "y": 700,
+        "width": 71,
+        "height": 76
+      },
+      "text": "Circle",
+      "clickable": true,
+      "source": "box_yolo_content_yolo",
+      "contentDesc": "Circle"
+    },
+    {
+      "index": 18,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 346,
+        "y": 707,
+        "width": 51,
+        "height": 64
+      },
+      "text": "Help",
+      "clickable": true,
+      "source": "box_yolo_content_yolo",
+      "contentDesc": "Help"
+    },
+    {
+      "index": 19,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 104,
+        "y": 828,
+        "width": 262,
+        "height": 88
+      },
+      "text": "V1",
+      "clickable": true,
+      "source": "box_yolo_content_yolo",
+      "contentDesc": "V1"
+    },
+    {
+      "index": 20,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 987,
+        "y": 1122,
+        "width": 145,
+        "height": 104
+      },
+      "text": "53 63 ",
+      "clickable": true,
+      "source": "box_yolo_content_ocr",
+      "contentDesc": "53 63 "
+    },
+    {
+      "index": 21,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 1126,
+        "y": 1125,
+        "width": 89,
+        "height": 109
+      },
+      "text": "Circle",
+      "clickable": true,
+      "source": "box_yolo_content_yolo",
+      "contentDesc": "Circle"
+    },
+    {
+      "index": 22,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 527,
+        "y": 1140,
+        "width": 50,
+        "height": 71
+      },
+      "text": "Help",
+      "clickable": true,
+      "source": "box_yolo_content_yolo",
+      "contentDesc": "Help"
+    },
+    {
+      "index": 23,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 484,
+        "y": 1219,
+        "width": 196,
+        "height": 62
+      },
+      "text": "Chinese language translation",
+      "clickable": true,
+      "source": "box_yolo_content_yolo",
+      "contentDesc": "Chinese language translation"
+    },
+    {
+      "index": 24,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 414,
+        "y": 1293,
+        "width": 282,
+        "height": 53
+      },
+      "text": "scanning a QR code.",
+      "clickable": true,
+      "source": "box_yolo_content_yolo",
+      "contentDesc": "scanning a QR code."
+    },
+    {
+      "index": 25,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 77,
+        "y": 1294,
+        "width": 324,
+        "height": 53
+      },
+      "text": "A grid layout or grid layout.",
+      "clickable": true,
+      "source": "box_yolo_content_yolo",
+      "contentDesc": "A grid layout or grid layout."
+    },
+    {
+      "index": 26,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 708,
+        "y": 1294,
+        "width": 286,
+        "height": 53
+      },
+      "text": "A grid layout or grid layout layout.",
+      "clickable": true,
+      "source": "box_yolo_content_yolo",
+      "contentDesc": "A grid layout or grid layout layout."
+    },
+    {
+      "index": 27,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 1137,
+        "y": 1460,
+        "width": 69,
+        "height": 77
+      },
+      "text": "Circle",
+      "clickable": true,
+      "source": "box_yolo_content_yolo",
+      "contentDesc": "Circle"
+    },
+    {
+      "index": 28,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 76,
+        "y": 1533,
+        "width": 270,
+        "height": 58
+      },
+      "text": "Extensions",
+      "clickable": true,
+      "source": "box_yolo_content_yolo",
+      "contentDesc": "Extensions"
+    },
+    {
+      "index": 29,
+      "class": "TextView",
+      "bounds": {
+        "x": 83,
+        "y": 1616,
+        "width": 771,
+        "height": 37
+      },
+      "text": "3503",
+      "clickable": false,
+      "source": "box_ocr_content_ocr"
+    },
+    {
+      "index": 30,
+      "class": "TextView",
+      "bounds": {
+        "x": 83,
+        "y": 1671,
+        "width": 327,
+        "height": 38
+      },
+      "text": "#1000",
+      "clickable": false,
+      "source": "box_ocr_content_ocr"
+    },
+    {
+      "index": 31,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 793,
+        "y": 1753,
+        "width": 408,
+        "height": 52
+      },
+      "text": "Conference",
+      "clickable": true,
+      "source": "box_yolo_content_yolo",
+      "contentDesc": "Conference"
+    },
+    {
+      "index": 32,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 1128,
+        "y": 1916,
+        "width": 84,
+        "height": 99
+      },
+      "text": "Circle",
+      "clickable": true,
+      "source": "box_yolo_content_yolo",
+      "contentDesc": "Circle"
+    },
+    {
+      "index": 33,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 301,
+        "y": 1929,
+        "width": 46,
+        "height": 66
+      },
+      "text": "Help",
+      "clickable": true,
+      "source": "box_yolo_content_yolo",
+      "contentDesc": "Help"
+    },
+    {
+      "index": 34,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 73,
+        "y": 2081,
+        "width": 374,
+        "height": 59
+      },
+      "text": "QR code scanner",
+      "clickable": true,
+      "source": "box_yolo_content_yolo",
+      "contentDesc": "QR code scanner"
+    },
+    {
+      "index": 35,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 282,
+        "y": 2279,
+        "width": 61,
+        "height": 64
+      },
+      "text": "Slow motion",
+      "clickable": true,
+      "source": "box_yolo_content_yolo",
+      "contentDesc": "Slow motion"
+    },
+    {
+      "index": 36,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 1168,
+        "y": 2407,
+        "width": 83,
+        "height": 92
+      },
+      "text": "Circle",
+      "clickable": true,
+      "source": "box_yolo_content_yolo",
+      "contentDesc": "Circle"
+    },
+    {
+      "index": 37,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 467,
+        "y": 2417,
+        "width": 299,
+        "height": 55
+      },
+      "text": "Newcastlecastle",
+      "clickable": true,
+      "source": "box_yolo_content_yolo",
+      "contentDesc": "Newcastlecastle"
+    },
+    {
+      "index": 38,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 786,
+        "y": 2419,
+        "width": 349,
+        "height": 50
+      },
+      "text": "Conference",
+      "clickable": true,
+      "source": "box_yolo_content_yolo",
+      "contentDesc": "Conference"
+    },
+    {
+      "index": 39,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 262,
+        "y": 2420,
+        "width": 31,
+        "height": 50
+      },
+      "text": "Language or translation function.",
+      "clickable": true,
+      "source": "box_yolo_content_yolo",
+      "contentDesc": "Language or translation function."
+    },
+    {
+      "index": 40,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 296,
+        "y": 2422,
+        "width": 33,
+        "height": 45
+      },
+      "text": "A railway station platform.",
+      "clickable": true,
+      "source": "box_yolo_content_yolo",
+      "contentDesc": "A railway station platform."
+    },
+    {
+      "index": 41,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 905,
+        "y": 2536,
+        "width": 337,
+        "height": 138
+      },
+      "text": "14:50 ",
+      "clickable": true,
+      "source": "box_yolo_content_ocr",
+      "contentDesc": "14:50 "
+    },
+    {
+      "index": 42,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 32,
+        "y": 2541,
+        "width": 137,
+        "height": 130
+      },
+      "text": "Xinguish (XinguISH)",
+      "clickable": true,
+      "source": "box_yolo_content_yolo",
+      "contentDesc": "Xinguish (XinguISH)"
+    },
+    {
+      "index": 43,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 179,
+        "y": 2553,
+        "width": 203,
+        "height": 63
+      },
+      "text": "Vietnam",
+      "clickable": true,
+      "source": "box_yolo_content_yolo",
+      "contentDesc": "Vietnam"
+    },
+    {
+      "index": 44,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 731,
+        "y": 2554,
+        "width": 149,
+        "height": 99
+      },
+      "text": "Asian Men",
+      "clickable": true,
+      "source": "box_yolo_content_yolo",
+      "contentDesc": "Asian Men"
+    },
+    {
+      "index": 45,
+      "class": "TextView",
+      "bounds": {
+        "x": 49,
+        "y": 2559,
+        "width": 328,
+        "height": 50
+      },
+      "text": "611 E17",
+      "clickable": false,
+      "source": "box_ocr_content_ocr"
+    }
+  ],
+  "componentCount": 46
+}
