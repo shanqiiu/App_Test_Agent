@@ -31,12 +31,12 @@ pip install -r requirements.txt               # 核心依赖
 pip install -r third_party/OmniParser/requirements.txt  # OmniParser（需 GPU 推荐）
 ```
 
-### 四种模式示例
+### 四种异常模式示例
 
 ```bash
 cd scripts
 
-# 1. dialog — 弹窗覆盖
+# 1. dialog — 弹窗覆盖（默认模式）
 python run_pipeline.py \
   --screenshot ../data/原图/app首页类-开屏广告弹窗/携程旅行01.jpg \
   --instruction "生成优惠券广告弹窗" \
@@ -66,6 +66,42 @@ python run_pipeline.py \
   --output ./output/demo
 ```
 
+### 指定图像生成模型
+
+```bash
+# 纯文生图模式 (qwen-image-max)
+python run_pipeline.py \
+  --screenshot ../data/原图/app首页类-开屏广告弹窗/携程旅行01.jpg \
+  --instruction "生成广告弹窗" \
+  --gt-category "弹窗覆盖原UI" --gt-sample "弹出广告.jpg" \
+  --image-model gen
+
+# 图像编辑模式 (qwen-image-edit-max)
+python run_pipeline.py \
+  --screenshot ../data/原图/app首页类-开屏广告弹窗/携程旅行01.jpg \
+  --instruction "生成广告弹窗" \
+  --gt-category "弹窗覆盖原UI" --gt-sample "弹出广告.jpg" \
+  --image-model edit
+```
+
+### 注入决策流水线
+
+```bash
+cd scripts
+
+# 正常模式（需要 VLM + 生成模型 API）
+python injection_pipeline.py \
+  --input-dir ./examples/injection_demo \
+  --output-dir ./output/injected \
+  --interactive
+
+# Mock 模式（仅需 VLM，跳过图像生成）
+python injection_pipeline.py \
+  --input-dir ./examples/injection_demo \
+  --output-dir ./output/injected \
+  --mock --no-interactive
+```
+
 ### 一键启动
 
 ```bash
@@ -84,6 +120,7 @@ bash launch.sh list         # 列出异常类别
 ┌─────────────────────────────────────────────────────────────┐
 │                      run_pipeline.py                        │
 │              batch_pipeline.py (批量入口)                    │
+│          injection_pipeline.py (注入决策)                    │
 │                        (主控层)                              │
 └──────────────────┬──────────────────┬───────────────────────┘
                    │                  │
@@ -98,8 +135,8 @@ bash launch.sh list         # 列出异常类别
         └──────────────────┬──────────────────┘
                            │
         ┌──────────────────▼──────────────────┐
-        │         utils/ + generators/         │
-        │        (工具库 + 元数据生成)          │
+        │    utils/ + generators/ + tests/     │
+        │   (工具库 + 元数据生成 + 测试)        │
         └─────────────────────────────────────┘
 ```
 
@@ -110,22 +147,25 @@ bash launch.sh list         # 列出异常类别
 | | `injection_pipeline.py` | 注入决策流水线（操作序列分析） |
 | **AI 感知** | `analysis/omni_extractor.py` | OmniParser 本地推理 |
 | | `analysis/omni_vlm_fusion.py` | VLM 语义分组 |
-| | `analysis/gt_bounds.py` | GT 边界框提取 |
+| | `analysis/gt_bounds.py` | GT 边界框精确提取 |
 | | `analysis/visualize.py` | 检测结果可视化 |
-| **异常渲染** | `renderers/patch.py` | dialog 弹窗渲染 |
+| **异常渲染** | `renderers/base.py` | 渲染器统一基类 |
+| | `renderers/patch.py` | dialog 弹窗渲染 |
 | | `renderers/area_loading.py` | 区域加载异常 |
 | | `renderers/content_duplicate.py` | 内容重复 |
 | | `renderers/text_overlay.py` | 文字覆盖 |
-| | `renderers/base.py` | 渲染器基类 |
 | **注入决策** | `injection/sequence_analyzer.py` | 操作序列语义分析 |
 | | `injection/anomaly_recommender.py` | 异常推荐决策 |
 | | `injection/sequence_rewriter.py` | 序列改写 |
+| | `injection/prompts.py` | VLM 提示词模板 |
+| | `injection/mock_provider.py` | Mock 模式（内网离线测试） |
 | **元数据** | `generators/meta.py` | meta.json 自动生成 |
 | | `generators/filename_descriptions.py` | 文件名描述生成 |
 | **工具库** | `utils/common.py` | 图片编码、JSON 提取 |
 | | `utils/meta_loader.py` | GT 元数据加载 |
 | | `utils/component_position_resolver.py` | 组件定位 |
-| | `utils/semantic_dialog_generator.py` | 弹窗生成器 |
+| | `utils/semantic_dialog_generator.py` | 弹窗生成器（支持 gen/edit 模型选择） |
+| | `utils/history_manager.py` | 注入历史记录管理 |
 
 > 详细接口契约与数据流见 [代码手册](../../docs/plans/2026-03-06-code-manual.md)
 
@@ -139,6 +179,8 @@ ui_semantic_patch/
 │   ├── run_pipeline.py                # 三阶段主流水线
 │   ├── batch_pipeline.py              # 批量生成
 │   ├── injection_pipeline.py          # 注入决策流水线
+│   ├── generate_meta.py               # meta.json 生成
+│   ├── generate_instructions.py       # 测试指令生成
 │   ├── launch.sh                      # 一键启动
 │   ├── analysis/                      # AI 感知层
 │   │   ├── omni_extractor.py          #   OmniParser 推理
@@ -158,7 +200,9 @@ ui_semantic_patch/
 │   │   ├── sequence_analyzer.py       #   操作序列分析
 │   │   ├── anomaly_recommender.py     #   异常推荐
 │   │   ├── sequence_rewriter.py       #   序列改写
-│   │   └── prompts.py                 #   VLM 提示词
+│   │   ├── prompts.py                 #   VLM 提示词
+│   │   ├── mock_provider.py           #   Mock 模式实现
+│   │   └── mock_config_example.json   #   Mock 配置示例
 │   ├── utils/                         # 工具库
 │   │   ├── common.py
 │   │   ├── semantic_dialog_generator.py
@@ -169,11 +213,28 @@ ui_semantic_patch/
 │   │   ├── anomaly_sample_manager.py
 │   │   └── history_manager.py
 │   └── tests/                         # 测试
+│       ├── test_api_auth.py
+│       └── test_qwen_image_open.py
 ├── data/
-│   ├── 原图/                          # 原始 APP 截图（4 类 6 张）
-│   └── Agent执行遇到的典型异常UI类型/  # GT 模板（3 类 10 个样本）
-├── third_party/OmniParser/            # 本地集成
+│   ├── 原图/                          # 原始 APP 截图（5 类 11 张）
+│   │   ├── app首页类-开屏广告弹窗/     #   5 张
+│   │   ├── 个人主页类-控件点击弹窗/     #   2 张
+│   │   ├── 外卖类优惠信息干扰/         #   2 张
+│   │   ├── 影视剧集类-内容歧义、重复/   #   1 张
+│   │   └── 订票优惠编辑/               #   2 张
+│   ├── Agent执行遇到的典型异常UI类型/  # GT 模板（3 类 16 个样本）
+│   │   └── analysis/gt_templates/
+│   │       ├── 弹窗覆盖原UI/           #   14 个样本
+│   │       ├── 内容歧义、重复/          #   1 个样本
+│   │       ├── loading_timeout/        #   1 个样本
+│   │       ├── dialogs/                #   预留
+│   │       ├── loadings/               #   预留
+│   │       └── toasts/                 #   预留
+│   └── scenarios/                     # 业务场景配置
+│       └── flight_booking/
 ├── examples/                          # 示例文件
+│   └── injection_demo/                # 注入流水线示例输入
+├── third_party/OmniParser/            # 本地集成
 ├── requirements.txt
 └── README.md
 ```
@@ -181,6 +242,8 @@ ui_semantic_patch/
 ---
 
 ## 命令行参数速查
+
+### run_pipeline.py
 
 | 参数 | 说明 | 默认值 |
 |------|------|--------|
@@ -190,10 +253,24 @@ ui_semantic_patch/
 | `--anomaly-mode` | `dialog` / `area_loading` / `content_duplicate` / `text_overlay` | `dialog` |
 | `--gt-category` | GT 模板类别 | - |
 | `--gt-sample` | GT 模板样本 | - |
+| `--image-model` | 图像生成模型: `auto` / `gen` / `edit` | `auto` |
 | `--reference, -r` | 参考弹窗图片 | - |
 | `--reference-icon` | 参考加载图标 | - |
+| `--fonts-dir` | 自定义字体目录 | 系统默认 |
 | `--omni-device` | OmniParser 设备 (`cuda`/`cpu`) | 环境变量 |
 | `--api-key` | VLM API 密钥 | 环境变量 |
+
+### injection_pipeline.py
+
+| 参数 | 说明 | 默认值 |
+|------|------|--------|
+| `--input-dir` | 输入目录（含 `task.json` + `screenshots/`） | 必需 |
+| `--output-dir` | 输出目录 | 必需 |
+| `--interactive` / `--no-interactive` | 是否启用用户确认 | True |
+| `--mock` | Mock 模式（跳过图像生成） | False |
+| `--mock-config` | Mock 配置文件路径 | 内置默认 |
+| `--max-history` | 最大历史步数 | 10 |
+| `--min-steps` | 最少分析步数后才考虑注入 | 2 |
 
 ---
 
@@ -220,7 +297,9 @@ ui_semantic_patch/
 - 四种异常模式（dialog / area_loading / content_duplicate / text_overlay）
 - GT 模板驱动、批量生成、一键启动
 - 架构重构：analysis / renderers / generators / injection 子包
-- 注入决策流水线
+- 注入决策流水线（含 Mock 模式）
+- 图像生成模型选择（gen / edit / auto）
+- 测试指令批量生成
 
 ### Phase 3 - 待实施
 - [ ] ControlNet 精细控制
@@ -246,6 +325,14 @@ ui_semantic_patch/
 | 卡片内元素 | 多个元素被分别检测 | VLM 合并为 Card |
 | 重复检测 | OCR 和 YOLO 重复 | VLM 去重 |
 
+### 图像生成模型选择
+
+| 模式 | 模型 | 适用场景 |
+|------|------|----------|
+| `gen` | qwen-image-max | 全新弹窗生成，无需参考图 |
+| `edit` | qwen-image-edit-max | 基于参考图编辑，保留原图风格 |
+| `auto` | 自动判断 | 根据是否有参考图自动选择最优方案 |
+
 ---
 
-**最后更新**: 2026-03-09
+**最后更新**: 2026-03-18
