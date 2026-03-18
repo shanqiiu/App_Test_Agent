@@ -228,7 +228,8 @@ def run_pipeline(
     anomaly_mode: str = 'dialog',
     target_component: str = None,
     gt_category: str = None,
-    gt_sample: str = None
+    gt_sample: str = None,
+    image_model: str = None
 ) -> dict:
     """
     执行异常场景生成流程
@@ -252,6 +253,7 @@ def run_pipeline(
         target_component: 目标组件ID（仅area_loading模式使用）
         gt_category: GT模板类别（如"弹窗覆盖原UI"），启用meta驱动生成
         gt_sample: GT模板样本名（如"弹出广告.jpg"），与gt_category配合使用
+        image_model: 图像生成模型选择 ('gen'=纯文生图, 'edit'=图像编辑, None=自动选择)
 
     Returns:
         包含所有输出路径的字典
@@ -494,6 +496,7 @@ def run_pipeline(
             extra_kwargs['gt_sample'] = gt_sample
             extra_kwargs['gt_dir'] = gt_dir
             extra_kwargs['reference_path'] = reference_path
+            extra_kwargs['image_model'] = image_model
 
         # 统一调用
         render_result: RenderResult = renderer.render(
@@ -669,6 +672,9 @@ Auto-Meta 模式示例（推荐！无需预先生成 meta.json）:
                         help='GT模板类别，如"弹窗覆盖原UI"（启用meta驱动精准生成）')
     parser.add_argument('--gt-sample',
                         help='GT模板样本名，如"弹出广告.jpg"（与--gt-category配合使用）')
+    parser.add_argument('--image-model', choices=['auto', 'edit', 'gen'],
+                        default='auto',
+                        help='图像生成模型: auto=自动选择(默认), gen=纯文生图(qwen-image-max), edit=图像编辑(qwen-image-edit-max)')
 
     args = parser.parse_args()
 
@@ -711,7 +717,8 @@ Auto-Meta 模式示例（推荐！无需预先生成 meta.json）:
         anomaly_mode=args.anomaly_mode,
         target_component=args.target_component,
         gt_category=args.gt_category,
-        gt_sample=args.gt_sample
+        gt_sample=args.gt_sample,
+        image_model=args.image_model if args.image_model != 'auto' else None
     )
 
 

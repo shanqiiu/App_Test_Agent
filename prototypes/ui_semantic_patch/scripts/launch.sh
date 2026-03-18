@@ -30,6 +30,7 @@ ANOMALY_MODE="dialog"
 GT_CATEGORY="弹窗覆盖原UI"
 GT_SAMPLE="弹出广告.jpg"
 OUTPUT_DIR="$SCRIPT_DIR/output/生成优惠券广告弹窗"
+IMAGE_MODEL=""  # auto/gen/edit，留空为 auto
 
 # --- 批量模式默认值 ---
 BATCH_INPUT_DIR="$ORIG_DIR/app首页类-开屏广告弹窗"
@@ -170,6 +171,10 @@ run_single() {
         CMD="$CMD --gt-category \"$GT_CATEGORY\""
         CMD="$CMD --gt-sample \"$GT_SAMPLE\""
         CMD="$CMD --gt-dir \"$GT_DIR\""
+    fi
+
+    if [ -n "$IMAGE_MODEL" ]; then
+        CMD="$CMD --image-model $IMAGE_MODEL"
     fi
 
     echo "[CMD] $CMD"

@@ -450,24 +450,55 @@ python generate_meta.py --dir "../data/.../弹窗覆盖原UI" --run --extract-bo
 
 从 GT 参考图中精确提取弹窗的像素级边界框，写入 `meta.json` 的 `dialog_bounds_px` 字段。Pipeline 在 dialog 模式下使用此信息精确控制弹窗叠加位置和大小。
 
+#### 为什么需要提取边界框？
+
+Pipeline 生成弹窗时，需要确定弹窗的宽高。尺寸来源有两个优先级（见 `renderers/patch.py`）：
+
+1. **`dialog_bounds_px`（精确像素边界）** — 直接使用参考图中弹窗的真实像素宽高，生成结果与参考图尺寸一致
+2. **`dialog_size_ratio`（比例回退）** — 用 `比例 × 目标截图尺寸` 估算弹窗宽高
+
+如果 GT 样本缺少 `dialog_bounds_px`，Pipeline 只能走比例回退路径。当目标截图与参考图的分辨率/宽高比不同时，按比例算出的弹窗尺寸会与参考图的实际弹窗大小不一致，导致生成结果偏大或偏小。
+
+**因此，建议对所有 GT 样本都提取 `dialog_bounds_px`**，确保弹窗尺寸精确可控。
+
+#### 基本用法
+
 ```bash
-# 提取所有样本的边界框
+# 提取整个类别下所有样本的边界框
 python -m analysis.gt_bounds --category "弹窗覆盖原UI"
 
-# 只提取指定样本
-python -m analysis.gt_bounds --category "弹窗覆盖原UI" --sample "弹出广告.jpg"
+# 只提取指定样本（适用于新增或修复单个样本）
+python -m analysis.gt_bounds --category "弹窗覆盖原UI" --sample "关闭按钮干扰.jpg"
 
-# 强制重新提取（覆盖已有）
-python -m analysis.gt_bounds --category "弹窗覆盖原UI" --force
+# 强制重新提取（覆盖已有的 dialog_bounds_px）
+python -m analysis.gt_bounds --category "弹窗覆盖原UI" --sample "关闭按钮干扰.jpg" --force
 
-# 预览模式（不写入 meta.json）
+# 预览模式（不写入 meta.json，仅输出分析结果）
 python -m analysis.gt_bounds --category "弹窗覆盖原UI" --dry-run
 
-# 跳过 VLM 过滤，仅用 OmniParser
+# 跳过 VLM 过滤，仅用 OmniParser 检测
 python -m analysis.gt_bounds --category "弹窗覆盖原UI" --skip-vlm
 ```
 
-**提取流程**：
+#### 典型场景
+
+```bash
+# 场景 1：新增 GT 样本后，提取其边界框
+#   添加新的参考图到 gt_templates/弹窗覆盖原UI/ 目录后：
+python generate_meta.py --dir "../data/.../弹窗覆盖原UI" --run  # 先生成 meta
+python -m analysis.gt_bounds --category "弹窗覆盖原UI" --sample "新样本.jpg"
+
+# 场景 2：生成的弹窗大小与参考图不符
+#   检查 pipeline_meta.json 中的 render_info.dialog_bounds，
+#   如果尺寸来源是比例回退而非 dialog_bounds_px，则需要提取边界框：
+python -m analysis.gt_bounds --category "弹窗覆盖原UI" --sample "关闭按钮干扰.jpg" --force
+
+# 场景 3：批量补齐所有缺失的边界框
+#   默认跳过已有 dialog_bounds_px 的样本，只处理缺失的：
+python -m analysis.gt_bounds --category "弹窗覆盖原UI"
+```
+
+#### 提取流程
 
 1. 对 GT 参考图运行 OmniParser（Stage 1）获取所有检测框
 2. 运行 VLM 语义过滤（Stage 2）合并弹窗子元素
@@ -475,6 +506,10 @@ python -m analysis.gt_bounds --category "弹窗覆盖原UI" --skip-vlm
 4. 用 IoU 匹配找到最佳弹窗组件
 5. 对有遮罩的弹窗（`overlay_enabled=true`）使用亮度分割法辅助定位
 6. 将精确像素边界 `dialog_bounds_px` 写回 meta.json
+
+提取完成后，会在 `<类别目录>/bounds_vis/` 下生成可视化图片（红色框标记弹窗边界，绿色虚线框标记裁剪区域），可用于人工校验提取结果是否准确。
+
+#### 参数表
 
 | 参数 | 说明 | 默认值 |
 |------|------|--------|

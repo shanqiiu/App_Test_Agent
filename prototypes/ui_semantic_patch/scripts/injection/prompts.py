@@ -75,6 +75,10 @@ def build_injection_prompt(
     total_steps: int
 ) -> str:
     """构建异常注入决策提示词"""
+    # 无任务描述时，提示 VLM 自行从截图推断
+    if not task_description or task_description == "未指定任务描述":
+        task_description = "（未指定，请根据截图内容自行推断用户正在执行的任务）"
+
     return INJECTION_DECISION_PROMPT.format(
         task_description=task_description,
         gt_categories_description=gt_categories_description,

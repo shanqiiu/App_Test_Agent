@@ -135,6 +135,7 @@ class PatchRenderer(BaseRenderer):
         gt_sample = kwargs.get('gt_sample')
         gt_dir = kwargs.get('gt_dir')
         reference_path = kwargs.get('reference_path')
+        image_model = kwargs.get('image_model')
 
         result_img, warnings, render_info = self._render_dialog_meta_driven(
             screenshot=screenshot,
@@ -145,6 +146,7 @@ class PatchRenderer(BaseRenderer):
             gt_sample=gt_sample,
             gt_dir=gt_dir,
             reference_path=reference_path,
+            image_model=image_model,
         )
 
         output_path = Path(output_dir) / f"final_{datetime.now().strftime('%Y%m%d_%H%M%S')}.png"
@@ -169,6 +171,7 @@ class PatchRenderer(BaseRenderer):
         gt_sample: str,
         gt_dir: str,
         reference_path: Optional[str] = None,
+        image_model: Optional[str] = None,
     ) -> Tuple[Image.Image, list, dict]:
         """
         Meta-driven 弹窗生成核心逻辑（从 run_pipeline.py 迁移）。
@@ -220,6 +223,7 @@ class PatchRenderer(BaseRenderer):
             vlm_api_url=self.vlm_api_url,
             vlm_model=self.vlm_model,
             reference_path=ref_path,
+            image_model=image_model,
         )
 
         # 生成语义文案

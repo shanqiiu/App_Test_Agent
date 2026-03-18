@@ -95,7 +95,8 @@ def generate_image_dashscope(
     negative_prompt: str = None,
     save_path: str = None,
     prompt_extend: bool = True,
-    reference_image_path: str = None
+    reference_image_path: str = None,
+    force_model: str = None
 ) -> Optional[Image.Image]:
     """
     使用 DashScope MultiModalConversation API 生成图像
@@ -112,6 +113,7 @@ def generate_image_dashscope(
         save_path: 可选的保存路径
         prompt_extend: 是否启用提示词扩展（meta驱动生成建议关闭以保持精确控制）
         reference_image_path: 参考图片路径（可选），提供后模型可直接看到参考图的视觉风格
+        force_model: 强制指定模型 ('gen'=纯文生图 qwen-image-max, 'edit'=图像编辑 qwen-image-edit-max, None=自动选择)
 
     Returns:
         生成的 PIL Image 对象，失败返回 None
@@ -138,31 +140,39 @@ def generate_image_dashscope(
         print(f"  ⚠ 无效的尺寸格式: {size}，使用默认 1024*1024")
         size = "1024*1024"
 
-    # 构建 messages：有参考图时使用图文混合输入
-    if reference_image_path and Path(reference_image_path).exists():
-        # DashScope SDK 支持本地文件路径，会自动上传到 OSS
-        # 使用 file:// 协议 或直接传路径
-        ref_path = str(Path(reference_image_path).resolve())
-        messages = [
-            {
-                "role": "user",
-                "content": [
-                    {"image": ref_path},
-                    {"text": prompt}
-                ]
-            }
-        ]
-        # 有参考图时使用图像编辑模型，支持图文混合输入
-        model = "qwen-image-edit-max"
-        print(f"  ℹ 使用参考图直接输入模式 (model={model})")
-    else:
-        messages = [
-            {
-                "role": "user",
-                "content": [{"text": prompt}]
-            }
-        ]
+    # 根据 force_model 和 reference_image_path 决定模型和消息格式
+    has_ref = reference_image_path and Path(reference_image_path).exists()
+
+    if force_model == 'gen':
+        # 强制纯文生图模式，不传参考图给模型
         model = "qwen-image-max"
+        messages = [{"role": "user", "content": [{"text": prompt}]}]
+        if has_ref:
+            print(f"  ℹ 强制文生图模式，忽略参考图 (model={model})")
+        else:
+            print(f"  ℹ 文生图模式 (model={model})")
+    elif force_model == 'edit':
+        # 强制图像编辑模式
+        if has_ref:
+            ref_path = str(Path(reference_image_path).resolve())
+            messages = [{"role": "user", "content": [{"image": ref_path}, {"text": prompt}]}]
+            model = "qwen-image-edit-max"
+            print(f"  ℹ 强制图像编辑模式 (model={model})")
+        else:
+            # 无参考图时无法使用编辑模型，fallback 到文生图
+            model = "qwen-image-max"
+            messages = [{"role": "user", "content": [{"text": prompt}]}]
+            print(f"  ⚠ 指定 edit 模式但无参考图，回退到文生图 (model={model})")
+    else:
+        # 自动选择：有参考图用编辑模型，无参考图用文生图
+        if has_ref:
+            ref_path = str(Path(reference_image_path).resolve())
+            messages = [{"role": "user", "content": [{"image": ref_path}, {"text": prompt}]}]
+            model = "qwen-image-edit-max"
+            print(f"  ℹ 使用参考图直接输入模式 (model={model})")
+        else:
+            messages = [{"role": "user", "content": [{"text": prompt}]}]
+            model = "qwen-image-max"
 
     # 默认负面提示词（排除非黑色背景、低质量图像、通用品牌相关、关闭按钮）
     # 注意：具体参考图品牌的 negative_prompt 应由调用方通过 negative_prompt 参数传入
@@ -549,7 +559,8 @@ class SemanticDialogGenerator:
         api_key: Optional[str] = None,
         vlm_api_url: str = 'https://api.openai-next.com/v1/chat/completions',
         vlm_model: str = 'gpt-4o',
-        reference_path: Optional[str] = None
+        reference_path: Optional[str] = None,
+        image_model: Optional[str] = None
     ):
         """
         初始化语义弹窗生成器
@@ -560,6 +571,7 @@ class SemanticDialogGenerator:
             vlm_api_url: VLM API 端点（用于语义分析）
             vlm_model: VLM 模型名称
             reference_path: 参考弹窗图片路径（用于风格学习）
+            image_model: 图像生成模型选择 ('gen'=纯文生图, 'edit'=图像编辑, None=自动选择)
 
         Note:
             图像生成使用 DashScope API，API Key 从环境变量 DASHSCOPE_API_KEY 获取
@@ -569,6 +581,7 @@ class SemanticDialogGenerator:
         self.vlm_api_url = vlm_api_url
         self.vlm_model = vlm_model
         self.font_cache = {}
+        self.image_model = image_model
 
         # 参考图片风格分析
         self.reference_style = None
@@ -1224,7 +1237,7 @@ class SemanticDialogGenerator:
         gen_size = f"{width}*{height}"
 
         try:
-            image = generate_image_dashscope(prompt=prompt, size=gen_size)
+            image = generate_image_dashscope(prompt=prompt, size=gen_size, force_model=self.image_model)
 
             if image:
                 gen_width, gen_height = image.size
@@ -1449,7 +1462,8 @@ class SemanticDialogGenerator:
             image = generate_image_dashscope(
                 prompt=prompt, size=gen_size, prompt_extend=False,
                 reference_image_path=cropped_ref_path,
-                negative_prompt=dynamic_negative
+                negative_prompt=dynamic_negative,
+                force_model=self.image_model
             )
 
             if image:
