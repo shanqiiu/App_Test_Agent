@@ -1,7 +1,7 @@
 {
   "category": "dialog_blocking",
   "description": "弹窗覆盖UI - 用于生成各类遮挡弹窗异常",
-  "count": 12,
+  "count": 13,
   "samples": {
     "使用教程遮挡.jpg": {
       "anomaly_type": "tutorial_guide",
@@ -583,8 +583,7 @@
           "弹窗位于屏幕中央，覆盖半透明遮罩",
           "主色调为红色，顶部有蓝色海豚卡通形象",
           "包含三个横向优惠券卡片，分别标注90元、100元、1288元",
-          "底部有‘开心收下’的红色填充按钮",
-          "弹窗下方有一个圆形关闭按钮（×）"
+          "底部有‘开心收下’的红色填充按钮"
         ]
       }
     },
@@ -699,6 +698,66 @@
           "右侧有'去自取'按钮",
           "整体风格与瑞幸品牌色系一致"
         ]
+      }
+    },
+    "12306无票弹窗.jpg": {
+      "anomaly_type": "ticket_booking_confirmation_dialog",
+      "anomaly_description": "12306火车票购票页面弹出车次Z112的购票确认弹窗，显示硬座、硬卧、软卧等席别价格及预订按钮",
+      "visual_features": {
+        "app_style": "12306",
+        "source_brand": "铁路12306",
+        "source_brand_keywords": [
+          "12306",
+          "铁路12306",
+          "中国铁路"
+        ],
+        "primary_color": "#FF6600",
+        "background": "白色 #FFFFFF",
+        "dialog_position": "center",
+        "dialog_size_ratio": {
+          "width": 0.9,
+          "height": 0.5
+        },
+        "overlay_enabled": true,
+        "overlay_opacity": 0.5,
+        "close_button_position": "top-right",
+        "close_button_style": "gray_circle_x",
+        "main_button_text": "预订",
+        "main_button_style": "blue_filled",
+        "title_text": "Z112 北京丰台 → 长春",
+        "subtitle_text": "05:54 - 15:23 | 9小时29分",
+        "special_elements": [
+          "票价标签",
+          "席别分类",
+          "有票/售罄状态",
+          "候补+按钮",
+          "上下铺价格细分"
+        ]
+      },
+      "generation_template": {
+        "instruction": "在12306购票界面中，当用户点击某个车次时，弹出包含多个席别选项和价格的购票确认弹窗。",
+        "patch_operations": [
+          {
+            "type": "add",
+            "component": "TicketBookingDialog",
+            "position": "center",
+            "overlay": true,
+            "close_button": false
+          }
+        ],
+        "key_points": [
+          "弹窗位于屏幕中央，覆盖主界面",
+          "顶部显示车次号Z112和出发到达时间",
+          "左侧开始第一列有硬座、硬卧、软卧、无座4个席别选项",
+          "第二、三列每个席别显示价格和可用状态（如‘有票’或‘售罄’）",
+          "最后一列有蓝色‘预订’按钮或橙色‘候补+’按钮"
+        ]
+      },
+      "dialog_bounds_px": {
+        "x": 51,
+        "y": 1170,
+        "width": 1136,
+        "height": 1347
       }
     }
   },

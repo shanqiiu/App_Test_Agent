@@ -1,0 +1,36 @@
+[
+  {
+    "action": "modify_text",
+    "region": {
+      "x": 51,
+      "y": 1170,
+      "width": 1136,
+      "height": 1347
+    },
+    "content": "将该车次卡片中的票量信息全部改为无票状态：将\"售磬\"改为\"无票\"；将\"有票\"改为\"无票\"；将\"3张\"改为\"无票\"；将\"8张\"改为\"无票\"",
+    "target_component": 8,
+    "style_hint": {
+      "use_ai_edit": true,
+      "text_changes": [
+        {
+          "from": "售磬",
+          "to": "无票"
+        },
+        {
+          "from": "有票",
+          "to": "无票"
+        },
+        {
+          "from": "3张",
+          "to": "无票"
+        },
+        {
+          "from": "8张",
+          "to": "无票"
+        }
+      ],
+      "edit_description": "将该车次卡片中的票量信息全部改为无票状态"
+    },
+    "reference_component": 8
+  }
+]

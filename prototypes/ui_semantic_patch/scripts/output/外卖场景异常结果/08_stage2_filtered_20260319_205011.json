@@ -1,0 +1,276 @@
+{
+  "metadata": {
+    "source": "08.jpg",
+    "extractionMethod": "OmniParser+VLM_Grouping_v3",
+    "models": {
+      "detection": "OmniParser (YOLO + PaddleOCR + Florence2)",
+      "semantic_grouping": "qwen-vl-max"
+    },
+    "timestamp": "2026-03-19T20:51:09.191672",
+    "resolution": {
+      "width": 1224,
+      "height": 2776
+    },
+    "processing": {
+      "omni_raw_count": 68,
+      "final_count": 5,
+      "merge_log": [
+        {
+          "action": "group_merge",
+          "name": "StatusBar",
+          "from": [
+            0,
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7,
+            8
+          ],
+          "to_class": "StatusBar",
+          "reason": "9 个检测框合并为 StatusBar"
+        },
+        {
+          "action": "group_merge",
+          "name": "NavigationBar",
+          "from": [
+            9,
+            10,
+            11,
+            12,
+            13,
+            14
+          ],
+          "to_class": "NavigationBar",
+          "reason": "6 个检测框合并为 NavigationBar"
+        },
+        {
+          "action": "group_merge",
+          "name": "TabBar",
+          "from": [
+            15,
+            16,
+            17,
+            18
+          ],
+          "to_class": "TabBar",
+          "reason": "4 个检测框合并为 TabBar"
+        },
+        {
+          "action": "group_merge",
+          "name": "Banner",
+          "from": [
+            19,
+            20,
+            21,
+            22
+          ],
+          "to_class": "ImageView",
+          "reason": "4 个检测框合并为 Banner"
+        },
+        {
+          "action": "group_merge",
+          "name": "RecommendationSection",
+          "from": [
+            23,
+            24,
+            25,
+            26,
+            27,
+            28,
+            29,
+            30,
+            31,
+            32,
+            33,
+            34,
+            35,
+            36,
+            37,
+            38,
+            39,
+            40,
+            41,
+            42,
+            43,
+            44,
+            45,
+            46,
+            47,
+            48,
+            49,
+            50,
+            51,
+            52,
+            53,
+            54,
+            55,
+            56,
+            57,
+            58,
+            59,
+            60,
+            61,
+            62,
+            63,
+            64,
+            65,
+            66,
+            67
+          ],
+          "to_class": "Card",
+          "reason": "45 个检测框合并为 RecommendationSection"
+        }
+      ]
+    }
+  },
+  "components": [
+    {
+      "index": 0,
+      "class": "StatusBar",
+      "bounds": {
+        "x": 28,
+        "y": 56,
+        "width": 1166,
+        "height": 65
+      },
+      "text": "状态栏，显示时间、电池、信号等系统信息",
+      "clickable": true,
+      "source_indices": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8
+      ],
+      "note": "语义分组合并: StatusBar"
+    },
+    {
+      "index": 1,
+      "class": "NavigationBar",
+      "bounds": {
+        "x": 30,
+        "y": 177,
+        "width": 1169,
+        "height": 107
+      },
+      "text": "顶部导航栏，包含返回、搜索、收藏、聊天、拼单和更多选项按钮",
+      "clickable": true,
+      "source_indices": [
+        9,
+        10,
+        11,
+        12,
+        13,
+        14
+      ],
+      "note": "语义分组合并: NavigationBar"
+    },
+    {
+      "index": 2,
+      "class": "TabBar",
+      "bounds": {
+        "x": 7,
+        "y": 317,
+        "width": 861,
+        "height": 102
+      },
+      "text": "底部标签栏，包含点菜、超优惠、评价、商家等选项",
+      "clickable": true,
+      "source_indices": [
+        15,
+        16,
+        17,
+        18
+      ],
+      "note": "语义分组合并: TabBar"
+    },
+    {
+      "index": 3,
+      "class": "ImageView",
+      "bounds": {
+        "x": 18,
+        "y": 440,
+        "width": 1170,
+        "height": 313
+      },
+      "text": "横幅广告，宣传“开杯满福”活动",
+      "clickable": true,
+      "source_indices": [
+        19,
+        20,
+        21,
+        22
+      ],
+      "note": "语义分组合并: Banner"
+    },
+    {
+      "index": 4,
+      "class": "Card",
+      "bounds": {
+        "x": 2,
+        "y": 570,
+        "width": 1202,
+        "height": 2205
+      },
+      "text": "推荐商品列表，包含多款饮品的图片、名称、价格、销量及加购按钮",
+      "clickable": true,
+      "source_indices": [
+        23,
+        24,
+        25,
+        26,
+        27,
+        28,
+        29,
+        30,
+        31,
+        32,
+        33,
+        34,
+        35,
+        36,
+        37,
+        38,
+        39,
+        40,
+        41,
+        42,
+        43,
+        44,
+        45,
+        46,
+        47,
+        48,
+        49,
+        50,
+        51,
+        52,
+        53,
+        54,
+        55,
+        56,
+        57,
+        58,
+        59,
+        60,
+        61,
+        62,
+        63,
+        64,
+        65,
+        66,
+        67
+      ],
+      "note": "语义分组合并: RecommendationSection"
+    }
+  ],
+  "componentCount": 5,
+  "_stage2_status": "success"
+}

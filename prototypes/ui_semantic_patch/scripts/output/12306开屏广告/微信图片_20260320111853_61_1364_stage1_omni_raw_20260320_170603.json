@@ -1,0 +1,633 @@
+{
+  "metadata": {
+    "source": "微信图片_20260320111853_61_1364.jpg",
+    "extractionMethod": "OmniParser",
+    "models": {
+      "detection": "YOLO (icon_detect)",
+      "ocr": "PaddleOCR",
+      "caption": "Florence2"
+    },
+    "timestamp": "2026-03-20T17:07:02.357373",
+    "resolution": {
+      "width": 1224,
+      "height": 2776
+    }
+  },
+  "components": [
+    {
+      "index": 0,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 1087,
+        "y": 53,
+        "width": 92,
+        "height": 71
+      },
+      "text": "77",
+      "clickable": true,
+      "source": "box_yolo_content_yolo",
+      "contentDesc": "77"
+    },
+    {
+      "index": 1,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 832,
+        "y": 55,
+        "width": 54,
+        "height": 67
+      },
+      "text": "Clock",
+      "clickable": true,
+      "source": "box_yolo_content_yolo",
+      "contentDesc": "Clock"
+    },
+    {
+      "index": 2,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 779,
+        "y": 58,
+        "width": 47,
+        "height": 62
+      },
+      "text": "News & news stories",
+      "clickable": true,
+      "source": "box_yolo_content_yolo",
+      "contentDesc": "News & news stories"
+    },
+    {
+      "index": 3,
+      "class": "TextView",
+      "bounds": {
+        "x": 65,
+        "y": 75,
+        "width": 105,
+        "height": 32
+      },
+      "text": "1:18",
+      "clickable": false,
+      "source": "box_ocr_content_ocr"
+    },
+    {
+      "index": 4,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 1094,
+        "y": 174,
+        "width": 87,
+        "height": 101
+      },
+      "text": "Quiz Quiz Quilt",
+      "clickable": true,
+      "source": "box_yolo_content_yolo",
+      "contentDesc": "Quiz Quiz Quilt"
+    },
+    {
+      "index": 5,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 288,
+        "y": 185,
+        "width": 300,
+        "height": 74
+      },
+      "text": "A grid layout or grid layout.",
+      "clickable": true,
+      "source": "box_yolo_content_yolo",
+      "contentDesc": "A grid layout or grid layout."
+    },
+    {
+      "index": 6,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 51,
+        "y": 188,
+        "width": 249,
+        "height": 98
+      },
+      "text": "12306 ",
+      "clickable": true,
+      "source": "box_yolo_content_ocr",
+      "contentDesc": "12306 "
+    },
+    {
+      "index": 7,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 746,
+        "y": 304,
+        "width": 91,
+        "height": 212
+      },
+      "text": "A person sitting in a restaurant.",
+      "clickable": true,
+      "source": "box_yolo_content_yolo",
+      "contentDesc": "A person sitting in a restaurant."
+    },
+    {
+      "index": 8,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 624,
+        "y": 305,
+        "width": 126,
+        "height": 210
+      },
+      "text": "Little Girl",
+      "clickable": true,
+      "source": "box_yolo_content_yolo",
+      "contentDesc": "Little Girl"
+    },
+    {
+      "index": 9,
+      "class": "TextView",
+      "bounds": {
+        "x": 70,
+        "y": 476,
+        "width": 266,
+        "height": 28
+      },
+      "text": "2026",
+      "clickable": false,
+      "source": "box_ocr_content_ocr"
+    },
+    {
+      "index": 10,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 1147,
+        "y": 476,
+        "width": 76,
+        "height": 56
+      },
+      "text": "Chinese language translation.",
+      "clickable": true,
+      "source": "box_yolo_content_yolo",
+      "contentDesc": "Chinese language translation."
+    },
+    {
+      "index": 11,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 30,
+        "y": 542,
+        "width": 375,
+        "height": 161
+      },
+      "text": "A computer program or application development.",
+      "clickable": true,
+      "source": "box_yolo_content_yolo",
+      "contentDesc": "A computer program or application development."
+    },
+    {
+      "index": 12,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 403,
+        "y": 547,
+        "width": 433,
+        "height": 154
+      },
+      "text": "A VHS player for sale or buying VHS.",
+      "clickable": true,
+      "source": "box_yolo_content_yolo",
+      "contentDesc": "A VHS player for sale or buying VHS."
+    },
+    {
+      "index": 13,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 918,
+        "y": 561,
+        "width": 150,
+        "height": 136
+      },
+      "text": "Xiaohongshu (Little Red Book)",
+      "clickable": true,
+      "source": "box_yolo_content_yolo",
+      "contentDesc": "Xiaohongshu (Little Red Book)"
+    },
+    {
+      "index": 14,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 935,
+        "y": 797,
+        "width": 182,
+        "height": 96
+      },
+      "text": "Asian People People",
+      "clickable": true,
+      "source": "box_yolo_content_yolo",
+      "contentDesc": "Asian People People"
+    },
+    {
+      "index": 15,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 302,
+        "y": 988,
+        "width": 76,
+        "height": 88
+      },
+      "text": "ladder",
+      "clickable": true,
+      "source": "box_yolo_content_yolo",
+      "contentDesc": "ladder"
+    },
+    {
+      "index": 16,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 393,
+        "y": 993,
+        "width": 112,
+        "height": 81
+      },
+      "text": "Asian People",
+      "clickable": true,
+      "source": "box_yolo_content_yolo",
+      "contentDesc": "Asian People"
+    },
+    {
+      "index": 17,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 959,
+        "y": 996,
+        "width": 151,
+        "height": 75
+      },
+      "text": "Chinese language",
+      "clickable": true,
+      "source": "box_yolo_content_yolo",
+      "contentDesc": "Chinese language"
+    },
+    {
+      "index": 18,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 890,
+        "y": 998,
+        "width": 69,
+        "height": 73
+      },
+      "text": "Square",
+      "clickable": true,
+      "source": "box_yolo_content_yolo",
+      "contentDesc": "Square"
+    },
+    {
+      "index": 19,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 116,
+        "y": 1176,
+        "width": 996,
+        "height": 147
+      },
+      "text": "Sanitizer",
+      "clickable": true,
+      "source": "box_yolo_content_yolo",
+      "contentDesc": "Sanitizer"
+    },
+    {
+      "index": 20,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 350,
+        "y": 1336,
+        "width": 216,
+        "height": 80
+      },
+      "text": "Subscript",
+      "clickable": true,
+      "source": "box_yolo_content_yolo",
+      "contentDesc": "Subscript"
+    },
+    {
+      "index": 21,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 498,
+        "y": 1517,
+        "width": 221,
+        "height": 182
+      },
+      "text": "Xiaohongshu (Little Red Book)",
+      "clickable": true,
+      "source": "box_yolo_content_yolo",
+      "contentDesc": "Xiaohongshu (Little Red Book)"
+    },
+    {
+      "index": 22,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 744,
+        "y": 1517,
+        "width": 184,
+        "height": 181
+      },
+      "text": "Xiaohongshu (Little Red Book) app.",
+      "clickable": true,
+      "source": "box_yolo_content_yolo",
+      "contentDesc": "Xiaohongshu (Little Red Book) app."
+    },
+    {
+      "index": 23,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 252,
+        "y": 1520,
+        "width": 256,
+        "height": 183
+      },
+      "text": "Xiaohongshu (Hongkong)",
+      "clickable": true,
+      "source": "box_yolo_content_yolo",
+      "contentDesc": "Xiaohongshu (Hongkong)"
+    },
+    {
+      "index": 24,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 970,
+        "y": 1520,
+        "width": 194,
+        "height": 179
+      },
+      "text": "Xiaohongshu (Korean language)",
+      "clickable": true,
+      "source": "box_yolo_content_yolo",
+      "contentDesc": "Xiaohongshu (Korean language)"
+    },
+    {
+      "index": 25,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 46,
+        "y": 1525,
+        "width": 208,
+        "height": 182
+      },
+      "text": "Xiaohongshu (Daily Mail)",
+      "clickable": true,
+      "source": "box_yolo_content_yolo",
+      "contentDesc": "Xiaohongshu (Daily Mail)"
+    },
+    {
+      "index": 26,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 728,
+        "y": 1708,
+        "width": 225,
+        "height": 230
+      },
+      "text": "Vehicle usage in China",
+      "clickable": true,
+      "source": "box_yolo_content_yolo",
+      "contentDesc": "Vehicle usage in China"
+    },
+    {
+      "index": 27,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 962,
+        "y": 1711,
+        "width": 214,
+        "height": 243
+      },
+      "text": "Korean Text App",
+      "clickable": true,
+      "source": "box_yolo_content_yolo",
+      "contentDesc": "Korean Text App"
+    },
+    {
+      "index": 28,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 500,
+        "y": 1721,
+        "width": 219,
+        "height": 234
+      },
+      "text": "Xiaohongshu (Little Red Book)",
+      "clickable": true,
+      "source": "box_yolo_content_yolo",
+      "contentDesc": "Xiaohongshu (Little Red Book)"
+    },
+    {
+      "index": 29,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 50,
+        "y": 1740,
+        "width": 208,
+        "height": 216
+      },
+      "text": "Xiaohongshu (Little Red Book)",
+      "clickable": true,
+      "source": "box_yolo_content_yolo",
+      "contentDesc": "Xiaohongshu (Little Red Book)"
+    },
+    {
+      "index": 30,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 276,
+        "y": 1743,
+        "width": 194,
+        "height": 200
+      },
+      "text": "Heart",
+      "clickable": true,
+      "source": "box_yolo_content_yolo",
+      "contentDesc": "Heart"
+    },
+    {
+      "index": 31,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 736,
+        "y": 1939,
+        "width": 213,
+        "height": 210
+      },
+      "text": "Korean Text Group",
+      "clickable": true,
+      "source": "box_yolo_content_yolo",
+      "contentDesc": "Korean Text Group"
+    },
+    {
+      "index": 32,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 962,
+        "y": 1960,
+        "width": 208,
+        "height": 186
+      },
+      "text": "Xiaohongshu (Little Red Book) app.",
+      "clickable": true,
+      "source": "box_yolo_content_yolo",
+      "contentDesc": "Xiaohongshu (Little Red Book) app."
+    },
+    {
+      "index": 33,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 47,
+        "y": 1966,
+        "width": 210,
+        "height": 178
+      },
+      "text": "Chinese food and vegetable service.",
+      "clickable": true,
+      "source": "box_yolo_content_yolo",
+      "contentDesc": "Chinese food and vegetable service."
+    },
+    {
+      "index": 34,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 271,
+        "y": 1972,
+        "width": 219,
+        "height": 179
+      },
+      "text": "Chinese language translation",
+      "clickable": true,
+      "source": "box_yolo_content_yolo",
+      "contentDesc": "Chinese language translation"
+    },
+    {
+      "index": 35,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 509,
+        "y": 1974,
+        "width": 203,
+        "height": 210
+      },
+      "text": "Korean People People",
+      "clickable": true,
+      "source": "box_yolo_content_yolo",
+      "contentDesc": "Korean People People"
+    },
+    {
+      "index": 36,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 232,
+        "y": 2239,
+        "width": 985,
+        "height": 261
+      },
+      "text": "Korean version of the Korean language (Korean)",
+      "clickable": true,
+      "source": "box_yolo_content_yolo",
+      "contentDesc": "Korean version of the Korean language (Korean)"
+    },
+    {
+      "index": 37,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 41,
+        "y": 2244,
+        "width": 201,
+        "height": 196
+      },
+      "text": "Unanswerable",
+      "clickable": true,
+      "source": "box_yolo_content_yolo",
+      "contentDesc": "Unanswerable"
+    },
+    {
+      "index": 38,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 27,
+        "y": 2390,
+        "width": 73,
+        "height": 75
+      },
+      "text": "Audio horn",
+      "clickable": true,
+      "source": "box_yolo_content_yolo",
+      "contentDesc": "Audio horn"
+    },
+    {
+      "index": 39,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 20,
+        "y": 2490,
+        "width": 216,
+        "height": 194
+      },
+      "text": "Chinese language translation.",
+      "clickable": true,
+      "source": "box_yolo_content_yolo",
+      "contentDesc": "Chinese language translation."
+    },
+    {
+      "index": 40,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 734,
+        "y": 2491,
+        "width": 246,
+        "height": 224
+      },
+      "text": "Xiaohongshu (Little Red Book)",
+      "clickable": true,
+      "source": "box_yolo_content_yolo",
+      "contentDesc": "Xiaohongshu (Little Red Book)"
+    },
+    {
+      "index": 41,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 995,
+        "y": 2491,
+        "width": 207,
+        "height": 216
+      },
+      "text": "Person",
+      "clickable": true,
+      "source": "box_yolo_content_yolo",
+      "contentDesc": "Person"
+    },
+    {
+      "index": 42,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 246,
+        "y": 2492,
+        "width": 241,
+        "height": 234
+      },
+      "text": "Xiaohongshu (Hongkong)",
+      "clickable": true,
+      "source": "box_yolo_content_yolo",
+      "contentDesc": "Xiaohongshu (Hongkong)"
+    },
+    {
+      "index": 43,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 536,
+        "y": 2492,
+        "width": 149,
+        "height": 211
+      },
+      "text": "Insert Formatting",
+      "clickable": true,
+      "source": "box_yolo_content_yolo",
+      "contentDesc": "Insert Formatting"
+    }
+  ],
+  "componentCount": 44
+}

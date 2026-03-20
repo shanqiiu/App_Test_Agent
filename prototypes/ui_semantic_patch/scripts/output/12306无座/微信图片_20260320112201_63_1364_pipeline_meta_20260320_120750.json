@@ -1,0 +1,24 @@
+{
+  "timestamp": "20260320_120750",
+  "screenshot": "../data/原图/12306无票/微信图片_20260320112201_63_1364.jpg",
+  "instruction": "在购票确认弹窗，修改硬座、硬卧、软卧的状态为无座",
+  "outputs": {
+    "stage1_omni_raw": "output\\12306无座\\微信图片_20260320112201_63_1364_stage1_omni_raw_20260320_120750.json",
+    "stage1_annotated": "output\\12306无座\\微信图片_20260320112201_63_1364_stage1_annotated_20260320_120750.png",
+    "stage2_filtered": "output\\12306无座\\微信图片_20260320112201_63_1364_stage2_filtered_20260320_120750.json",
+    "stage2_annotated": "output\\12306无座\\微信图片_20260320112201_63_1364_stage2_annotated_20260320_120750.png",
+    "final_image": "output\\12306无座\\final_20260320_120907.png",
+    "meta_driven": false
+  },
+  "timing": {
+    "stage1": 39.17,
+    "stage2": 25.55,
+    "stage3": 12.57
+  },
+  "stage2_status": "success",
+  "render_metadata": {
+    "edit_count": 4,
+    "diff_path": "output\\12306无座\\diff_20260320_120907.png",
+    "edit_plan_path": "output\\12306无座\\edit_plan_20260320_120907.json"
+  }
+}

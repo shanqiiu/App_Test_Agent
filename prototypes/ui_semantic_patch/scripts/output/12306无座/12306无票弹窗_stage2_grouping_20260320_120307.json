@@ -1,0 +1,123 @@
+{
+  "groups": [
+    {
+      "name": "StatusBar",
+      "indices": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5
+      ],
+      "class": "StatusBar",
+      "text": "系统状态栏，显示时间、电池、信号等"
+    },
+    {
+      "name": "NavigationBar",
+      "indices": [
+        9,
+        6,
+        7,
+        8
+      ],
+      "class": "NavigationBar",
+      "text": "顶部导航栏，包含返回按钮和城市选择"
+    },
+    {
+      "name": "DateSelector",
+      "indices": [
+        11,
+        13,
+        10,
+        15,
+        12,
+        14
+      ],
+      "class": "Button",
+      "text": "日期选择器，用于选择出行日期"
+    },
+    {
+      "name": "CalendarIcon",
+      "indices": [
+        16
+      ],
+      "class": "ImageButton",
+      "text": "日历图标，点击可查看完整日历"
+    },
+    {
+      "name": "TabBar",
+      "indices": [
+        19,
+        18
+      ],
+      "class": "TabBar",
+      "text": "直达与中转选项卡"
+    },
+    {
+      "name": "FilterOptions",
+      "indices": [
+        20,
+        21,
+        22,
+        23,
+        24,
+        25
+      ],
+      "class": "Button",
+      "text": "筛选条件选项，如只看高铁、普通车等"
+    },
+    {
+      "name": "StationSelector",
+      "indices": [
+        26,
+        27,
+        28,
+        29,
+        30,
+        31,
+        32
+      ],
+      "class": "Card",
+      "text": "出发站和到达站选择区域"
+    },
+    {
+      "name": "TrainCard",
+      "indices": [
+        33,
+        34,
+        35,
+        36,
+        37,
+        38,
+        39,
+        40,
+        41,
+        42,
+        43,
+        44,
+        45,
+        46,
+        47,
+        48,
+        49,
+        50,
+        51,
+        52,
+        53,
+        54,
+        55,
+        56,
+        57,
+        58,
+        59,
+        60,
+        61,
+        62,
+        63
+      ],
+      "class": "Card",
+      "text": "列车信息卡片，包含发车时间、车次、到达时间、票价及预订按钮"
+    }
+  ]
+}

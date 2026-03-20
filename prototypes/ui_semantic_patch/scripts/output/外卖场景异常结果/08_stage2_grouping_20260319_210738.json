@@ -1,0 +1,149 @@
+{
+  "groups": [
+    {
+      "name": "StatusBar",
+      "indices": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8
+      ],
+      "class": "StatusBar",
+      "text": "状态栏，显示时间、电池、信号等系统信息"
+    },
+    {
+      "name": "NavigationBar",
+      "indices": [
+        9,
+        10,
+        11,
+        12,
+        13,
+        14
+      ],
+      "class": "NavigationBar",
+      "text": "顶部导航栏，包含返回、搜索、收藏、聊天、拼单和更多选项按钮"
+    },
+    {
+      "name": "TabBar",
+      "indices": [
+        15,
+        16,
+        17,
+        18
+      ],
+      "class": "TabBar",
+      "text": "底部标签栏，包含点菜、超优惠、评价、商家等选项"
+    },
+    {
+      "name": "Banner",
+      "indices": [
+        19,
+        20,
+        21,
+        22
+      ],
+      "class": "ImageView",
+      "text": "横幅广告，展示“开杯满福”促销活动"
+    },
+    {
+      "name": "RecommendationSection",
+      "indices": [
+        23,
+        24,
+        25,
+        26
+      ],
+      "class": "Card",
+      "text": "推荐区域标题及分类标签，如‘人气Top’、‘新年欢聚’等"
+    },
+    {
+      "name": "ProductCard",
+      "indices": [
+        27,
+        28,
+        29,
+        30,
+        31,
+        32,
+        33
+      ],
+      "class": "Card",
+      "text": "茉莉花香拿铁商品卡片，包含图片、名称、销量、价格和选规格按钮"
+    },
+    {
+      "name": "ProductCard",
+      "indices": [
+        34,
+        35,
+        36,
+        37,
+        38,
+        39,
+        40,
+        41,
+        42,
+        43,
+        44,
+        45,
+        46
+      ],
+      "class": "Card",
+      "text": "【开工搭子】生椰拿铁商品卡片，包含双杯图、名称、折扣价、加购按钮"
+    },
+    {
+      "name": "ProductCard",
+      "indices": [
+        47,
+        48,
+        49,
+        50,
+        51,
+        52,
+        53,
+        54,
+        55,
+        56,
+        57,
+        58,
+        59,
+        60,
+        61
+      ],
+      "class": "Card",
+      "text": "【开工大伽】生椰拿铁商品卡片，包含双杯图、名称、折扣价、加购按钮"
+    },
+    {
+      "name": "PromotionBar",
+      "indices": [
+        62,
+        63
+      ],
+      "class": "TextView",
+      "text": "促销提示条，显示自取减11.6元和去自取按钮"
+    },
+    {
+      "name": "CartSummary",
+      "indices": [
+        64,
+        65,
+        66
+      ],
+      "class": "Card",
+      "text": "购物车摘要，显示总价¥22、共减¥3、免配送费"
+    },
+    {
+      "name": "CheckoutButton",
+      "indices": [
+        67
+      ],
+      "class": "Button",
+      "text": "去结算按钮"
+    }
+  ]
+}

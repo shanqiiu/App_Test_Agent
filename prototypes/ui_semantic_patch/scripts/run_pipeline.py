@@ -16,7 +16,7 @@ import os
 import time
 from pathlib import Path
 from datetime import datetime
-from typing import Optional
+from typing import Optional, List
 
 # 自动加载项目根目录的 .env 文件
 try:
@@ -112,6 +112,47 @@ def _smart_select_component(ui_json: dict, instruction: str) -> Optional[dict]:
         default=None
     )
     return largest_comp
+
+
+def _load_edit_plan(plan_path: Optional[str]) -> Optional[List['EditOp']]:
+    """加载用户提供的文本编辑计划 JSON"""
+    if not plan_path:
+        return None
+
+    path = Path(plan_path).expanduser()
+    if not path.is_absolute():
+        path = Path.cwd() / path
+
+    if not path.exists():
+        print(f"  ⚠ edit_plan 文件不存在: {path}")
+        return None
+
+    try:
+        raw_data = json.loads(path.read_text(encoding='utf-8'))
+    except Exception as e:
+        print(f"  ⚠ 读取 edit_plan 失败: {e}")
+        return None
+
+    if not isinstance(raw_data, list):
+        print(f"  ⚠ edit_plan JSON 需为数组: {path}")
+        return None
+
+    edit_ops: List[EditOp] = []
+    for idx, item in enumerate(raw_data, 1):
+        if not isinstance(item, dict):
+            print(f"  ⚠ edit_plan 第 {idx} 项不是对象，已跳过")
+            continue
+        try:
+            edit_ops.append(EditOp(**item))
+        except TypeError as e:
+            print(f"  ⚠ edit_plan 第 {idx} 项字段不完整: {e}")
+
+    if not edit_ops:
+        print(f"  ⚠ edit_plan 未解析到有效操作: {path}")
+        return None
+
+    print(f"  ✓ 已加载 edit_plan ({len(edit_ops)} 个操作): {path}")
+    return edit_ops
 
 # OmniParser 融合模块
 try:
@@ -229,7 +270,8 @@ def run_pipeline(
     target_component: str = None,
     gt_category: str = None,
     gt_sample: str = None,
-    image_model: str = None
+    image_model: str = None,
+    edit_plan_path: str = None,
 ) -> dict:
     """
     执行异常场景生成流程
@@ -249,11 +291,14 @@ def run_pipeline(
         reference_icon_path: 参考加载图标路径（area_loading 模式）
         omni_device: OmniParser 运行设备
         visualize: 是否保存 OmniParser 检测结果可视化图片（默认 True）
-        anomaly_mode: 异常模式 (dialog=全屏弹窗, area_loading=区域加载图标)
+        anomaly_mode: 异常模式 (dialog=全屏弹窗, area_loading=区域加载图标,
+                               content_duplicate=内容重复, text_overlay=局部文字编辑,
+                               modify_text=像素级文字替换)
         target_component: 目标组件ID（仅area_loading模式使用）
         gt_category: GT模板类别（如"弹窗覆盖原UI"），启用meta驱动生成
         gt_sample: GT模板样本名（如"弹出广告.jpg"），与gt_category配合使用
         image_model: 图像生成模型选择 ('gen'=纯文生图, 'edit'=图像编辑, None=自动选择)
+        edit_plan_path: 文本覆盖模式下的自定义 edit_plan JSON（跳过 VLM 规划）
 
     Returns:
         包含所有输出路径的字典
@@ -422,7 +467,7 @@ def run_pipeline(
         from renderers.base import RenderResult
         from renderers.area_loading import AreaLoadingRenderer
         from renderers.content_duplicate import ContentDuplicateRenderer
-        from renderers.text_overlay import TextOverlayRenderer
+        from renderers.text_overlay import TextOverlayRenderer, EditOp
         from renderers.patch import PatchRenderer
         from PIL import Image
 
@@ -431,6 +476,9 @@ def run_pipeline(
             'area_loading':      AreaLoadingRenderer,
             'content_duplicate': ContentDuplicateRenderer,
             'text_overlay':      TextOverlayRenderer,
+            'modify_text':       TextOverlayRenderer,
+            'modify_text_ai':    TextOverlayRenderer,
+            'modify_text_ocr':   TextOverlayRenderer,
         }
 
         if anomaly_mode not in RENDERER_MAP:
@@ -454,7 +502,7 @@ def run_pipeline(
                 vlm_model=vlm_model,
                 fonts_dir=fonts_dir,
             )
-        elif anomaly_mode == 'text_overlay':
+        elif anomaly_mode in ('text_overlay', 'modify_text', 'modify_text_ai', 'modify_text_ocr'):
             renderer = renderer_cls(
                 api_key=api_key,
                 vlm_api_url=vlm_api_url,
@@ -491,6 +539,15 @@ def run_pipeline(
             extra_kwargs['mode'] = 'expanded_view'
             if reference_path:
                 extra_kwargs['reference_path'] = reference_path
+        elif anomaly_mode in ('text_overlay', 'modify_text', 'modify_text_ai', 'modify_text_ocr'):
+            if edit_plan_path:
+                edit_plan_ops = _load_edit_plan(edit_plan_path)
+                if edit_plan_ops:
+                    extra_kwargs['edit_plan'] = edit_plan_ops
+            if anomaly_mode == 'modify_text_ai':
+                extra_kwargs['mode'] = 'modify_text_ai'
+            elif anomaly_mode in ('modify_text_ocr', 'modify_text'):
+                extra_kwargs['mode'] = 'modify_text_ocr'
         elif anomaly_mode == 'dialog':
             extra_kwargs['gt_category'] = gt_category
             extra_kwargs['gt_sample'] = gt_sample
@@ -614,6 +671,13 @@ def main():
     --anomaly-mode text_overlay \\
     --output ./output/
 
+  # Modify Text 模式（指定像素区域进行文字替换）
+  python run_pipeline.py \\
+    --screenshot ./page.png \\
+    --instruction "把右上角价格更新为￥299" \\
+    --anomaly-mode modify_text \\
+    --output ./output/
+
 Meta驱动生成说明:
   - 使用 --gt-category 和 --gt-sample 指定GT模板（传统方式）
   - 或使用 --reference + --gt-category 传入任意参考图（自动生成 meta.json）
@@ -663,9 +727,9 @@ Auto-Meta 模式示例（推荐！无需预先生成 meta.json）:
                         help='OmniParser 设备 (cuda/cpu)')
     parser.add_argument('--no-visualize', action='store_true',
                         help='禁用 OmniParser 检测结果可视化')
-    parser.add_argument('--anomaly-mode', choices=['dialog', 'area_loading', 'content_duplicate', 'text_overlay'],
+    parser.add_argument('--anomaly-mode', choices=['dialog', 'area_loading', 'content_duplicate', 'text_overlay', 'modify_text', 'modify_text_ai', 'modify_text_ocr'],
                         default='dialog',
-                        help='异常模式: dialog=全屏弹窗(默认), area_loading=区域加载图标, content_duplicate=内容重复, text_overlay=局部文字编辑')
+                        help='异常模式: dialog=全屏弹窗(默认), area_loading=区域加载图标, content_duplicate=内容重复, text_overlay=局部文字编辑, modify_text=OCR精定位文字替换(同modify_text_ocr), modify_text_ai=AI图像编辑文字替换, modify_text_ocr=OCR精定位+PIL渲染文字替换')
     parser.add_argument('--target-component',
                         help='目标组件ID (仅 area_loading 模式使用)')
     parser.add_argument('--gt-category',
@@ -675,6 +739,8 @@ Auto-Meta 模式示例（推荐！无需预先生成 meta.json）:
     parser.add_argument('--image-model', choices=['auto', 'edit', 'gen'],
                         default='auto',
                         help='图像生成模型: auto=自动选择(默认), gen=纯文生图(qwen-image-max), edit=图像编辑(qwen-image-edit-max)')
+    parser.add_argument('--edit-plan',
+                        help='文本覆盖/modify_text 模式使用的 Edit Plan JSON（跳过 VLM 规划）')
 
     args = parser.parse_args()
 
@@ -718,7 +784,8 @@ Auto-Meta 模式示例（推荐！无需预先生成 meta.json）:
         target_component=args.target_component,
         gt_category=args.gt_category,
         gt_sample=args.gt_sample,
-        image_model=args.image_model if args.image_model != 'auto' else None
+        image_model=args.image_model if args.image_model != 'auto' else None,
+        edit_plan_path=args.edit_plan,
     )
 
 

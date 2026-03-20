@@ -1,0 +1,353 @@
+{
+  "metadata": {
+    "source": "02.jpg",
+    "extractionMethod": "OmniParser+VLM_Grouping_v3",
+    "models": {
+      "detection": "OmniParser (YOLO + PaddleOCR + Florence2)",
+      "semantic_grouping": "qwen-vl-max"
+    },
+    "timestamp": "2026-03-19T11:12:50.183631",
+    "resolution": {
+      "width": 1224,
+      "height": 2776
+    },
+    "processing": {
+      "omni_raw_count": 49,
+      "final_count": 12,
+      "merge_log": [
+        {
+          "action": "group_merge",
+          "name": "StatusBar",
+          "from": [
+            0,
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7
+          ],
+          "to_class": "StatusBar",
+          "reason": "8 个检测框合并为 StatusBar"
+        },
+        {
+          "action": "group_merge",
+          "name": "NavigationBar",
+          "from": [
+            12,
+            8,
+            9,
+            10,
+            11
+          ],
+          "to_class": "NavigationBar",
+          "reason": "5 个检测框合并为 NavigationBar"
+        },
+        {
+          "action": "group_merge",
+          "name": "RestaurantCard",
+          "from": [
+            18,
+            19,
+            20,
+            21,
+            22,
+            23,
+            24,
+            25,
+            26,
+            27,
+            28,
+            29,
+            30,
+            31,
+            32,
+            33
+          ],
+          "to_class": "Card",
+          "reason": "16 个检测框合并为 RestaurantCard"
+        },
+        {
+          "action": "group_merge",
+          "name": "TabBar",
+          "from": [
+            34,
+            35
+          ],
+          "to_class": "TabBar",
+          "reason": "2 个检测框合并为 TabBar"
+        },
+        {
+          "action": "group_merge",
+          "name": "PromotionBanner",
+          "from": [
+            36,
+            37,
+            38,
+            39,
+            40
+          ],
+          "to_class": "Card",
+          "reason": "5 个检测框合并为 PromotionBanner"
+        },
+        {
+          "action": "group_merge",
+          "name": "DiscountBanner",
+          "from": [
+            41,
+            42,
+            43,
+            44,
+            45,
+            46
+          ],
+          "to_class": "Card",
+          "reason": "6 个检测框合并为 DiscountBanner"
+        },
+        {
+          "action": "group_merge",
+          "name": "BottomActionArea",
+          "from": [
+            47,
+            48
+          ],
+          "to_class": "Card",
+          "reason": "2 个检测框合并为 BottomActionArea"
+        }
+      ]
+    }
+  },
+  "components": [
+    {
+      "index": 0,
+      "class": "StatusBar",
+      "bounds": {
+        "x": 31,
+        "y": 54,
+        "width": 1162,
+        "height": 240
+      },
+      "text": "状态栏，显示时间、电池、信号等系统信息",
+      "clickable": true,
+      "source_indices": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7
+      ],
+      "note": "语义分组合并: StatusBar"
+    },
+    {
+      "index": 1,
+      "class": "NavigationBar",
+      "bounds": {
+        "x": 25,
+        "y": 186,
+        "width": 1168,
+        "height": 113
+      },
+      "text": "顶部导航栏，包含返回、地址、搜索、收藏、客服和更多选项按钮",
+      "clickable": true,
+      "source_indices": [
+        12,
+        8,
+        9,
+        10,
+        11
+      ],
+      "note": "语义分组合并: NavigationBar"
+    },
+    {
+      "index": 2,
+      "class": "ImageView",
+      "bounds": {
+        "x": 38,
+        "y": 374,
+        "width": 1158,
+        "height": 612
+      },
+      "text": "Cheerios",
+      "clickable": true,
+      "source": "box_yolo_content_yolo",
+      "contentDesc": "Cheerios",
+      "original_index": 13
+    },
+    {
+      "index": 3,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 312,
+        "y": 1005,
+        "width": 143,
+        "height": 101
+      },
+      "text": "Highway",
+      "clickable": true,
+      "source": "box_yolo_content_yolo",
+      "contentDesc": "Highway",
+      "original_index": 14,
+      "note": "未被 VLM 分组覆盖，自动保留"
+    },
+    {
+      "index": 4,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 614,
+        "y": 1005,
+        "width": 68,
+        "height": 96
+      },
+      "text": "Table",
+      "clickable": true,
+      "source": "box_yolo_content_yolo",
+      "contentDesc": "Table",
+      "original_index": 15,
+      "note": "未被 VLM 分组覆盖，自动保留"
+    },
+    {
+      "index": 5,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 520,
+        "y": 1009,
+        "width": 90,
+        "height": 89
+      },
+      "text": "Asian characters",
+      "clickable": true,
+      "source": "box_yolo_content_yolo",
+      "contentDesc": "Asian characters",
+      "original_index": 16,
+      "note": "未被 VLM 分组覆盖，自动保留"
+    },
+    {
+      "index": 6,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 453,
+        "y": 1010,
+        "width": 66,
+        "height": 89
+      },
+      "text": "Taped",
+      "clickable": true,
+      "source": "box_yolo_content_yolo",
+      "contentDesc": "Taped",
+      "original_index": 17,
+      "note": "未被 VLM 分组覆盖，自动保留"
+    },
+    {
+      "index": 7,
+      "class": "Card",
+      "bounds": {
+        "x": 34,
+        "y": 1018,
+        "width": 1189,
+        "height": 586
+      },
+      "text": "商家信息卡片，包含店名、评分、销量、配送时间、标签、优惠券等",
+      "clickable": true,
+      "source_indices": [
+        18,
+        19,
+        20,
+        21,
+        22,
+        23,
+        24,
+        25,
+        26,
+        27,
+        28,
+        29,
+        30,
+        31,
+        32,
+        33
+      ],
+      "note": "语义分组合并: RestaurantCard"
+    },
+    {
+      "index": 8,
+      "class": "TabBar",
+      "bounds": {
+        "x": 239,
+        "y": 1696,
+        "width": 419,
+        "height": 89
+      },
+      "text": "底部标签栏，包含外卖、点评、商家三个选项卡",
+      "clickable": true,
+      "source_indices": [
+        34,
+        35
+      ],
+      "note": "语义分组合并: TabBar"
+    },
+    {
+      "index": 9,
+      "class": "Card",
+      "bounds": {
+        "x": 7,
+        "y": 1873,
+        "width": 1206,
+        "height": 472
+      },
+      "text": "促销横幅，展示专属福利：满4元可用的3元优惠券",
+      "clickable": true,
+      "source_indices": [
+        36,
+        37,
+        38,
+        39,
+        40
+      ],
+      "note": "语义分组合并: PromotionBanner"
+    },
+    {
+      "index": 10,
+      "class": "Card",
+      "bounds": {
+        "x": 12,
+        "y": 2364,
+        "width": 1079,
+        "height": 161
+      },
+      "text": "店铺优惠横幅，展示满减活动：满10减27、满25减33、满12减10",
+      "clickable": true,
+      "source_indices": [
+        41,
+        42,
+        43,
+        44,
+        45,
+        46
+      ],
+      "note": "语义分组合并: DiscountBanner"
+    },
+    {
+      "index": 11,
+      "class": "Card",
+      "bounds": {
+        "x": 31,
+        "y": 2535,
+        "width": 1157,
+        "height": 142
+      },
+      "text": "底部操作区域，包含购物车图标、运费提示和起送价按钮",
+      "clickable": true,
+      "source_indices": [
+        47,
+        48
+      ],
+      "note": "语义分组合并: BottomActionArea"
+    }
+  ],
+  "componentCount": 12,
+  "_stage2_status": "success"
+}

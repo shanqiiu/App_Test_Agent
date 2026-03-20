@@ -1,0 +1,103 @@
+{
+  "timestamp": "20260320_134741",
+  "screenshot": "../data/Agent执行遇到的典型异常UI类型/analysis/gt_templates/弹窗覆盖原UI/12306无票弹窗.jpg",
+  "instruction": "生成购票确认弹窗，硬座、硬卧、软卧的状态均改为无座,不需要生成弹窗退出按钮",
+  "outputs": {
+    "stage1_omni_raw": "output\\12306无座\\12306无票弹窗_stage1_omni_raw_20260320_134741.json",
+    "stage1_annotated": "output\\12306无座\\12306无票弹窗_stage1_annotated_20260320_134741.png",
+    "stage2_filtered": "output\\12306无座\\12306无票弹窗_stage2_filtered_20260320_134741.json",
+    "stage2_annotated": "output\\12306无座\\12306无票弹窗_stage2_annotated_20260320_134741.png",
+    "final_image": "output\\12306无座\\final_20260320_134937.png",
+    "meta_driven": true
+  },
+  "timing": {
+    "stage1": 48.3,
+    "stage2": 21.32,
+    "stage3": 45.97
+  },
+  "stage2_status": "success",
+  "render_metadata": {
+    "gt_category": "弹窗覆盖原UI",
+    "gt_sample": "12306无票弹窗.jpg",
+    "meta_driven": true,
+    "warnings": [
+      {
+        "type": "position_fallback",
+        "message": "位置回退：未找到关键词对应组件，使用百分比定位 (61, 694)"
+      }
+    ],
+    "render_info": {
+      "dialog_bounds": {
+        "x": 61,
+        "y": 694,
+        "width": 1101,
+        "height": 1388
+      },
+      "screen_size": {
+        "width": 1224,
+        "height": 2776
+      },
+      "position_method": "fallback",
+      "dialog_position_type": "center",
+      "ui_components_count": 11,
+      "ui_components_preview": [
+        {
+          "index": 0,
+          "class": "StatusBar",
+          "bounds": {
+            "x": 767,
+            "y": 48,
+            "width": 422,
+            "height": 87
+          }
+        },
+        {
+          "index": 1,
+          "class": "NavigationBar",
+          "bounds": {
+            "x": 0,
+            "y": 179,
+            "width": 801,
+            "height": 112
+          }
+        },
+        {
+          "index": 2,
+          "class": "Button",
+          "bounds": {
+            "x": 24,
+            "y": 306,
+            "width": 1021,
+            "height": 163
+          }
+        },
+        {
+          "index": 3,
+          "class": "ImageButton",
+          "bounds": {
+            "x": 1065,
+            "y": 314,
+            "width": 151,
+            "height": 141
+          }
+        },
+        {
+          "index": 4,
+          "class": "ImageButton",
+          "bounds": {
+            "x": 407,
+            "y": 504,
+            "width": 202,
+            "height": 219
+          }
+        }
+      ]
+    }
+  },
+  "warnings": [
+    {
+      "type": "position_fallback",
+      "message": "位置回退：未找到关键词对应组件，使用百分比定位 (61, 694)"
+    }
+  ]
+}

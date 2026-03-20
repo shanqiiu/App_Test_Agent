@@ -1,0 +1,165 @@
+{
+  "groups": [
+    {
+      "name": "StatusBar",
+      "indices": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6
+      ],
+      "class": "StatusBar",
+      "text": "状态栏显示时间、电池、信号等系统信息"
+    },
+    {
+      "name": "NavigationBar",
+      "indices": [
+        7,
+        8,
+        9,
+        10,
+        11,
+        12
+      ],
+      "class": "NavigationBar",
+      "text": "顶部导航栏，包含返回、地址、搜索、收藏、客服和更多选项"
+    },
+    {
+      "name": "Banner",
+      "indices": [
+        13
+      ],
+      "class": "ImageView",
+      "text": "柴火大院美食宣传横幅，展示大鹅排骨小鸡菜品"
+    },
+    {
+      "name": "StoreCard",
+      "indices": [
+        14,
+        15,
+        16,
+        17,
+        18,
+        19,
+        20,
+        21,
+        22,
+        23,
+        24
+      ],
+      "class": "Card",
+      "text": "商家信息卡片，包含店名、评分、销量、配送时间、分类及热销排名"
+    },
+    {
+      "name": "DeliveryOptions",
+      "indices": [
+        25,
+        26,
+        27
+      ],
+      "class": "Button",
+      "text": "配送方式选择按钮：配送与自提"
+    },
+    {
+      "name": "PromotionBanner",
+      "indices": [
+        28
+      ],
+      "class": "TextView",
+      "text": "促销提示：更省不用等"
+    },
+    {
+      "name": "DiscountInfo",
+      "indices": [
+        29,
+        30,
+        31,
+        32
+      ],
+      "class": "TextView",
+      "text": "优惠信息展示：百亿补贴、满减券、已领优惠及更多选项"
+    },
+    {
+      "name": "DescriptionText",
+      "indices": [
+        33
+      ],
+      "class": "TextView",
+      "text": "店铺承诺描述：坚持当天自制，拒绝隔夜"
+    },
+    {
+      "name": "TabBar",
+      "indices": [
+        34,
+        35
+      ],
+      "class": "TabBar",
+      "text": "底部标签栏：外卖、点评、商家"
+    },
+    {
+      "name": "PromotionBanner",
+      "indices": [
+        36
+      ],
+      "class": "ImageView",
+      "text": "折扣标识图标"
+    },
+    {
+      "name": "PromotionBanner",
+      "indices": [
+        37,
+        38
+      ],
+      "class": "ImageView",
+      "text": "家乡特色菜广告横幅，含关闭按钮"
+    },
+    {
+      "name": "CouponCard",
+      "indices": [
+        39,
+        40
+      ],
+      "class": "Card",
+      "text": "专属福利优惠券：满4元可用，¥3百补好运券"
+    },
+    {
+      "name": "PromotionBanner",
+      "indices": [
+        41
+      ],
+      "class": "TextView",
+      "text": "超值套餐推荐：已售500+，回头客推荐"
+    },
+    {
+      "name": "PromotionBanner",
+      "indices": [
+        42,
+        43,
+        44,
+        45,
+        46
+      ],
+      "class": "Card",
+      "text": "本店优惠活动：满10减27、满25减33、满12减10"
+    },
+    {
+      "name": "CartButton",
+      "indices": [
+        47
+      ],
+      "class": "Button",
+      "text": "购物车按钮，显示运费¥0.2"
+    },
+    {
+      "name": "FreeShippingButton",
+      "indices": [
+        48
+      ],
+      "class": "Button",
+      "text": "0元起送按钮"
+    }
+  ]
+}

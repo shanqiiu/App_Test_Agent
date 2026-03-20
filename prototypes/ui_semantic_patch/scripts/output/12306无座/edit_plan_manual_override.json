@@ -1,0 +1,98 @@
+[
+  {
+    "action": "modify_text",
+    "region": {
+      "x": 443,
+      "y": 1443,
+      "width": 72,
+      "height": 34
+    },
+    "content": "无票",
+    "target_component": 7,
+    "style_hint": {
+      "font_size": 22,
+      "font_color": "#999999"
+    },
+    "reference_component": 7
+  },
+  {
+    "action": "modify_text",
+    "region": {
+      "x": 721,
+      "y": 1443,
+      "width": 56,
+      "height": 34
+    },
+    "content": "无票",
+    "target_component": 7,
+    "style_hint": {
+      "font_size": 22,
+      "font_color": "#999999"
+    },
+    "reference_component": 7
+  },
+  {
+    "action": "modify_text",
+    "region": {
+      "x": 998,
+      "y": 1443,
+      "width": 56,
+      "height": 34
+    },
+    "content": "无票",
+    "target_component": 7,
+    "style_hint": {
+      "font_size": 22,
+      "font_color": "#999999"
+    },
+    "reference_component": 7
+  },
+  {
+    "action": "modify_text",
+    "region": {
+      "x": 258,
+      "y": 1789,
+      "width": 279,
+      "height": 68
+    },
+    "content": "无座",
+    "target_component": 52,
+    "style_hint": {
+      "font_size": 26,
+      "font_color": "#999999"
+    },
+    "reference_component": 52
+  },
+  {
+    "action": "modify_text",
+    "region": {
+      "x": 324,
+      "y": 2043,
+      "width": 270,
+      "height": 71
+    },
+    "content": "无座",
+    "target_component": 63,
+    "style_hint": {
+      "font_size": 26,
+      "font_color": "#999999"
+    },
+    "reference_component": 63
+  },
+  {
+    "action": "modify_text",
+    "region": {
+      "x": 327,
+      "y": 2174,
+      "width": 235,
+      "height": 66
+    },
+    "content": "无座",
+    "target_component": 68,
+    "style_hint": {
+      "font_size": 26,
+      "font_color": "#999999"
+    },
+    "reference_component": 68
+  }
+]

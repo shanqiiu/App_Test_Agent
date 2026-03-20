@@ -1,0 +1,50 @@
+[
+  {
+    "action": "modify_text",
+    "region": {
+      "x": 51,
+      "y": 1170,
+      "width": 1136,
+      "height": 1347
+    },
+    "content": "无座",
+    "target_component": 8,
+    "style_hint": {
+      "color_type": "secondary",
+      "font_scale": 1.0
+    },
+    "reference_component": null
+  },
+  {
+    "action": "modify_text",
+    "region": {
+      "x": 51,
+      "y": 1170,
+      "width": 1136,
+      "height": 1347
+    },
+    "content": "无座",
+    "target_component": 8,
+    "style_hint": {
+      "color_type": "secondary",
+      "font_scale": 1.0
+    },
+    "reference_component": null
+  },
+  {
+    "action": "modify_text",
+    "region": {
+      "x": 51,
+      "y": 1170,
+      "width": 1136,
+      "height": 1347
+    },
+    "content": "无座",
+    "target_component": 8,
+    "style_hint": {
+      "color_type": "secondary",
+      "font_scale": 1.0
+    },
+    "reference_component": null
+  }
+]

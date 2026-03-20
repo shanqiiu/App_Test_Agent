@@ -1,0 +1,306 @@
+{
+  "metadata": {
+    "source": "微信图片_20260320111853_61_1364.jpg",
+    "extractionMethod": "OmniParser+VLM_Grouping_v3",
+    "models": {
+      "detection": "OmniParser (YOLO + PaddleOCR + Florence2)",
+      "semantic_grouping": "qwen-vl-max"
+    },
+    "timestamp": "2026-03-20T17:07:24.762968",
+    "resolution": {
+      "width": 1224,
+      "height": 2776
+    },
+    "processing": {
+      "omni_raw_count": 44,
+      "final_count": 11,
+      "merge_log": [
+        {
+          "action": "group_merge",
+          "name": "状态栏",
+          "from": [
+            0,
+            1,
+            2,
+            3
+          ],
+          "to_class": "StatusBar",
+          "reason": "4 个检测框合并为 状态栏"
+        },
+        {
+          "action": "group_merge",
+          "name": "顶部广告横幅",
+          "from": [
+            4,
+            5,
+            6,
+            7,
+            8,
+            9,
+            10,
+            11,
+            12,
+            13,
+            14
+          ],
+          "to_class": "Banner",
+          "reason": "11 个检测框合并为 顶部广告横幅"
+        },
+        {
+          "action": "group_merge",
+          "name": "票务类型切换栏",
+          "from": [
+            15,
+            16,
+            17,
+            18
+          ],
+          "to_class": "TabBar",
+          "reason": "4 个检测框合并为 票务类型切换栏"
+        },
+        {
+          "action": "group_merge",
+          "name": "历史行程建议",
+          "from": [
+            24,
+            25
+          ],
+          "to_class": "TextView",
+          "reason": "2 个检测框合并为 历史行程建议"
+        },
+        {
+          "action": "group_merge",
+          "name": "功能服务图标组",
+          "from": [
+            27,
+            28,
+            29,
+            30,
+            31,
+            32,
+            33,
+            34,
+            35,
+            36,
+            37,
+            38,
+            39,
+            40,
+            41,
+            42,
+            43
+          ],
+          "to_class": "Card",
+          "reason": "17 个检测框合并为 功能服务图标组"
+        }
+      ]
+    }
+  },
+  "components": [
+    {
+      "index": 0,
+      "class": "StatusBar",
+      "bounds": {
+        "x": 65,
+        "y": 53,
+        "width": 1114,
+        "height": 71
+      },
+      "text": "时间、电池、信号等系统状态信息",
+      "clickable": true,
+      "source_indices": [
+        0,
+        1,
+        2,
+        3
+      ],
+      "note": "语义分组合并: 状态栏"
+    },
+    {
+      "index": 1,
+      "class": "Banner",
+      "bounds": {
+        "x": 30,
+        "y": 174,
+        "width": 1193,
+        "height": 719
+      },
+      "text": "7折优惠券活动广告，包含北京至长春的优惠信息",
+      "clickable": true,
+      "source_indices": [
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11,
+        12,
+        13,
+        14
+      ],
+      "note": "语义分组合并: 顶部广告横幅"
+    },
+    {
+      "index": 2,
+      "class": "TabBar",
+      "bounds": {
+        "x": 302,
+        "y": 988,
+        "width": 808,
+        "height": 88
+      },
+      "text": "火车票、飞机票、汽车票切换选项",
+      "clickable": true,
+      "source_indices": [
+        15,
+        16,
+        17,
+        18
+      ],
+      "note": "语义分组合并: 票务类型切换栏"
+    },
+    {
+      "index": 3,
+      "class": "InputField",
+      "bounds": {
+        "x": 116,
+        "y": 1176,
+        "width": 996,
+        "height": 147
+      },
+      "text": "Sanitizer",
+      "clickable": true,
+      "source": "box_yolo_content_yolo",
+      "contentDesc": "Sanitizer",
+      "original_index": 19
+    },
+    {
+      "index": 4,
+      "class": "InputField",
+      "bounds": {
+        "x": 350,
+        "y": 1336,
+        "width": 216,
+        "height": 80
+      },
+      "text": "Subscript",
+      "clickable": true,
+      "source": "box_yolo_content_yolo",
+      "contentDesc": "Subscript",
+      "original_index": 20
+    },
+    {
+      "index": 5,
+      "class": "InputField",
+      "bounds": {
+        "x": 498,
+        "y": 1517,
+        "width": 221,
+        "height": 182
+      },
+      "text": "Xiaohongshu (Little Red Book)",
+      "clickable": true,
+      "source": "box_yolo_content_yolo",
+      "contentDesc": "Xiaohongshu (Little Red Book)",
+      "original_index": 21
+    },
+    {
+      "index": 6,
+      "class": "Button",
+      "bounds": {
+        "x": 744,
+        "y": 1517,
+        "width": 184,
+        "height": 181
+      },
+      "text": "Xiaohongshu (Little Red Book) app.",
+      "clickable": true,
+      "source": "box_yolo_content_yolo",
+      "contentDesc": "Xiaohongshu (Little Red Book) app.",
+      "original_index": 22
+    },
+    {
+      "index": 7,
+      "class": "TextView",
+      "bounds": {
+        "x": 46,
+        "y": 1520,
+        "width": 1118,
+        "height": 187
+      },
+      "text": "北京--长春 北京--上海",
+      "clickable": true,
+      "source_indices": [
+        24,
+        25
+      ],
+      "note": "语义分组合并: 历史行程建议"
+    },
+    {
+      "index": 8,
+      "class": "Button",
+      "bounds": {
+        "x": 252,
+        "y": 1520,
+        "width": 256,
+        "height": 183
+      },
+      "text": "Xiaohongshu (Hongkong)",
+      "clickable": true,
+      "source": "box_yolo_content_yolo",
+      "contentDesc": "Xiaohongshu (Hongkong)",
+      "original_index": 23
+    },
+    {
+      "index": 9,
+      "class": "Button",
+      "bounds": {
+        "x": 728,
+        "y": 1708,
+        "width": 225,
+        "height": 230
+      },
+      "text": "Vehicle usage in China",
+      "clickable": true,
+      "source": "box_yolo_content_yolo",
+      "contentDesc": "Vehicle usage in China",
+      "original_index": 26
+    },
+    {
+      "index": 10,
+      "class": "Card",
+      "bounds": {
+        "x": 20,
+        "y": 1711,
+        "width": 1197,
+        "height": 1015
+      },
+      "text": "车站大屏、计次票、铁路e卡通、时刻表、温馨服务、空铁联运、敬老版、酒店住宿、租车约车、铁路旅游、餐饮特产、汽车船票、铁路商城、电子发票、出行保险等功能入口",
+      "clickable": true,
+      "source_indices": [
+        27,
+        28,
+        29,
+        30,
+        31,
+        32,
+        33,
+        34,
+        35,
+        36,
+        37,
+        38,
+        39,
+        40,
+        41,
+        42,
+        43
+      ],
+      "note": "语义分组合并: 功能服务图标组"
+    }
+  ],
+  "componentCount": 11,
+  "_stage2_status": "success"
+}

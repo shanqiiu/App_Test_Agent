@@ -212,6 +212,8 @@ class PatchRenderer(BaseRenderer):
         else:
             width_ratio = meta_features.get('dialog_width_ratio', 0.8)
             height_ratio = meta_features.get('dialog_height_ratio', 0.5)
+            # width_ratio = 0.6
+            # height_ratio = 0.3
             dialog_width = int(screen_width * width_ratio)
             dialog_height = int(screen_height * height_ratio)
             print(f"  弹窗尺寸: {dialog_width}x{dialog_height} (比例: {width_ratio}x{height_ratio})")
@@ -291,14 +293,14 @@ class PatchRenderer(BaseRenderer):
         result_img.paste(dialog_img, (pos_x, pos_y), dialog_img)
 
         # 关闭按钮（异常测试场景必须有关闭按钮，Agent 需要识别并操作它）
+        # 始终由代码绘制，不依赖 AI 模型生成（AI 不会可靠地画关闭按钮）
         close_button_pos = meta_features.get('close_button_position', 'none')
         close_button_style = meta_features.get('close_button_style', 'gray_circle_x')
         if close_button_pos == 'none':
-            # meta 中未指定关闭按钮时，自动添加默认关闭按钮
             close_button_pos = 'bottom-center'
             close_button_style = 'gray_circle_x'
-            print(f"  ℹ meta 未指定关闭按钮，自动添加默认: {close_button_pos}")
-        if close_button_pos != 'none':
+            print(f"  ℹ meta 未指定关闭按钮位置，使用默认: {close_button_pos}")
+        if True:  # 始终绘制关闭按钮
             button_size = max(36, min(50, dialog_width // 14))
             if close_button_pos == 'bottom-center':
                 btn_x = pos_x + dialog_width // 2 - button_size // 2
@@ -315,7 +317,8 @@ class PatchRenderer(BaseRenderer):
 
             button_layer = Image.new('RGBA', result_img.size, (0, 0, 0, 0))
             draw = ImageDraw.Draw(button_layer)
-            bg_color = (255, 255, 255, 230) if 'white' in close_button_style else (80, 80, 80, 220)
+            # 根据风格选择按钮颜色（简单示例，实际可更丰富）
+            bg_color = (255, 255, 255, 255) if 'white' in close_button_style else (80, 80, 80, 255)
             x_color = (150, 150, 150, 255) if 'white' in close_button_style else (255, 255, 255, 255)
             draw.ellipse([btn_x, btn_y, btn_x + button_size, btn_y + button_size], fill=bg_color)
             margin = button_size // 4
