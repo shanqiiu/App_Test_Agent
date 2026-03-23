@@ -1,0 +1,38 @@
+[
+  {
+    "action": "modify_text",
+    "region": {
+      "x": 51,
+      "y": 1171,
+      "width": 1136,
+      "height": 1346
+    },
+    "content": "将Z112次列车卡片中的所有席位票量状态改为无票：将\"售磬\"改为\"无票\"；将\"有票\"改为\"无票\"；将\"3张\"改为\"无票\"；将\"8张\"改为\"无票\"",
+    "target_component": 6,
+    "style_hint": {
+      "use_ai_edit": true,
+      "text_changes": [
+        {
+          "from": "售磬",
+          "to": "无票"
+        },
+        {
+          "from": "有票",
+          "to": "无票"
+        },
+        {
+          "from": "3张",
+          "to": "无票"
+        },
+        {
+          "from": "8张",
+          "to": "无票"
+        }
+      ],
+      "edit_description": "将Z112次列车卡片中的所有席位票量状态改为无票",
+      "color_requirement": "灰色",
+      "original_instruction": "将z112次车座位信息弹窗卡片第三列的四行车票席位状态均改为灰色的无票"
+    },
+    "reference_component": 6
+  }
+]

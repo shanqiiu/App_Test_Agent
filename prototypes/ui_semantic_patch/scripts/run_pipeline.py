@@ -272,6 +272,7 @@ def run_pipeline(
     gt_sample: str = None,
     image_model: str = None,
     edit_plan_path: str = None,
+    e2e_full_image: bool = False,
 ) -> dict:
     """
     执行异常场景生成流程
@@ -293,12 +294,13 @@ def run_pipeline(
         visualize: 是否保存 OmniParser 检测结果可视化图片（默认 True）
         anomaly_mode: 异常模式 (dialog=全屏弹窗, area_loading=区域加载图标,
                                content_duplicate=内容重复, text_overlay=局部文字编辑,
-                               modify_text=像素级文字替换)
+                               modify_text=像素级文字替换, modify_text_e2e=端到端全图编辑)
         target_component: 目标组件ID（仅area_loading模式使用）
         gt_category: GT模板类别（如"弹窗覆盖原UI"），启用meta驱动生成
         gt_sample: GT模板样本名（如"弹出广告.jpg"），与gt_category配合使用
         image_model: 图像生成模型选择 ('gen'=纯文生图, 'edit'=图像编辑, None=自动选择)
         edit_plan_path: 文本覆盖模式下的自定义 edit_plan JSON（跳过 VLM 规划）
+        e2e_full_image: modify_text_e2e 模式下是否强制整图编辑（默认 False=粗裁剪区域编辑）
 
     Returns:
         包含所有输出路径的字典
@@ -332,105 +334,140 @@ def run_pipeline(
     print(f"  指令: {instruction}")
     print(f"  输出目录: {output_dir}")
 
-    # ===== Stage 1: OmniParser 粗检测 =====
-    stage1_start = time.time()
-    print("\n" + "=" * 60)
-    print("[Stage 1/3] OmniParser 粗检测")
-    print("=" * 60)
+    skip_detection_modes = {'modify_text_e2e'}
+    skip_detection = anomaly_mode in skip_detection_modes
+    stage1_path = None
+    stage2_path = None
 
-    if not OMNIPARSER_AVAILABLE:
-        print("[ERROR] OmniParser 不可用，请确保已正确安装")
-        print("  安装方法: cd third_party/OmniParser && pip install -r requirements.txt")
-        raise ImportError("OmniParser 不可用")
+    if skip_detection:
+        print("\n" + "=" * 60)
+        print("[Stage 1/3] OmniParser 粗检测")
+        print("=" * 60)
+        print("  ℹ 当前模式为端到端全图编辑，跳过 Stage 1 检测")
+        results['timing']['stage1'] = 0.0
+        print("  ⏱ Stage 1 耗时: 0.00s")
 
-    print(f"  模型: YOLO + PaddleOCR + Florence2")
-    print(f"  设备: {omni_device or 'auto'}")
-    print(f"  可视化: {'开启' if visualize else '关闭'}")
+        print("\n" + "=" * 60)
+        print("[Stage 2/3] VLM 语义分组（原图 + 坐标文本 → 分组 → 代码合并）")
+        print("=" * 60)
+        print("  ℹ 当前模式为端到端全图编辑，跳过 Stage 2 分组")
+        ui_json = {
+            'metadata': {
+                'source': Path(screenshot_path).name,
+                'extractionMethod': 'Skipped_For_E2E_Image_Edit',
+                'processing': {
+                    'omni_raw_count': 0,
+                    'final_count': 0,
+                    'merge_log': [],
+                },
+            },
+            'components': [],
+            'componentCount': 0,
+            '_stage2_status': 'skipped',
+        }
+        results['stage2_status'] = 'skipped'
+        results['timing']['stage2'] = 0.0
+        print("  ⏱ Stage 2 耗时: 0.00s")
+    else:
+        # ===== Stage 1: OmniParser 粗检测 =====
+        stage1_start = time.time()
+        print("\n" + "=" * 60)
+        print("[Stage 1/3] OmniParser 粗检测")
+        print("=" * 60)
 
-    # 先用 OmniParser 单独检测，保存原始结果
-    omni_raw_result = omni_to_ui_json(
-        image_path=screenshot_path,
-        device=omni_device,
-        return_annotated_image=visualize
-    )
+        if not OMNIPARSER_AVAILABLE:
+            print("[ERROR] OmniParser 不可用，请确保已正确安装")
+            print("  安装方法: cd third_party/OmniParser && pip install -r requirements.txt")
+            raise ImportError("OmniParser 不可用")
 
-    # 保存 Stage 1 结果
-    stage1_path = output_dir / f"{screenshot_name}_stage1_omni_raw_{timestamp}.json"
-    with open(stage1_path, 'w', encoding='utf-8') as f:
-        # 保存时排除 annotated_image
-        save_data = {k: v for k, v in omni_raw_result.items() if k != 'annotated_image'}
-        json.dump(save_data, f, ensure_ascii=False, indent=2)
-    results['outputs']['stage1_omni_raw'] = str(stage1_path)
+        print(f"  模型: YOLO + PaddleOCR + Florence2")
+        print(f"  设备: {omni_device or 'auto'}")
+        print(f"  可视化: {'开启' if visualize else '关闭'}")
 
-    # 保存可视化图片
-    if visualize and omni_raw_result.get('annotated_image'):
-        stage1_vis_path = output_dir / f"{screenshot_name}_stage1_annotated_{timestamp}.png"
-        omni_raw_result['annotated_image'].save(stage1_vis_path)
-        results['outputs']['stage1_annotated'] = str(stage1_vis_path)
-        print(f"  ✓ 可视化图片: {stage1_vis_path}")
-
-    print(f"  ✓ 检测到 {omni_raw_result['componentCount']} 个组件")
-    print(f"  ✓ 保存至: {stage1_path}")
-
-    stage1_elapsed = time.time() - stage1_start
-    results['timing']['stage1'] = round(stage1_elapsed, 2)
-    print(f"  ⏱ Stage 1 耗时: {stage1_elapsed:.2f}s")
-
-    # ===== Stage 2: VLM 语义分组（单次调用） =====
-    stage2_start = time.time()
-    print("\n" + "=" * 60)
-    print("[Stage 2/3] VLM 语义分组（原图 + 坐标文本 → 分组 → 代码合并）")
-    print("=" * 60)
-    print(f"  模型: {structure_model}")
-
-    # 调用融合函数（传入 Stage 1 的检测结果，避免重复检测）
-    ui_json = omni_vlm_fusion(
-        image_path=screenshot_path,
-        api_key=api_key,
-        api_url=api_url,
-        vlm_model=structure_model,
-        omni_device=omni_device,
-        omni_components=omni_raw_result['components'],
-        output_dir=str(output_dir)
-    )
-
-    # 保存 Stage 2 结果
-    stage2_path = output_dir / f"{screenshot_name}_stage2_filtered_{timestamp}.json"
-    with open(stage2_path, 'w', encoding='utf-8') as f:
-        json.dump(ui_json, f, ensure_ascii=False, indent=2)
-    results['outputs']['stage2_filtered'] = str(stage2_path)
-
-    processing_info = ui_json.get('metadata', {}).get('processing', {})
-    print(f"  ✓ 原始检测: {processing_info.get('omni_raw_count', 'N/A')} 个组件")
-    print(f"  ✓ 过滤后: {ui_json['componentCount']} 个组件")
-    print(f"  ✓ 保存至: {stage2_path}")
-
-    # 记录 Stage 2 状态（健壮性修复 Step 3.6）
-    stage2_status = ui_json.get('_stage2_status', 'unknown')
-    results['stage2_status'] = stage2_status
-    if stage2_status == 'fallback':
-        warn_msg = f"VLM 语义分组失败，使用 OmniParser 原始结果: {ui_json.get('_stage2_error', '')}"
-        print(f"  [WARN] {warn_msg}")
-        results.setdefault('warnings', []).append({
-            'type': 'stage2_fallback',
-            'error': ui_json.get('_stage2_error', ''),
-            'message': warn_msg,
-        })
-
-    # 保存 Stage 2 可视化图片
-    if visualize:
-        stage2_vis_path = output_dir / f"{screenshot_name}_stage2_annotated_{timestamp}.png"
-        visualize_components(
-            screenshot_path=screenshot_path,
-            ui_json=ui_json,
-            output_path=str(stage2_vis_path)
+        # 先用 OmniParser 单独检测，保存原始结果
+        omni_raw_result = omni_to_ui_json(
+            image_path=screenshot_path,
+            device=omni_device,
+            return_annotated_image=visualize
         )
-        results['outputs']['stage2_annotated'] = str(stage2_vis_path)
-        print(f"  ✓ 可视化图片: {stage2_vis_path}")
 
-    stage2_elapsed = time.time() - stage2_start
-    results['timing']['stage2'] = round(stage2_elapsed, 2)
-    print(f"  ⏱ Stage 2 耗时: {stage2_elapsed:.2f}s")
+        # 保存 Stage 1 结果
+        stage1_path = output_dir / f"{screenshot_name}_stage1_omni_raw_{timestamp}.json"
+        with open(stage1_path, 'w', encoding='utf-8') as f:
+            # 保存时排除 annotated_image
+            save_data = {k: v for k, v in omni_raw_result.items() if k != 'annotated_image'}
+            json.dump(save_data, f, ensure_ascii=False, indent=2)
+        results['outputs']['stage1_omni_raw'] = str(stage1_path)
+
+        # 保存可视化图片
+        if visualize and omni_raw_result.get('annotated_image'):
+            stage1_vis_path = output_dir / f"{screenshot_name}_stage1_annotated_{timestamp}.png"
+            omni_raw_result['annotated_image'].save(stage1_vis_path)
+            results['outputs']['stage1_annotated'] = str(stage1_vis_path)
+            print(f"  ✓ 可视化图片: {stage1_vis_path}")
+
+        print(f"  ✓ 检测到 {omni_raw_result['componentCount']} 个组件")
+        print(f"  ✓ 保存至: {stage1_path}")
+
+        stage1_elapsed = time.time() - stage1_start
+        results['timing']['stage1'] = round(stage1_elapsed, 2)
+        print(f"  ⏱ Stage 1 耗时: {stage1_elapsed:.2f}s")
+
+        # ===== Stage 2: VLM 语义分组（单次调用） =====
+        stage2_start = time.time()
+        print("\n" + "=" * 60)
+        print("[Stage 2/3] VLM 语义分组（原图 + 坐标文本 → 分组 → 代码合并）")
+        print("=" * 60)
+        print(f"  模型: {structure_model}")
+
+        # 调用融合函数（传入 Stage 1 的检测结果，避免重复检测）
+        ui_json = omni_vlm_fusion(
+            image_path=screenshot_path,
+            api_key=api_key,
+            api_url=api_url,
+            vlm_model=structure_model,
+            omni_device=omni_device,
+            omni_components=omni_raw_result['components'],
+            output_dir=str(output_dir)
+        )
+
+        # 保存 Stage 2 结果
+        stage2_path = output_dir / f"{screenshot_name}_stage2_filtered_{timestamp}.json"
+        with open(stage2_path, 'w', encoding='utf-8') as f:
+            json.dump(ui_json, f, ensure_ascii=False, indent=2)
+        results['outputs']['stage2_filtered'] = str(stage2_path)
+
+        processing_info = ui_json.get('metadata', {}).get('processing', {})
+        print(f"  ✓ 原始检测: {processing_info.get('omni_raw_count', 'N/A')} 个组件")
+        print(f"  ✓ 过滤后: {ui_json['componentCount']} 个组件")
+        print(f"  ✓ 保存至: {stage2_path}")
+
+        # 记录 Stage 2 状态（健壮性修复 Step 3.6）
+        stage2_status = ui_json.get('_stage2_status', 'unknown')
+        results['stage2_status'] = stage2_status
+        if stage2_status == 'fallback':
+            warn_msg = f"VLM 语义分组失败，使用 OmniParser 原始结果: {ui_json.get('_stage2_error', '')}"
+            print(f"  [WARN] {warn_msg}")
+            results.setdefault('warnings', []).append({
+                'type': 'stage2_fallback',
+                'error': ui_json.get('_stage2_error', ''),
+                'message': warn_msg,
+            })
+
+        # 保存 Stage 2 可视化图片
+        if visualize:
+            stage2_vis_path = output_dir / f"{screenshot_name}_stage2_annotated_{timestamp}.png"
+            visualize_components(
+                screenshot_path=screenshot_path,
+                ui_json=ui_json,
+                output_path=str(stage2_vis_path)
+            )
+            results['outputs']['stage2_annotated'] = str(stage2_vis_path)
+            print(f"  ✓ 可视化图片: {stage2_vis_path}")
+
+        stage2_elapsed = time.time() - stage2_start
+        results['timing']['stage2'] = round(stage2_elapsed, 2)
+        print(f"  ⏱ Stage 2 耗时: {stage2_elapsed:.2f}s")
 
     # ===== Auto-Meta: 自动为任意参考图生成 meta.json =====
     if reference_path and gt_category and anomaly_mode == 'dialog':
@@ -479,6 +516,7 @@ def run_pipeline(
             'modify_text':       TextOverlayRenderer,
             'modify_text_ai':    TextOverlayRenderer,
             'modify_text_ocr':   TextOverlayRenderer,
+            'modify_text_e2e':   TextOverlayRenderer,
         }
 
         if anomaly_mode not in RENDERER_MAP:
@@ -502,7 +540,7 @@ def run_pipeline(
                 vlm_model=vlm_model,
                 fonts_dir=fonts_dir,
             )
-        elif anomaly_mode in ('text_overlay', 'modify_text', 'modify_text_ai', 'modify_text_ocr'):
+        elif anomaly_mode in ('text_overlay', 'modify_text', 'modify_text_ai', 'modify_text_ocr', 'modify_text_e2e'):
             renderer = renderer_cls(
                 api_key=api_key,
                 vlm_api_url=vlm_api_url,
@@ -539,13 +577,16 @@ def run_pipeline(
             extra_kwargs['mode'] = 'expanded_view'
             if reference_path:
                 extra_kwargs['reference_path'] = reference_path
-        elif anomaly_mode in ('text_overlay', 'modify_text', 'modify_text_ai', 'modify_text_ocr'):
+        elif anomaly_mode in ('text_overlay', 'modify_text', 'modify_text_ai', 'modify_text_ocr', 'modify_text_e2e'):
             if edit_plan_path:
                 edit_plan_ops = _load_edit_plan(edit_plan_path)
                 if edit_plan_ops:
                     extra_kwargs['edit_plan'] = edit_plan_ops
             if anomaly_mode == 'modify_text_ai':
                 extra_kwargs['mode'] = 'modify_text_ai'
+            elif anomaly_mode == 'modify_text_e2e':
+                extra_kwargs['mode'] = 'modify_text_e2e'
+                extra_kwargs['e2e_full_image'] = bool(e2e_full_image)
             elif anomaly_mode in ('modify_text_ocr', 'modify_text'):
                 extra_kwargs['mode'] = 'modify_text_ocr'
         elif anomaly_mode == 'dialog':
@@ -605,12 +646,18 @@ def run_pipeline(
     print(f"  [Stage 3]  异常渲染:            {results['timing'].get('stage3', 0):.2f}s")
     print(f"  [总计]     全流程耗时:          {pipeline_elapsed:.2f}s")
     print("\n中间结果:")
-    print(f"  [Stage 1]  OmniParser 原始检测: {stage1_path}")
-    if visualize and results['outputs'].get('stage1_annotated'):
-        print(f"  [Stage 1]  检测可视化:         {results['outputs']['stage1_annotated']}")
-    print(f"  [Stage 2]  VLM 语义分组结果:   {stage2_path}")
-    if visualize and results['outputs'].get('stage2_annotated'):
-        print(f"  [Stage 2]  整合后可视化:       {results['outputs']['stage2_annotated']}")
+    if stage1_path:
+        print(f"  [Stage 1]  OmniParser 原始检测: {stage1_path}")
+        if visualize and results['outputs'].get('stage1_annotated'):
+            print(f"  [Stage 1]  检测可视化:         {results['outputs']['stage1_annotated']}")
+    else:
+        print("  [Stage 1]  OmniParser 原始检测: (已跳过)")
+    if stage2_path:
+        print(f"  [Stage 2]  VLM 语义分组结果:   {stage2_path}")
+        if visualize and results['outputs'].get('stage2_annotated'):
+            print(f"  [Stage 2]  整合后可视化:       {results['outputs']['stage2_annotated']}")
+    else:
+        print("  [Stage 2]  VLM 语义分组结果:   (已跳过)")
     print(f"  [Stage 3]  最终异常截图:       {final_output}")
     print(f"  [Meta]     流水线元数据:       {meta_path}")
 
@@ -727,9 +774,9 @@ Auto-Meta 模式示例（推荐！无需预先生成 meta.json）:
                         help='OmniParser 设备 (cuda/cpu)')
     parser.add_argument('--no-visualize', action='store_true',
                         help='禁用 OmniParser 检测结果可视化')
-    parser.add_argument('--anomaly-mode', choices=['dialog', 'area_loading', 'content_duplicate', 'text_overlay', 'modify_text', 'modify_text_ai', 'modify_text_ocr'],
+    parser.add_argument('--anomaly-mode', choices=['dialog', 'area_loading', 'content_duplicate', 'text_overlay', 'modify_text', 'modify_text_ai', 'modify_text_ocr', 'modify_text_e2e'],
                         default='dialog',
-                        help='异常模式: dialog=全屏弹窗(默认), area_loading=区域加载图标, content_duplicate=内容重复, text_overlay=局部文字编辑, modify_text=OCR精定位文字替换(同modify_text_ocr), modify_text_ai=AI图像编辑文字替换, modify_text_ocr=OCR精定位+PIL渲染文字替换')
+                        help='异常模式: dialog=全屏弹窗(默认), area_loading=区域加载图标, content_duplicate=内容重复, text_overlay=局部文字编辑, modify_text=OCR精定位文字替换(同modify_text_ocr), modify_text_ai=AI图像编辑文字替换, modify_text_ocr=OCR精定位+PIL渲染文字替换, modify_text_e2e=端到端全图AI编辑(跳过检测分组)')
     parser.add_argument('--target-component',
                         help='目标组件ID (仅 area_loading 模式使用)')
     parser.add_argument('--gt-category',
@@ -741,6 +788,8 @@ Auto-Meta 模式示例（推荐！无需预先生成 meta.json）:
                         help='图像生成模型: auto=自动选择(默认), gen=纯文生图(qwen-image-max), edit=图像编辑(qwen-image-edit-max)')
     parser.add_argument('--edit-plan',
                         help='文本覆盖/modify_text 模式使用的 Edit Plan JSON（跳过 VLM 规划）')
+    parser.add_argument('--e2e-full-image', action='store_true',
+                        help='modify_text_e2e 模式下启用整图端到端编辑（默认关闭，默认使用指令驱动粗裁剪）')
 
     args = parser.parse_args()
 
@@ -786,6 +835,7 @@ Auto-Meta 模式示例（推荐！无需预先生成 meta.json）:
         gt_sample=args.gt_sample,
         image_model=args.image_model if args.image_model != 'auto' else None,
         edit_plan_path=args.edit_plan,
+        e2e_full_image=args.e2e_full_image,
     )
 
 

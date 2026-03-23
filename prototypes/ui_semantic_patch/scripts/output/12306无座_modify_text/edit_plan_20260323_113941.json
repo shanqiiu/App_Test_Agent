@@ -1,0 +1,53 @@
+[
+  {
+    "action": "modify_text",
+    "region": {
+      "x": 736,
+      "y": 1621,
+      "width": 101,
+      "height": 58
+    },
+    "content": "售罄",
+    "target_component": 8,
+    "style_hint": {
+      "use_ai_edit": false,
+      "font_size": 43,
+      "color_type": "sampled"
+    },
+    "reference_component": 8
+  },
+  {
+    "action": "modify_text",
+    "region": {
+      "x": 738,
+      "y": 1887,
+      "width": 78,
+      "height": 52
+    },
+    "content": "售罄",
+    "target_component": 8,
+    "style_hint": {
+      "use_ai_edit": false,
+      "font_size": 39,
+      "color_type": "sampled"
+    },
+    "reference_component": 8
+  },
+  {
+    "action": "modify_text",
+    "region": {
+      "x": 737,
+      "y": 2152,
+      "width": 81,
+      "height": 54
+    },
+    "content": "售罄",
+    "target_component": 8,
+    "style_hint": {
+      "use_ai_edit": false,
+      "font_size": 40,
+      "color_type": "sampled"
+    },
+    "reference_component": 8
+  }
+]

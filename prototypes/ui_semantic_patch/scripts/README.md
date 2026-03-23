@@ -55,7 +55,7 @@ Stage 3: 异常渲染（renderers/*）
   ├─ dialog        → PatchRenderer（弹窗覆盖）
   ├─ area_loading  → AreaLoadingRenderer（区域加载异常）
   ├─ content_duplicate → ContentDuplicateRenderer（内容重复）
-  └─ text_overlay  → TextOverlayRenderer（文字覆盖编辑）
+  └─ text_overlay / modify_text* → TextOverlayRenderer（文字编辑/端到端编辑）
   → 输出: *_final_*.png + *_pipeline_meta_*.json
 ```
 
@@ -150,7 +150,7 @@ python run_pipeline.py \
   [--output <输出目录>]
 ```
 
-**四种异常模式示例**：
+**异常模式示例**：
 
 ```bash
 # 1. dialog — 弹窗覆盖（默认模式）
@@ -181,6 +181,29 @@ python run_pipeline.py \
   --instruction "在租车服务卡片中插入优惠信息" \
   --anomaly-mode text_overlay \
   --output ./output/demo
+
+# 5. modify_text_ai — 组件级 AI 图像编辑（依赖检测/分组）
+python run_pipeline.py \
+  --screenshot ../data/Agent执行遇到的典型异常UI类型/analysis/gt_templates/弹窗覆盖原UI/12306无票弹窗.jpg \
+  --instruction "将z112次车座位信息弹窗卡片第三列的硬卧、软卧车票席位状态改为灰色无票字样" \
+  --anomaly-mode modify_text_ai \
+  --output ./output/demo
+
+# 6. modify_text_ocr / modify_text — OCR精定位 + PIL 渲染
+python run_pipeline.py \
+  --screenshot ../data/Agent执行遇到的典型异常UI类型/analysis/gt_templates/弹窗覆盖原UI/12306无票弹窗.jpg \
+  --instruction "将z112次车座位信息弹窗卡片第三列的硬卧、软卧车票席位状态改为灰色无票字样" \
+  --anomaly-mode modify_text_ocr \
+  --output ./output/demo
+
+# 7. modify_text_e2e — 端到端图像编辑（跳过 Stage1/2）
+# 默认：指令驱动粗裁剪编辑；加 --e2e-full-image 强制整图编辑
+python run_pipeline.py \
+  --screenshot ../data/Agent执行遇到的典型异常UI类型/analysis/gt_templates/弹窗覆盖原UI/12306无票弹窗.jpg \
+  --instruction "将z112次车座位信息弹窗卡片第三列的硬卧、软卧车票席位状态改为灰色无票字样" \
+  --anomaly-mode modify_text_e2e \
+  --e2e-full-image \
+  --output ./output/demo
 ```
 
 **完整参数表**：
@@ -190,7 +213,7 @@ python run_pipeline.py \
 | `--screenshot, -s` | 原始截图路径 | 必需 |
 | `--instruction, -i` | 异常指令 | 必需 |
 | `--output, -o` | 输出目录 | `./output` |
-| `--anomaly-mode` | 异常模式 | `dialog` |
+| `--anomaly-mode` | `dialog` / `area_loading` / `content_duplicate` / `text_overlay` / `modify_text` / `modify_text_ai` / `modify_text_ocr` / `modify_text_e2e` | `dialog` |
 | `--gt-category` | GT 模板类别名 | - |
 | `--gt-sample` | GT 模板样本文件名 | - |
 | `--gt-dir` | GT 样本目录 | 自动检测 |
@@ -201,6 +224,8 @@ python run_pipeline.py \
 | `--api-url` | VLM API 端点 | `VLM_API_URL` 环境变量 |
 | `--vlm-model` | VLM 模型名称 | `VLM_MODEL` 环境变量 |
 | `--structure-model` | 结构提取模型 | `STRUCTURE_MODEL` 环境变量 |
+| `--edit-plan` | 文本编辑模式使用预设 Edit Plan JSON | - |
+| `--e2e-full-image` | `modify_text_e2e` 下启用整图端到端编辑 | False |
 | `--omni-device` | OmniParser 设备 (`cuda`/`cpu`) | `OMNIPARSER_DEVICE` 环境变量 |
 | `--no-visualize` | 禁用检测结果可视化 | False |
 
@@ -651,6 +676,8 @@ Pipeline 运行后，输出目录包含以下文件：
 | `*_stage1_annotated_*.png` | Stage 1 检测框可视化 | Stage 1 | `run_pipeline.py` 自动生成 |
 | `*_stage2_filtered_*.json` | VLM 语义过滤/分组后的 UI-JSON | Stage 2 | `run_pipeline.py` 自动生成 |
 | `*_stage2_annotated_*.png` | Stage 2 分组结果可视化 | Stage 2 | `run_pipeline.py` 自动生成 |
+| `diff_*.png` | 编辑像素差异可视化 | Stage 3 | `run_pipeline.py` 自动生成 |
+| `edit_plan_*.json` | 文本编辑执行计划（含 e2e 记录） | Stage 3 | `run_pipeline.py` 自动生成 |
 | `*_final_*.png` | 最终异常截图 | Stage 3 | `run_pipeline.py` 自动生成 |
 | `*_pipeline_meta_*.json` | 流水线执行元数据（参数、耗时等） | 完成时 | `run_pipeline.py` 自动生成 |
 | `meta.json` | GT 模板视觉特征描述 | 预处理 | `generate_meta.py` 生成 |
@@ -696,7 +723,7 @@ python -m analysis.gt_bounds --category "弹窗覆盖原UI" --force
 | `patch.py` | `dialog` | VLM 语义分析 + PIL/AI 弹窗合成叠加 |
 | `area_loading.py` | `area_loading` | VLM 推荐目标区域 + Loading 图标覆盖 |
 | `content_duplicate.py` | `content_duplicate` | 组件裁剪 + 底部浮层扩展渲染 |
-| `text_overlay.py` | `text_overlay` | VLM 编辑规划 + PIL 局部文字精确绘制 |
+| `text_overlay.py` | `text_overlay` / `modify_text*` | VLM 编辑规划 + PIL 精绘 / AI 图像编辑 / 端到端编辑 |
 
 ### generators/ — 元数据生成层
 
@@ -753,6 +780,7 @@ OMNIPARSER_DEVICE=cuda       # OmniParser 设备
 | dialog_bounds_px 不准 | 使用 `python -m analysis.gt_bounds --force` 重新提取 |
 | 批量执行报错某个样本 | 查看 `*_pipeline_meta_*.json` 中的错误日志 |
 | 弹窗背景不是纯黑色 | 检查 `utils/semantic_dialog_generator.py` 提示词 |
+| 细粒度文字改动定位不稳 | 试 `--anomaly-mode modify_text_e2e --e2e-full-image` |
 
 ---
 
@@ -773,4 +801,4 @@ OMNIPARSER_DEVICE=cuda       # OmniParser 设备
 
 ---
 
-**最后更新**: 2026-03-16
+**最后更新**: 2026-03-23

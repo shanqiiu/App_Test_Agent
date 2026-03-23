@@ -563,6 +563,11 @@ class TextOverlayRenderer(BaseRenderer):
             print(f"  ✗ JSON 解析失败: {exc}")
             return None
 
+        # 从原始指令中直接提取颜色要求（不依赖 VLM 保留颜色词）
+        _color_kws = ['灰色', '红色', '绿色', '蓝色', '黑色', '白色', '橙色', '黄色',
+                      'gray', 'grey', 'red', 'green', 'blue', 'black', 'white']
+        color_requirement = next((kw for kw in _color_kws if kw in instruction), None)
+
         # 将 VLM 规划转换为 EditOp（使用组件 bounds 作为 region）
         edit_ops: List[EditOp] = []
         for item in plan_data:
@@ -607,6 +612,8 @@ class TextOverlayRenderer(BaseRenderer):
                     'use_ai_edit': True,
                     'text_changes': text_changes,
                     'edit_description': edit_desc,
+                    'color_requirement': color_requirement,   # 直接从原始指令提取，不依赖VLM
+                    'original_instruction': instruction,       # 保留原始指令供执行阶段使用
                 },
                 reference_component=target_idx,
             )
@@ -1638,9 +1645,23 @@ class TextOverlayRenderer(BaseRenderer):
             text_changes = edit_op.style_hint.get('text_changes', [])
             edit_desc = edit_op.style_hint.get('edit_description', edit_op.content)
 
+            # 颜色要求：优先读取规划阶段直接从原始指令中提取的颜色词
+            color_requirement = edit_op.style_hint.get('color_requirement')
+            original_instruction = edit_op.style_hint.get('original_instruction', '')
+            # 回退：在 edit_desc / original_instruction 中扫描颜色词
+            if not color_requirement:
+                _color_kws = ['灰色', '红色', '绿色', '蓝色', '黑色', '白色', '橙色', '黄色',
+                              'gray', 'grey', 'red', 'green', 'blue', 'black', 'white']
+                _check = original_instruction or edit_desc
+                color_requirement = next((kw for kw in _color_kws if kw in _check), None)
+
+            has_color_override = bool(color_requirement)
+
             prompt_lines = [
                 "请对这张App截图区域进行精确的文字修改。",
-                "要求：",
+                f"修改目标：{edit_desc}",
+                "",
+                "具体修改内容：",
             ]
             for tc in text_changes:
                 fr = tc.get('from', '')
@@ -1650,8 +1671,23 @@ class TextOverlayRenderer(BaseRenderer):
             prompt_lines.extend([
                 "",
                 "严格要求：",
-                "- 仅修改上述指定的文字内容，其他所有元素（背景、布局、图标、边框、颜色）保持完全不变",
-                "- 新文字的字体、字号、颜色、对齐方式必须与被替换的原文字风格完全一致",
+                "- 仅修改上述指定的文字内容，其他所有元素（背景、布局、图标、边框）保持完全不变",
+            ])
+
+            if has_color_override:
+                prompt_lines.append(
+                    f"- 新文字必须使用【{color_requirement}】字体颜色，"
+                    f"绝对不能沿用原文字的颜色（原文字可能是绿色/橙色等，必须改为{color_requirement}）"
+                )
+                prompt_lines.append(
+                    "- 新文字的字体、字号、对齐方式与原文字保持一致（仅颜色按上述要求修改）"
+                )
+            else:
+                prompt_lines.append(
+                    "- 新文字的字体、字号、颜色、对齐方式必须与被替换的原文字风格完全一致"
+                )
+
+            prompt_lines.extend([
                 "- 不要添加任何新元素或改变图片的整体外观",
                 "- 输出图片尺寸、比例与输入图片完全一致",
             ])
@@ -1702,6 +1738,119 @@ class TextOverlayRenderer(BaseRenderer):
                     os.unlink(temp_path)
                 except OSError:
                     pass
+
+    def _exec_modify_text_ai_e2e(
+        self,
+        image: Image.Image,
+        screenshot_path: str,
+        instruction: str,
+        full_image: bool = False,
+    ) -> Optional[Image.Image]:
+        """
+        端到端 AI 编辑：可选整图编辑或指令驱动粗裁剪编辑，不依赖检测框与分组。
+        """
+        def _resolve_instruction_crop_box(img_w: int, img_h: int, text: str) -> Tuple[int, int, int, int, str]:
+            t = (text or "").lower()
+            x1_r, x2_r = 0.03, 0.97
+            y1_r, y2_r = 0.32, 0.82
+            reason = "default_main_content"
+
+            if any(k in t for k in ["顶部", "状态栏", "导航", "标题"]):
+                y1_r, y2_r = 0.00, 0.30
+                reason = "top_area"
+            elif any(k in t for k in ["底部", "tab", "候补", "筛选"]):
+                y1_r, y2_r = 0.72, 1.00
+                reason = "bottom_area"
+            elif any(k in t for k in ["卡片", "车次", "席位", "无票", "有票", "硬卧", "软卧", "一等", "二等"]):
+                y1_r, y2_r = 0.40, 0.84
+                reason = "train_cards_area"
+
+            if any(k in t for k in ["第三列", "右侧", "右边"]):
+                x1_r, x2_r = 0.52, 0.98
+                reason += "_right_col"
+            elif any(k in t for k in ["第一列", "左侧", "左边"]):
+                x1_r, x2_r = 0.02, 0.48
+                reason += "_left_col"
+            elif any(k in t for k in ["第二列", "中间"]):
+                x1_r, x2_r = 0.24, 0.76
+                reason += "_middle_col"
+
+            x1 = max(0, min(img_w - 2, int(img_w * x1_r)))
+            y1 = max(0, min(img_h - 2, int(img_h * y1_r)))
+            x2 = max(x1 + 2, min(img_w, int(img_w * x2_r)))
+            y2 = max(y1 + 2, min(img_h, int(img_h * y2_r)))
+            return x1, y1, x2, y2, reason
+
+        img_w, img_h = image.size
+        # 按用户原始指令直传，避免复杂模板提示导致过度改写
+        edit_prompt = instruction.strip()
+        if not edit_prompt:
+            print("  ✗ 端到端 AI 编辑指令为空")
+            return None
+
+        try:
+            from utils.semantic_dialog_generator import generate_image_dashscope
+            if full_image:
+                print("  [E2E编辑] 启用整图端到端编辑")
+                result_img = generate_image_dashscope(
+                    prompt=edit_prompt,
+                    size=f"{img_w}*{img_h}",
+                    reference_image_path=screenshot_path,
+                    force_model='edit',
+                    prompt_extend=False,
+                )
+                if result_img is None:
+                    print("  ✗ 端到端 AI 编辑返回空结果")
+                    return None
+
+                result_img = result_img.convert('RGBA')
+                if result_img.size != (img_w, img_h):
+                    print(f"  ℹ 后处理尺寸: {result_img.size} → ({img_w},{img_h})")
+                    result_img = result_img.resize((img_w, img_h), Image.Resampling.LANCZOS)
+                print("  ✓ 端到端 AI 编辑完成")
+                return result_img
+
+            # 默认：粗裁剪后编辑并贴回，降低整图重绘风险
+            x1, y1, x2, y2, crop_reason = _resolve_instruction_crop_box(img_w, img_h, edit_prompt)
+            crop_w, crop_h = x2 - x1, y2 - y1
+            print(f"  [E2E编辑] 指令裁剪区域: ({x1},{y1}) {crop_w}x{crop_h} [{crop_reason}]")
+            crop_img = image.crop((x1, y1, x2, y2)).convert('RGB')
+            import tempfile
+            import os
+            temp_path = None
+            with tempfile.NamedTemporaryFile(suffix='.png', delete=False, dir=None) as tmp:
+                temp_path = tmp.name
+            crop_img.save(temp_path, 'PNG')
+            result_img = generate_image_dashscope(
+                prompt=edit_prompt,
+                size=f"{crop_w}*{crop_h}",
+                reference_image_path=temp_path,
+                force_model='edit',
+                prompt_extend=False,
+            )
+            try:
+                os.unlink(temp_path)
+            except OSError:
+                pass
+            if result_img is None:
+                print("  ✗ 端到端 AI 编辑返回空结果")
+                return None
+
+            result_img = result_img.convert('RGBA')
+            if result_img.size != (crop_w, crop_h):
+                print(f"  ℹ 后处理尺寸: {result_img.size} → ({crop_w},{crop_h})")
+                result_img = result_img.resize((crop_w, crop_h), Image.Resampling.LANCZOS)
+            original_crop = image.crop((x1, y1, x2, y2)).convert('RGBA')
+            blended = self._feather_edges(result_img, original_crop, feather_px=3)
+            output = image.copy()
+            output.paste(blended, (x1, y1), blended)
+            print("  ✓ 端到端 AI 编辑完成（区域贴回）")
+            return output
+        except Exception as exc:
+            print(f"  ✗ 端到端 AI 编辑异常: {exc}")
+            import traceback
+            traceback.print_exc()
+            return None
 
     def _exec_add_badge(
         self,
@@ -1944,12 +2093,14 @@ class TextOverlayRenderer(BaseRenderer):
 
         edit_plan = kwargs.get('edit_plan')
         mode = kwargs.get('mode', 'default')
+        e2e_full_image = kwargs.get('e2e_full_image', False)
         result_img, executed_ops = self.render_all(
             screenshot_path=screenshot_path,
             ui_json=ui_json,
             instruction=instruction,
             edit_plan=edit_plan,
             mode=mode,
+            e2e_full_image=e2e_full_image,
         )
 
         timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
@@ -1986,7 +2137,8 @@ class TextOverlayRenderer(BaseRenderer):
         ui_json: dict,
         instruction: str,
         edit_plan: List[EditOp] = None,
-        mode: str = 'default'
+        mode: str = 'default',
+        e2e_full_image: bool = False,
     ) -> Tuple[Image.Image, List[EditOp]]:
         """
         完整渲染流程：规划编辑 → 逐步执行 → 返回结果
@@ -2002,6 +2154,23 @@ class TextOverlayRenderer(BaseRenderer):
             (编辑后图像, 执行的 EditOp 列表)
         """
         original = Image.open(screenshot_path).convert('RGBA')
+
+        if mode == 'modify_text_e2e':
+            edited = self._exec_modify_text_ai_e2e(
+                image=original,
+                screenshot_path=screenshot_path,
+                instruction=instruction,
+                full_image=bool(e2e_full_image),
+            )
+            if edited is None:
+                print("  ⚠ 端到端编辑失败，返回原图")
+                return original, []
+            executed_ops = [{
+                'action': 'modify_text_e2e',
+                'instruction': instruction,
+                'mode': 'modify_text_e2e',
+            }]
+            return edited, executed_ops
 
         # 规划编辑操作
         if edit_plan is None:

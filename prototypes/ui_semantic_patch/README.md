@@ -8,7 +8,7 @@
 
 ```
 原始截图 → [Stage 1] OmniParser 粗检测 → [Stage 2] VLM 语义分组 → [Stage 3] 异常渲染 → 异常截图
-              YOLO + PaddleOCR + Florence2     合并/过滤/语义分组       4 种模式专用渲染器
+              YOLO + PaddleOCR + Florence2     合并/过滤/语义分组       多模式专用渲染器
 ```
 
 | 阶段 | 技术 | 输出 |
@@ -31,7 +31,7 @@ pip install -r requirements.txt               # 核心依赖
 pip install -r third_party/OmniParser/requirements.txt  # OmniParser（需 GPU 推荐）
 ```
 
-### 四种异常模式示例
+### 异常模式示例
 
 ```bash
 cd scripts
@@ -63,6 +63,29 @@ python run_pipeline.py \
   --screenshot ../data/原图/app首页类-开屏广告弹窗/携程旅行01.jpg \
   --instruction "在租车服务卡片中插入优惠信息" \
   --anomaly-mode text_overlay \
+  --output ./output/demo
+
+# 5. modify_text_ai — 基于组件区域的 AI 图像编辑文字替换
+python run_pipeline.py \
+  --screenshot ../data/Agent执行遇到的典型异常UI类型/analysis/gt_templates/弹窗覆盖原UI/12306无票弹窗.jpg \
+  --instruction "将z112次车座位信息弹窗卡片第三列的硬卧、软卧车票席位状态改为灰色无票字样" \
+  --anomaly-mode modify_text_ai \
+  --output ./output/demo
+
+# 6. modify_text_ocr / modify_text — OCR精定位 + PIL渲染文字替换
+python run_pipeline.py \
+  --screenshot ../data/Agent执行遇到的典型异常UI类型/analysis/gt_templates/弹窗覆盖原UI/12306无票弹窗.jpg \
+  --instruction "将z112次车座位信息弹窗卡片第三列的硬卧、软卧车票席位状态改为灰色无票字样" \
+  --anomaly-mode modify_text_ocr \
+  --output ./output/demo
+
+# 7. modify_text_e2e — 端到端图像编辑（跳过检测/分组）
+# 默认是指令驱动粗裁剪编辑；加 --e2e-full-image 强制整图编辑
+python run_pipeline.py \
+  --screenshot ../data/Agent执行遇到的典型异常UI类型/analysis/gt_templates/弹窗覆盖原UI/12306无票弹窗.jpg \
+  --instruction "将z112次车座位信息弹窗卡片第三列的硬卧、软卧车票席位状态改为灰色无票字样" \
+  --anomaly-mode modify_text_e2e \
+  --e2e-full-image \
   --output ./output/demo
 ```
 
@@ -153,7 +176,7 @@ bash launch.sh list         # 列出异常类别
 | | `renderers/patch.py` | dialog 弹窗渲染 |
 | | `renderers/area_loading.py` | 区域加载异常 |
 | | `renderers/content_duplicate.py` | 内容重复 |
-| | `renderers/text_overlay.py` | 文字覆盖 |
+| | `renderers/text_overlay.py` | 文字覆盖 + modify_text_ai/ocr/e2e |
 | **注入决策** | `injection/sequence_analyzer.py` | 操作序列语义分析 |
 | | `injection/anomaly_recommender.py` | 异常推荐决策 |
 | | `injection/sequence_rewriter.py` | 序列改写 |
@@ -250,12 +273,14 @@ ui_semantic_patch/
 | `--screenshot, -s` | 原始截图路径 | 必需 |
 | `--instruction, -i` | 异常指令 | 必需 |
 | `--output, -o` | 输出目录 | `./output` |
-| `--anomaly-mode` | `dialog` / `area_loading` / `content_duplicate` / `text_overlay` | `dialog` |
+| `--anomaly-mode` | `dialog` / `area_loading` / `content_duplicate` / `text_overlay` / `modify_text` / `modify_text_ai` / `modify_text_ocr` / `modify_text_e2e` | `dialog` |
 | `--gt-category` | GT 模板类别 | - |
 | `--gt-sample` | GT 模板样本 | - |
 | `--image-model` | 图像生成模型: `auto` / `gen` / `edit` | `auto` |
 | `--reference, -r` | 参考弹窗图片 | - |
 | `--reference-icon` | 参考加载图标 | - |
+| `--edit-plan` | 文本编辑模式使用预设 Edit Plan JSON | - |
+| `--e2e-full-image` | `modify_text_e2e` 下启用整图端到端编辑 | `False` |
 | `--fonts-dir` | 自定义字体目录 | 系统默认 |
 | `--omni-device` | OmniParser 设备 (`cuda`/`cpu`) | 环境变量 |
 | `--api-key` | VLM API 密钥 | 环境变量 |
@@ -282,6 +307,8 @@ ui_semantic_patch/
 | `*_stage1_annotated_*.png` | Stage 1 可视化 | Stage 1 |
 | `*_stage2_filtered_*.json` | VLM 语义过滤后 | Stage 2 |
 | `*_stage2_annotated_*.png` | Stage 2 可视化 | Stage 2 |
+| `diff_*.png` | 编辑像素差异可视化 | Stage 3 |
+| `edit_plan_*.json` | 文本编辑执行计划 | Stage 3 |
 | `*_final_*.png` | 最终异常截图 | Stage 3 |
 | `*_pipeline_meta_*.json` | 流水线元数据 | 完成时 |
 
@@ -335,4 +362,14 @@ ui_semantic_patch/
 
 ---
 
-**最后更新**: 2026-03-18
+### 细粒度编辑模式建议
+
+| 场景 | 推荐模式 | 说明 |
+|------|----------|------|
+| 结构稳定、组件可定位 | `modify_text_ai` / `modify_text_ocr` | 依赖检测与分组，局部可控性更强 |
+| 细粒度文本且检测难覆盖 | `modify_text_e2e --e2e-full-image` | 跳过检测/分组，直接整图端到端编辑 |
+| 希望降低整图重绘风险 | `modify_text_e2e`（不加 `--e2e-full-image`） | 指令驱动粗裁剪后编辑并贴回 |
+
+---
+
+**最后更新**: 2026-03-23

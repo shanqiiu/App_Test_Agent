@@ -8,6 +8,36 @@
 
 ---
 
+## 七、2026-03-23 增量更新：`modify_text_e2e` 端到端编辑模式
+
+### 7.1 新增背景
+
+在部分细粒度文本场景中，OmniParser 检测框和 Stage 2 分组难以稳定覆盖目标文字，导致局部编辑路径（`modify_text_ai` / `modify_text_ocr`）定位误差累积。为此新增端到端路径，允许直接基于原图+指令进行编辑。
+
+### 7.2 新增能力
+
+- 新增 `--anomaly-mode modify_text_e2e`
+  - 跳过 Stage 1 检测与 Stage 2 分组
+  - Stage 3 直接调用 `qwen-image-edit-max`
+- 新增 `--e2e-full-image` 开关
+  - 默认关闭：指令驱动粗裁剪后编辑并贴回原图
+  - 开启后：整图端到端编辑（不做裁剪）
+
+### 7.3 提示词策略
+
+- 正向提示词：直接使用用户原始指令（`instruction.strip()`）
+- 负向提示词：沿用 `generate_image_dashscope()` 默认 `negative_prompt`
+
+### 7.4 适用建议
+
+| 场景 | 推荐模式 |
+|------|----------|
+| OCR 可识别、追求局部可控 | `modify_text_ocr`（或 `modify_text`） |
+| OCR 难识别、组件定位可用 | `modify_text_ai` |
+| 细粒度目标且检测分组不稳定 | `modify_text_e2e --e2e-full-image` |
+
+---
+
 ## 一、背景与问题
 
 ### 原始方案

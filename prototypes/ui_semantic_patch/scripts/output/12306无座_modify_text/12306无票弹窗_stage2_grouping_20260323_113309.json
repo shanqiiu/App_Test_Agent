@@ -1,0 +1,142 @@
+{
+  "groups": [
+    {
+      "name": "StatusBar",
+      "indices": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5
+      ],
+      "class": "StatusBar",
+      "text": "系统状态栏，显示时间、电池、信号等信息"
+    },
+    {
+      "name": "NavigationBar",
+      "indices": [
+        9,
+        6,
+        7,
+        8
+      ],
+      "class": "NavigationBar",
+      "text": "顶部导航栏，包含返回按钮和城市选择（北京 <> 长春）"
+    },
+    {
+      "name": "DateSelector",
+      "indices": [
+        11,
+        13,
+        10,
+        15,
+        12,
+        14
+      ],
+      "class": "Button",
+      "text": "日期选择器，用于选择出行日期"
+    },
+    {
+      "name": "CalendarIcon",
+      "indices": [
+        16
+      ],
+      "class": "ImageButton",
+      "text": "日历图标，点击可查看完整日历"
+    },
+    {
+      "name": "TabBar",
+      "indices": [
+        19,
+        18
+      ],
+      "class": "TabBar",
+      "text": "直达与中转选项卡，用于切换行程类型"
+    },
+    {
+      "name": "FilterOptions",
+      "indices": [
+        20,
+        21,
+        22,
+        23,
+        24,
+        25
+      ],
+      "class": "Button",
+      "text": "筛选选项，包括高铁/动车、普通车、有票等过滤条件"
+    },
+    {
+      "name": "StationSelector",
+      "indices": [
+        26,
+        27,
+        28,
+        29,
+        30,
+        31,
+        32
+      ],
+      "class": "Card",
+      "text": "出发站和到达站选择区域，包含北京朝阳到长春西的直达车次信息"
+    },
+    {
+      "name": "TrainCard",
+      "indices": [
+        33,
+        34,
+        35,
+        36,
+        37,
+        38,
+        39,
+        40,
+        41,
+        42,
+        43,
+        44,
+        45,
+        46,
+        47,
+        48,
+        49,
+        50,
+        51,
+        52,
+        53,
+        54
+      ],
+      "class": "Card",
+      "text": "Z112次列车详情卡片，包含发车时间、到达时间、票价、座位类型及预订按钮"
+    },
+    {
+      "name": "TrainCard",
+      "indices": [
+        55,
+        56,
+        57,
+        58,
+        59,
+        60,
+        61,
+        62,
+        63
+      ],
+      "class": "Card",
+      "text": "Z156次列车详情卡片，包含发车时间、到达时间、票价、座位类型及预订按钮"
+    },
+    {
+      "name": "BottomTabBar",
+      "indices": [
+        64,
+        65,
+        66,
+        67,
+        68
+      ],
+      "class": "TabBar",
+      "text": "底部功能标签栏，包含筛选、耗时最短、发时最早、价格最低、候补下单等选项"
+    }
+  ]
+}

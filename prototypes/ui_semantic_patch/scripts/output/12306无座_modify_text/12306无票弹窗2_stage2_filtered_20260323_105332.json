@@ -1,0 +1,351 @@
+{
+  "metadata": {
+    "source": "12306无票弹窗2.jpg",
+    "extractionMethod": "OmniParser+VLM_Grouping_v3",
+    "models": {
+      "detection": "OmniParser (YOLO + PaddleOCR + Florence2)",
+      "semantic_grouping": "qwen-vl-max"
+    },
+    "timestamp": "2026-03-23T10:54:48.998427",
+    "resolution": {
+      "width": 1224,
+      "height": 2776
+    },
+    "processing": {
+      "omni_raw_count": 71,
+      "final_count": 8,
+      "merge_log": [
+        {
+          "action": "group_merge",
+          "name": "StatusBar",
+          "from": [
+            0,
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7,
+            8
+          ],
+          "to_class": "StatusBar",
+          "reason": "9 个检测框合并为 StatusBar"
+        },
+        {
+          "action": "group_merge",
+          "name": "NavigationBar",
+          "from": [
+            9,
+            10,
+            11,
+            12,
+            13
+          ],
+          "to_class": "NavigationBar",
+          "reason": "5 个检测框合并为 NavigationBar"
+        },
+        {
+          "action": "group_merge",
+          "name": "DateSelector",
+          "from": [
+            14,
+            15,
+            16,
+            17,
+            18,
+            19,
+            20
+          ],
+          "to_class": "Button",
+          "reason": "7 个检测框合并为 DateSelector"
+        },
+        {
+          "action": "group_merge",
+          "name": "FilterOptions",
+          "from": [
+            21,
+            22,
+            23,
+            24,
+            25,
+            26,
+            27,
+            28
+          ],
+          "to_class": "Button",
+          "reason": "8 个检测框合并为 FilterOptions"
+        },
+        {
+          "action": "group_merge",
+          "name": "StationSelector",
+          "from": [
+            29,
+            30,
+            31,
+            32,
+            33,
+            34,
+            35,
+            36
+          ],
+          "to_class": "Card",
+          "reason": "8 个检测框合并为 StationSelector"
+        },
+        {
+          "action": "group_merge",
+          "name": "SeatOptions",
+          "from": [
+            37,
+            38,
+            39,
+            40,
+            41,
+            42,
+            43,
+            44,
+            45,
+            46,
+            47,
+            48,
+            49,
+            50,
+            51,
+            52,
+            53,
+            54,
+            55,
+            56
+          ],
+          "to_class": "Card",
+          "reason": "20 个检测框合并为 SeatOptions"
+        },
+        {
+          "action": "group_merge",
+          "name": "TrainCard",
+          "from": [
+            57,
+            58,
+            59,
+            60,
+            61,
+            62,
+            63,
+            64,
+            65
+          ],
+          "to_class": "Card",
+          "reason": "9 个检测框合并为 TrainCard"
+        },
+        {
+          "action": "group_merge",
+          "name": "TabBar",
+          "from": [
+            66,
+            67,
+            68,
+            69,
+            70
+          ],
+          "to_class": "TabBar",
+          "reason": "5 个检测框合并为 TabBar"
+        }
+      ]
+    }
+  },
+  "components": [
+    {
+      "index": 0,
+      "class": "StatusBar",
+      "bounds": {
+        "x": 33,
+        "y": 46,
+        "width": 1157,
+        "height": 90
+      },
+      "text": "系统状态栏，显示时间、电池、信号等",
+      "clickable": true,
+      "source_indices": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8
+      ],
+      "note": "语义分组合并: StatusBar"
+    },
+    {
+      "index": 1,
+      "class": "NavigationBar",
+      "bounds": {
+        "x": 4,
+        "y": 179,
+        "width": 1215,
+        "height": 115
+      },
+      "text": "顶部导航栏，包含返回按钮、城市选择和更多选项",
+      "clickable": true,
+      "source_indices": [
+        9,
+        10,
+        11,
+        12,
+        13
+      ],
+      "note": "语义分组合并: NavigationBar"
+    },
+    {
+      "index": 2,
+      "class": "Button",
+      "bounds": {
+        "x": 27,
+        "y": 306,
+        "width": 1187,
+        "height": 174
+      },
+      "text": "日期选择器，展示从今天到周三的日期选项",
+      "clickable": true,
+      "source_indices": [
+        14,
+        15,
+        16,
+        17,
+        18,
+        19,
+        20
+      ],
+      "note": "语义分组合并: DateSelector"
+    },
+    {
+      "index": 3,
+      "class": "Button",
+      "bounds": {
+        "x": 33,
+        "y": 505,
+        "width": 1167,
+        "height": 198
+      },
+      "text": "筛选选项，包括高铁/动车、普通车、有票等过滤条件",
+      "clickable": true,
+      "source_indices": [
+        21,
+        22,
+        23,
+        24,
+        25,
+        26,
+        27,
+        28
+      ],
+      "note": "语义分组合并: FilterOptions"
+    },
+    {
+      "index": 4,
+      "class": "Card",
+      "bounds": {
+        "x": 34,
+        "y": 723,
+        "width": 1142,
+        "height": 316
+      },
+      "text": "列车信息卡片：Z112次，05:54从北京丰台出发，15:23到达长春，票价¥128.5起",
+      "clickable": true,
+      "source_indices": [
+        29,
+        30,
+        31,
+        32,
+        33,
+        34,
+        35,
+        36
+      ],
+      "note": "语义分组合并: StationSelector"
+    },
+    {
+      "index": 5,
+      "class": "Card",
+      "bounds": {
+        "x": 47,
+        "y": 1113,
+        "width": 1107,
+        "height": 1041
+      },
+      "text": "Z156次列车座位选项，包含硬座、硬卧、软卧、无座价格及预订按钮",
+      "clickable": true,
+      "source_indices": [
+        37,
+        38,
+        39,
+        40,
+        41,
+        42,
+        43,
+        44,
+        45,
+        46,
+        47,
+        48,
+        49,
+        50,
+        51,
+        52,
+        53,
+        54,
+        55,
+        56
+      ],
+      "note": "语义分组合并: SeatOptions"
+    },
+    {
+      "index": 6,
+      "class": "Card",
+      "bounds": {
+        "x": 33,
+        "y": 2226,
+        "width": 1154,
+        "height": 213
+      },
+      "text": "G3533次智能动车，07:49从北京朝阳出发，13:06到达长春，票价¥411起",
+      "clickable": true,
+      "source_indices": [
+        57,
+        58,
+        59,
+        60,
+        61,
+        62,
+        63,
+        64,
+        65
+      ],
+      "note": "语义分组合并: TrainCard"
+    },
+    {
+      "index": 7,
+      "class": "TabBar",
+      "bounds": {
+        "x": 42,
+        "y": 2518,
+        "width": 1144,
+        "height": 171
+      },
+      "text": "底部标签栏，包含筛选、耗时最短、发时最早、价格最低、候补下单等选项",
+      "clickable": true,
+      "source_indices": [
+        66,
+        67,
+        68,
+        69,
+        70
+      ],
+      "note": "语义分组合并: TabBar"
+    }
+  ],
+  "componentCount": 8,
+  "_stage2_status": "success"
+}

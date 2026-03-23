@@ -1,0 +1,24 @@
+{
+  "timestamp": "20260323_105332",
+  "screenshot": "../data/Agent执行遇到的典型异常UI类型/analysis/gt_templates/弹窗覆盖原UI/12306无票弹窗2.jpg",
+  "instruction": "将z156次列车座位信息弹窗卡片第三列的车票席位状态均改为灰色无票字样",
+  "outputs": {
+    "stage1_omni_raw": "output\\12306无座_modify_text\\12306无票弹窗2_stage1_omni_raw_20260323_105332.json",
+    "stage1_annotated": "output\\12306无座_modify_text\\12306无票弹窗2_stage1_annotated_20260323_105332.png",
+    "stage2_filtered": "output\\12306无座_modify_text\\12306无票弹窗2_stage2_filtered_20260323_105332.json",
+    "stage2_annotated": "output\\12306无座_modify_text\\12306无票弹窗2_stage2_annotated_20260323_105332.png",
+    "final_image": "output\\12306无座_modify_text\\final_20260323_105520.png",
+    "meta_driven": false
+  },
+  "timing": {
+    "stage1": 53.61,
+    "stage2": 22.85,
+    "stage3": 32.92
+  },
+  "stage2_status": "success",
+  "render_metadata": {
+    "edit_count": 1,
+    "diff_path": "output\\12306无座_modify_text\\diff_20260323_105520.png",
+    "edit_plan_path": "output\\12306无座_modify_text\\edit_plan_20260323_105520.json"
+  }
+}

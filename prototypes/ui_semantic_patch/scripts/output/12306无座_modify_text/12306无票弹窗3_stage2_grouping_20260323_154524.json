@@ -1,0 +1,182 @@
+{
+  "groups": [
+    {
+      "name": "StatusBar",
+      "indices": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7
+      ],
+      "class": "StatusBar",
+      "text": "系统状态栏，显示时间、电池、信号等信息"
+    },
+    {
+      "name": "NavigationBar",
+      "indices": [
+        8,
+        9,
+        10,
+        11
+      ],
+      "class": "NavigationBar",
+      "text": "顶部导航栏，包含城市选择和更多选项"
+    },
+    {
+      "name": "DateSelector",
+      "indices": [
+        12,
+        13,
+        14,
+        15,
+        16,
+        17
+      ],
+      "class": "Button",
+      "text": "日期选择器，用于切换出行日期"
+    },
+    {
+      "name": "CalendarIcon",
+      "indices": [
+        18
+      ],
+      "class": "ImageButton",
+      "text": "日历图标，用于打开日历选择"
+    },
+    {
+      "name": "TabBar",
+      "indices": [
+        19,
+        20
+      ],
+      "class": "TabBar",
+      "text": "直达与中转标签页切换"
+    },
+    {
+      "name": "FilterOptions",
+      "indices": [
+        21,
+        22,
+        23,
+        24,
+        25,
+        26,
+        27,
+        28
+      ],
+      "class": "Button",
+      "text": "筛选条件按钮组，包括车次类型和有票筛选"
+    },
+    {
+      "name": "StationSelector",
+      "indices": [
+        29,
+        30,
+        31,
+        32,
+        33,
+        34,
+        35
+      ],
+      "class": "Button",
+      "text": "出发站和到达站选择区域"
+    },
+    {
+      "name": "RecentPurchaseCard",
+      "indices": [
+        36,
+        37,
+        38,
+        39,
+        40,
+        41
+      ],
+      "class": "Card",
+      "text": "最近购买的车次卡片：G3507 北京朝阳→长春西"
+    },
+    {
+      "name": "RecentPurchaseCard",
+      "indices": [
+        42,
+        43,
+        44,
+        45
+      ],
+      "class": "Card",
+      "text": "最近购买的车次卡片：G129 北京朝阳→长春"
+    },
+    {
+      "name": "TrainListItem",
+      "indices": [
+        46,
+        47,
+        48,
+        49,
+        50,
+        51,
+        52,
+        53,
+        54,
+        55
+      ],
+      "class": "ListItem",
+      "text": "Z112 车次详情：05:54-15:23，¥128.5起，北京丰台→长春"
+    },
+    {
+      "name": "TrainListItem",
+      "indices": [
+        56,
+        57,
+        58,
+        59,
+        60,
+        61,
+        62,
+        63,
+        64
+      ],
+      "class": "ListItem",
+      "text": "Z156 车次详情：06:02-15:29，¥128.5起，北京丰台→长春"
+    },
+    {
+      "name": "TrainListItem",
+      "indices": [
+        65,
+        66,
+        67,
+        68,
+        69
+      ],
+      "class": "ListItem",
+      "text": "G3533 车次详情：07:49-13:06，¥411起，北京朝阳→长春"
+    },
+    {
+      "name": "TrainListItem",
+      "indices": [
+        70,
+        71,
+        72,
+        73,
+        74
+      ],
+      "class": "ListItem",
+      "text": "G101 车次详情：08:00-11:36，¥481起，北京朝阳→长春西"
+    },
+    {
+      "name": "BottomTabBar",
+      "indices": [
+        75,
+        76,
+        77,
+        78,
+        79
+      ],
+      "class": "TabBar",
+      "text": "底部筛选标签栏，包含筛选、耗时最短、发时最早、价格最低、候补下单"
+    }
+  ]
+}

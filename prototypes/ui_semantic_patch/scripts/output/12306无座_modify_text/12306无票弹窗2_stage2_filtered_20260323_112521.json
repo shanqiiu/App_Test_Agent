@@ -1,0 +1,374 @@
+{
+  "metadata": {
+    "source": "12306无票弹窗2.jpg",
+    "extractionMethod": "OmniParser+VLM_Grouping_v3",
+    "models": {
+      "detection": "OmniParser (YOLO + PaddleOCR + Florence2)",
+      "semantic_grouping": "qwen-vl-max"
+    },
+    "timestamp": "2026-03-23T11:26:44.239029",
+    "resolution": {
+      "width": 1224,
+      "height": 2776
+    },
+    "processing": {
+      "omni_raw_count": 71,
+      "final_count": 9,
+      "merge_log": [
+        {
+          "action": "group_merge",
+          "name": "状态栏",
+          "from": [
+            0,
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7,
+            8
+          ],
+          "to_class": "StatusBar",
+          "reason": "9 个检测框合并为 状态栏"
+        },
+        {
+          "action": "group_merge",
+          "name": "导航栏",
+          "from": [
+            9,
+            10,
+            11,
+            12,
+            13
+          ],
+          "to_class": "NavigationBar",
+          "reason": "5 个检测框合并为 导航栏"
+        },
+        {
+          "action": "group_merge",
+          "name": "日期选择器",
+          "from": [
+            14,
+            15,
+            16,
+            17,
+            18,
+            19,
+            20
+          ],
+          "to_class": "TextView",
+          "reason": "7 个检测框合并为 日期选择器"
+        },
+        {
+          "action": "group_merge",
+          "name": "筛选选项",
+          "from": [
+            21,
+            22,
+            23
+          ],
+          "to_class": "TextView",
+          "reason": "3 个检测框合并为 筛选选项"
+        },
+        {
+          "action": "group_merge",
+          "name": "出发站选择",
+          "from": [
+            24,
+            25,
+            26,
+            27,
+            28
+          ],
+          "to_class": "Button",
+          "reason": "5 个检测框合并为 出发站选择"
+        },
+        {
+          "action": "group_merge",
+          "name": "列车信息卡片 - Z112",
+          "from": [
+            29,
+            30,
+            31,
+            32,
+            33,
+            34,
+            35,
+            36,
+            37,
+            38,
+            39,
+            40,
+            41,
+            42,
+            43
+          ],
+          "to_class": "Card",
+          "reason": "15 个检测框合并为 列车信息卡片 - Z112"
+        },
+        {
+          "action": "group_merge",
+          "name": "列车信息卡片 - Z156",
+          "from": [
+            44,
+            45,
+            46,
+            47,
+            48,
+            49,
+            50,
+            51,
+            52,
+            53,
+            54,
+            55,
+            56
+          ],
+          "to_class": "Card",
+          "reason": "13 个检测框合并为 列车信息卡片 - Z156"
+        },
+        {
+          "action": "group_merge",
+          "name": "列车信息卡片 - G3533",
+          "from": [
+            57,
+            58,
+            59,
+            60,
+            61,
+            62,
+            63,
+            64,
+            65
+          ],
+          "to_class": "Card",
+          "reason": "9 个检测框合并为 列车信息卡片 - G3533"
+        },
+        {
+          "action": "group_merge",
+          "name": "底部筛选标签栏",
+          "from": [
+            66,
+            67,
+            68,
+            69,
+            70
+          ],
+          "to_class": "TabBar",
+          "reason": "5 个检测框合并为 底部筛选标签栏"
+        }
+      ]
+    }
+  },
+  "components": [
+    {
+      "index": 0,
+      "class": "StatusBar",
+      "bounds": {
+        "x": 33,
+        "y": 46,
+        "width": 1157,
+        "height": 90
+      },
+      "text": "时间、网络信号、电池电量等系统状态信息",
+      "clickable": true,
+      "source_indices": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8
+      ],
+      "note": "语义分组合并: 状态栏"
+    },
+    {
+      "index": 1,
+      "class": "NavigationBar",
+      "bounds": {
+        "x": 4,
+        "y": 179,
+        "width": 1215,
+        "height": 115
+      },
+      "text": "北京 <> 长春 路程选择与更多选项",
+      "clickable": true,
+      "source_indices": [
+        9,
+        10,
+        11,
+        12,
+        13
+      ],
+      "note": "语义分组合并: 导航栏"
+    },
+    {
+      "index": 2,
+      "class": "TextView",
+      "bounds": {
+        "x": 27,
+        "y": 306,
+        "width": 1187,
+        "height": 174
+      },
+      "text": "从今天到周三的日期选择，当前选中周一 03.23",
+      "clickable": true,
+      "source_indices": [
+        14,
+        15,
+        16,
+        17,
+        18,
+        19,
+        20
+      ],
+      "note": "语义分组合并: 日期选择器"
+    },
+    {
+      "index": 3,
+      "class": "TextView",
+      "bounds": {
+        "x": 33,
+        "y": 505,
+        "width": 975,
+        "height": 66
+      },
+      "text": "只看高铁/动车、只看普通车、只看有票的筛选标签",
+      "clickable": true,
+      "source_indices": [
+        21,
+        22,
+        23
+      ],
+      "note": "语义分组合并: 筛选选项"
+    },
+    {
+      "index": 4,
+      "class": "Button",
+      "bounds": {
+        "x": 34,
+        "y": 599,
+        "width": 1166,
+        "height": 104
+      },
+      "text": "北京丰台、北京朝阳、北京西、北京等出发站点按钮",
+      "clickable": true,
+      "source_indices": [
+        24,
+        25,
+        26,
+        27,
+        28
+      ],
+      "note": "语义分组合并: 出发站选择"
+    },
+    {
+      "index": 5,
+      "class": "Card",
+      "bounds": {
+        "x": 34,
+        "y": 723,
+        "width": 1142,
+        "height": 765
+      },
+      "text": "Z112次列车，05:54从北京丰台出发，15:23到达长春，票价¥128.5起，硬座候补，硬卧有票",
+      "clickable": true,
+      "source_indices": [
+        29,
+        30,
+        31,
+        32,
+        33,
+        34,
+        35,
+        36,
+        37,
+        38,
+        39,
+        40,
+        41,
+        42,
+        43
+      ],
+      "note": "语义分组合并: 列车信息卡片 - Z112"
+    },
+    {
+      "index": 6,
+      "class": "Card",
+      "bounds": {
+        "x": 74,
+        "y": 1520,
+        "width": 1078,
+        "height": 634
+      },
+      "text": "Z156次列车，06:02从北京丰台出发，15:29到达长春，票价¥128.5起，提供硬座、硬卧、软卧、无座等多种席位预订",
+      "clickable": true,
+      "source_indices": [
+        44,
+        45,
+        46,
+        47,
+        48,
+        49,
+        50,
+        51,
+        52,
+        53,
+        54,
+        55,
+        56
+      ],
+      "note": "语义分组合并: 列车信息卡片 - Z156"
+    },
+    {
+      "index": 7,
+      "class": "Card",
+      "bounds": {
+        "x": 33,
+        "y": 2226,
+        "width": 1154,
+        "height": 213
+      },
+      "text": "G3533次智能动车，07:49从北京朝阳出发，13:06到达长春，票价¥411起，耗时5小时17分",
+      "clickable": true,
+      "source_indices": [
+        57,
+        58,
+        59,
+        60,
+        61,
+        62,
+        63,
+        64,
+        65
+      ],
+      "note": "语义分组合并: 列车信息卡片 - G3533"
+    },
+    {
+      "index": 8,
+      "class": "TabBar",
+      "bounds": {
+        "x": 42,
+        "y": 2518,
+        "width": 1144,
+        "height": 171
+      },
+      "text": "筛选、耗时最短、发时最早、价格最低、候补下单五个功能标签",
+      "clickable": true,
+      "source_indices": [
+        66,
+        67,
+        68,
+        69,
+        70
+      ],
+      "note": "语义分组合并: 底部筛选标签栏"
+    }
+  ],
+  "componentCount": 9,
+  "_stage2_status": "success"
+}
