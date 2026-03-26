@@ -45,6 +45,7 @@ GROUPING_PROMPT = """你是一个 UI 结构分析专家。
 - **共同描述一件事物**（如一张服务卡片的标题+价格+描述+标签）→ 合并为一个 group
 - **各自承担不同功能**（如导航栏的返回按钮 vs 页面标题）→ 各自独立 group
 - **纯装饰/展示区域**（Banner、海报、状态栏）→ 该区域所有框合并为一个 group
+- **票务场景特例（高优先级）**：同一车次结果块中的“车次主信息 + 席位/票量列表 + 对应预订按钮”通常属于同一结果卡片，优先合并为一个 Card，而不是拆成多个 group
 
 ## 输出格式
 
@@ -67,8 +68,9 @@ GROUPING_PROMPT = """你是一个 UI 结构分析专家。
 2. 单个组件也要作为独立 group（indices 长度为 1）
 3. class 从以下类型中选择：StatusBar, NavigationBar, TextView, Button, ImageView, ImageButton, Card, TabBar, TabItem, SearchBar, Dialog, Avatar, ListItem, InputField
 4. text 字段：对于多个框合并的 group，给出概括性描述（而非简单拼接）；单个框的 group 保留原始 text
-5. **优先合并**：如果一个区域是在描述"同一件事物/服务/产品"，应合并为一个 Card
-6. 只输出 JSON，不要输出其他内容
+5. **优先合并**：如果一个区域是在描述“同一件事物/服务/产品”，应合并为一个 Card
+6. 若界面含列车/车次/席位/预订等票务元素，优先按“单车次完整结果块”分组，避免把席位列表和预订按钮拆分到不同 group
+7. 只输出 JSON，不要输出其他内容
 """
 
 
@@ -343,6 +345,121 @@ def apply_grouping(
     return final_components, merge_log
 
 
+def _post_merge_adjacent_listitems(
+    components: List[Dict],
+    gap_threshold_ratio: float = 0.03,
+) -> tuple:
+    """
+    后处理：将紧邻 Card 下方的 ListItem 自动合并到该 Card。
+
+    VLM 分组稳定但粒度偏细，常把展开卡片的详情行（如席位行）标记为独立
+    ListItem。此函数用确定性空间规则弥补，不依赖 VLM 重新推理。
+
+    合并条件（全部满足才合并）：
+    1. 上方组件 class == Card
+    2. 下方组件 class == ListItem
+    3. 两者垂直间距 < 图片高度 * gap_threshold_ratio
+    4. 两者水平范围大致对齐（重叠率 > 70%）
+
+    Args:
+        components: apply_grouping 产出的已排序组件列表
+        gap_threshold_ratio: 垂直间距阈值（相对图片高度的比例）
+
+    Returns:
+        (merged_components, post_merge_log)
+    """
+    if not components:
+        return components, []
+
+    img_height = max(
+        c['bounds']['y'] + c['bounds']['height'] for c in components
+    )
+    gap_threshold = img_height * gap_threshold_ratio
+
+    merged = list(components)
+    post_log = []
+    consumed = set()
+
+    for i, comp in enumerate(merged):
+        if i in consumed or comp.get('class') != 'Card':
+            continue
+
+        card_bottom = comp['bounds']['y'] + comp['bounds']['height']
+        card_left = comp['bounds']['x']
+        card_right = card_left + comp['bounds']['width']
+
+        absorb_indices = []
+        for j in range(i + 1, len(merged)):
+            if j in consumed:
+                continue
+            candidate = merged[j]
+            if candidate.get('class') != 'ListItem':
+                break
+
+            cand_top = candidate['bounds']['y']
+            cand_left = candidate['bounds']['x']
+            cand_right = cand_left + candidate['bounds']['width']
+
+            current_bottom = card_bottom
+            if absorb_indices:
+                last = merged[absorb_indices[-1]]
+                current_bottom = last['bounds']['y'] + last['bounds']['height']
+
+            vertical_gap = cand_top - current_bottom
+            if vertical_gap > gap_threshold or vertical_gap < -gap_threshold:
+                break
+
+            overlap_left = max(card_left, cand_left)
+            overlap_right = min(card_right, cand_right)
+            overlap_w = max(0, overlap_right - overlap_left)
+            cand_w = candidate['bounds']['width']
+            if cand_w > 0 and (overlap_w / cand_w) < 0.7:
+                break
+
+            absorb_indices.append(j)
+
+        if not absorb_indices:
+            continue
+
+        all_bounds = [comp] + [merged[j] for j in absorb_indices]
+        new_min_x = min(c['bounds']['x'] for c in all_bounds)
+        new_min_y = min(c['bounds']['y'] for c in all_bounds)
+        new_max_x = max(c['bounds']['x'] + c['bounds']['width'] for c in all_bounds)
+        new_max_y = max(c['bounds']['y'] + c['bounds']['height'] for c in all_bounds)
+
+        absorbed_src = []
+        for j in absorb_indices:
+            si = merged[j].get('source_indices') or [merged[j].get('original_index', -1)]
+            absorbed_src.extend(si)
+
+        comp['bounds'] = {
+            'x': new_min_x, 'y': new_min_y,
+            'width': new_max_x - new_min_x,
+            'height': new_max_y - new_min_y,
+        }
+        existing_src = comp.get('source_indices') or []
+        comp['source_indices'] = existing_src + absorbed_src
+        absorbed_names = [merged[j].get('text', '') for j in absorb_indices]
+        comp['text'] = comp.get('text', '') + '（含展开详情：' + '、'.join(absorbed_names) + '）'
+
+        post_log.append({
+            'action': 'post_merge_listitem_into_card',
+            'card_index': i,
+            'absorbed_indices': absorb_indices,
+            'absorbed_names': absorbed_names,
+            'reason': f'Card #{i} 吸收 {len(absorb_indices)} 个紧邻 ListItem',
+        })
+        consumed.update(absorb_indices)
+
+    if consumed:
+        result = [c for idx, c in enumerate(merged) if idx not in consumed]
+        for new_i, c in enumerate(result):
+            c['index'] = new_i
+        return result, post_log
+
+    return merged, post_log
+
+
 def omni_vlm_fusion(
     image_path: str,
     api_key: str,
@@ -427,7 +544,17 @@ def omni_vlm_fusion(
             omni_components=omni_components
         )
 
-        print(f"  ✓ 合并后: {len(final_components)} 个组件")
+        print(f"  ✓ VLM 分组合并后: {len(final_components)} 个组件")
+
+        # 后处理：将紧邻 Card 下方的 ListItem 自动合并到 Card
+        pre_post_count = len(final_components)
+        final_components, post_log = _post_merge_adjacent_listitems(final_components)
+        merge_log.extend(post_log)
+        if post_log:
+            print(f"  ✓ 后处理合并: {pre_post_count} → {len(final_components)} 个组件")
+            for pl in post_log:
+                print(f"    - {pl['reason']}")
+        print(f"  ✓ 最终: {len(final_components)} 个组件")
 
     except Exception as e:
         print(f"  [ERROR] VLM 语义分组失败: {e}")

@@ -44,6 +44,28 @@ VLM_API_URL = os.environ.get('VLM_API_URL', 'https://api.openai-next.com/v1/chat
 STRUCTURE_MODEL = os.environ.get('STRUCTURE_MODEL', 'qwen-vl-max')
 
 
+def _import_omni_to_ui_json():
+    """兼容脚本直跑与包内运行的 OmniParser 导入。"""
+    try:
+        # 包内运行（如 python -m ...）
+        from ..omni_extractor import omni_to_ui_json  # type: ignore
+    except Exception:
+        # 脚本直跑（如 python gt_bounds.py），依赖前面注入的 SCRIPTS_DIR
+        from omni_extractor import omni_to_ui_json  # type: ignore
+    return omni_to_ui_json
+
+
+def _import_omni_vlm_fusion():
+    """兼容脚本直跑与包内运行的 VLM 融合导入。"""
+    try:
+        # 包内运行（如 python -m ...）
+        from ..omni_vlm_fusion import omni_vlm_fusion  # type: ignore
+    except Exception:
+        # 脚本直跑（如 python gt_bounds.py），依赖前面注入的 SCRIPTS_DIR
+        from omni_vlm_fusion import omni_vlm_fusion  # type: ignore
+    return omni_vlm_fusion
+
+
 def calculate_expected_region(
     dialog_position: str,
     dialog_size_ratio: Dict,
@@ -839,7 +861,7 @@ def _expand_with_omniparser(
 
     # 运行 OmniParser Stage 1
     try:
-        from .omni_extractor import omni_to_ui_json
+        omni_to_ui_json = _import_omni_to_ui_json()
         print(f"  [OmniParser 辅助] 检测 UI 组件...")
         omni_result = omni_to_ui_json(image_path=image_path, device=omni_device)
         components = omni_result['components']
@@ -1024,18 +1046,24 @@ def _extract_with_omniparser(
 
     # Stage 1: OmniParser 检测
     print(f"  [Stage 1] OmniParser 检测...")
-    from .omni_extractor import omni_to_ui_json
-    omni_result = omni_to_ui_json(
-        image_path=image_path,
-        device=omni_device
-    )
-    omni_components = omni_result['components']
-    print(f"  检测到 {len(omni_components)} 个组件")
+    try:
+        omni_to_ui_json = _import_omni_to_ui_json()
+        omni_result = omni_to_ui_json(
+            image_path=image_path,
+            device=omni_device
+        )
+        omni_components = omni_result['components']
+        print(f"  检测到 {len(omni_components)} 个组件")
+    except Exception as e:
+        print(f"  ✗ OmniParser 运行失败: {e}")
+        print("    提示: 请安装 OmniParser 依赖，例如")
+        print("      pip install -r ../../third_party/OmniParser/requirements.txt")
+        return None
 
     # Stage 2: VLM 语义过滤（合并弹窗子元素）
     if not skip_vlm and api_key:
         print(f"  [Stage 2] VLM 语义过滤...")
-        from .omni_vlm_fusion import omni_vlm_fusion
+        omni_vlm_fusion = _import_omni_vlm_fusion()
         fusion_result = omni_vlm_fusion(
             image_path=image_path,
             api_key=api_key,

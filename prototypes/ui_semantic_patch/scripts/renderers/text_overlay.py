@@ -22,7 +22,7 @@ import requests
 import base64
 from typing import Dict, List, Tuple, Optional, Any
 from pathlib import Path
-from PIL import Image, ImageDraw, ImageFont, ImageFilter
+from PIL import Image, ImageDraw, ImageFont, ImageFilter, ImageEnhance
 from dataclasses import dataclass, field, asdict
 from datetime import datetime
 
@@ -186,27 +186,36 @@ MODIFY_TEXT_AI_PLAN_PROMPT = """你是一个App UI编辑专家。给定一张App
 [
   {{
     "target_component": 8,
+    "related_component_ids": [9, 10],
     "edit_description": "将该车次卡片中的票量信息全部改为无票状态",
     "text_changes": [
       {{"from": "售磬", "to": "无票"}},
       {{"from": "有票", "to": "无票"}},
       {{"from": "3张", "to": "无票"}},
       {{"from": "8张", "to": "无票"}}
+    ],
+    "button_changes": [
+      {{"from": "预订", "to": "预订", "state": "disabled_gray"}},
+      {{"from": "候补", "to": "候补", "state": "disabled_gray"}}
     ]
   }}
 ]
 ```
 
 ## 字段说明
-- `target_component`: UI-JSON 中目标组件的 index（优先选择卡片级/容器级组件，如 class 为 Card、Container 等）
+- `target_component`: UI-JSON 中目标主组件 index（优先选择车次主卡片）
+- `related_component_ids`: 与同一车次强相关的附属组件 index 列表（如席位列表、预订按钮区），可选
 - `edit_description`: 自然语言描述该区域需要做的修改（用于生成图像编辑指令）
 - `text_changes`: 具体的文字替换列表，from=原文字（与截图中实际显示的完全一致），to=替换后的文字
+- `button_changes`: 需要联动修改的按钮（可选）。当用户要求“无票且按钮灰色/禁用”时必须提供；state 统一用 `disabled_gray`
 
 ## 注意事项
 1. 优先选择卡片级组件（class 为 Card、Container 等大区域），将同一卡片内的多处修改合并为一个操作
 2. text_changes.from 要与截图中实际显示的文字完全一致
 3. 如果有多个相似的卡片都需要修改，每个卡片分别输出一个操作
-4. 只返回JSON数组，不要说明文字"""
+4. 当指令提到“按钮灰色/按钮禁用/不可点击”时，必须输出 button_changes
+5. 若目标信息跨多个组件（常见于票务页面：主卡片 + 席位列表 + 预订按钮），必须在 related_component_ids 中列出这些组件
+5. 只返回JSON数组，不要说明文字"""
 
 
 # ==================== 渲染器主类 ====================
@@ -226,6 +235,8 @@ class TextOverlayRenderer(BaseRenderer):
         self.vlm_model = vlm_model
         self.fonts_dir = fonts_dir
         self._font_cache = {}
+        self._debug_crop_root: Optional[Path] = None
+        self._debug_crop_counter: int = 0
 
     # ==================== 1. VLM 编辑规划 ====================
 
@@ -252,8 +263,34 @@ class TextOverlayRenderer(BaseRenderer):
 
         # ---- modify_text_ai: 纯 AI 图像编辑模式 ----
         if mode == 'modify_text_ai':
+            instruction_lower = instruction.lower()
+            need_disable_button = (
+                ('按钮' in instruction and ('灰' in instruction or '禁用' in instruction or '不可点击' in instruction))
+                or ('button' in instruction_lower and ('gray' in instruction_lower or 'grey' in instruction_lower or 'disable' in instruction_lower))
+            )
             ai_plan = self._plan_modify_text_ai_edits(screenshot_path, ui_json, instruction)
             if ai_plan is not None:
+                # 对“无票 + 按钮灰色禁用”场景优先走 OCR 精定位 + PIL，
+                # 避免 AI 区域编辑把整块内容误去色。
+                if need_disable_button or any(op.style_hint.get('need_disable_button') for op in ai_plan):
+                    ocr_plan = self._refine_ops_with_ocr(
+                        ai_plan,
+                        screenshot_path,
+                        include_button_changes=True
+                    )
+                    if ocr_plan:
+                        print("  ✓ modify_text_ai 已切换为 OCR 精定位灰化策略")
+                        return ocr_plan
+                    # OCR 没命中时，禁止回落到大区域 AI 编辑（会导致整体变灰）
+                    if self._is_seat_specific_instruction(instruction):
+                        print("  ⚠ OCR 精定位未命中，且为席位定向指令；为避免误改行，本次不执行降级编辑")
+                        return []
+                    print("  ⚠ OCR 精定位未命中，回退到像素级 VLM 规划（禁用大区域AI编辑）")
+                    modify_plan = self._plan_modify_text_edits(screenshot_path, instruction)
+                    if modify_plan is not None:
+                        return modify_plan
+                    print("  ⚠ 像素级规划也失败，返回空编辑以避免误改整块区域")
+                    return []
                 return ai_plan
             print("  ⚠ AI 规划失败，回退到像素级 VLM 规划")
             modify_plan = self._plan_modify_text_edits(screenshot_path, instruction)
@@ -567,34 +604,64 @@ class TextOverlayRenderer(BaseRenderer):
         _color_kws = ['灰色', '红色', '绿色', '蓝色', '黑色', '白色', '橙色', '黄色',
                       'gray', 'grey', 'red', 'green', 'blue', 'black', 'white']
         color_requirement = next((kw for kw in _color_kws if kw in instruction), None)
+        instruction_lower = instruction.lower()
+        need_disable_button = (
+            ('按钮' in instruction and ('灰' in instruction or '禁用' in instruction or '不可点击' in instruction))
+            or ('button' in instruction_lower and ('gray' in instruction_lower or 'grey' in instruction_lower or 'disable' in instruction_lower))
+        )
 
         # 将 VLM 规划转换为 EditOp（使用组件 bounds 作为 region）
         edit_ops: List[EditOp] = []
+        comp_by_index = {c.get('index'): c for c in components}
         for item in plan_data:
             target_idx = item.get('target_component')
+            related_ids_raw = item.get('related_component_ids', [])
             edit_desc = item.get('edit_description', '')
             text_changes = item.get('text_changes', [])
+            button_changes = item.get('button_changes', [])
 
             if target_idx is None or not text_changes:
                 continue
 
             # 查找目标组件
-            target_comp = None
-            for c in components:
-                if c.get('index') == target_idx:
-                    target_comp = c
-                    break
+            target_comp = comp_by_index.get(target_idx)
 
             if not target_comp:
                 print(f"    ⚠ 目标组件 {target_idx} 未找到，跳过")
                 continue
 
-            bounds = target_comp.get('bounds', {})
+            # 解析并集组件：target + related_component_ids
+            related_ids: List[int] = []
+            if isinstance(related_ids_raw, list):
+                for rid in related_ids_raw:
+                    try:
+                        rid_int = int(rid)
+                    except (TypeError, ValueError):
+                        continue
+                    if rid_int != target_idx and rid_int in comp_by_index:
+                        related_ids.append(rid_int)
+
+            region_components = [target_comp] + [comp_by_index[rid] for rid in related_ids]
+            xs = []
+            ys = []
+            x2s = []
+            y2s = []
+            for c in region_components:
+                b = c.get('bounds', {})
+                x = int(b.get('x', 0))
+                y = int(b.get('y', 0))
+                w = int(b.get('width', 100))
+                h = int(b.get('height', 100))
+                xs.append(x)
+                ys.append(y)
+                x2s.append(x + w)
+                y2s.append(y + h)
+
             region = {
-                'x': bounds.get('x', 0),
-                'y': bounds.get('y', 0),
-                'width': bounds.get('width', 100),
-                'height': bounds.get('height', 100),
+                'x': min(xs) if xs else 0,
+                'y': min(ys) if ys else 0,
+                'width': (max(x2s) - min(xs)) if xs else 100,
+                'height': (max(y2s) - min(ys)) if ys else 100,
             }
 
             # 构建编辑描述作为 content
@@ -611,9 +678,12 @@ class TextOverlayRenderer(BaseRenderer):
                 style_hint={
                     'use_ai_edit': True,
                     'text_changes': text_changes,
+                    'button_changes': button_changes,
                     'edit_description': edit_desc,
+                    'related_component_ids': related_ids,
                     'color_requirement': color_requirement,   # 直接从原始指令提取，不依赖VLM
                     'original_instruction': instruction,       # 保留原始指令供执行阶段使用
+                    'need_disable_button': need_disable_button,
                 },
                 reference_component=target_idx,
             )
@@ -627,7 +697,9 @@ class TextOverlayRenderer(BaseRenderer):
         for i, op in enumerate(edit_ops):
             r = op.region
             n_changes = len(op.style_hint.get('text_changes', []))
-            print(f"    [{i}] 组件{op.target_component} ({r['width']}x{r['height']}) {n_changes}处文字修改")
+            n_btn_changes = len(op.style_hint.get('button_changes', []))
+            related_cnt = len(op.style_hint.get('related_component_ids', []))
+            print(f"    [{i}] 组件{op.target_component}+{related_cnt}关联组件 ({r['width']}x{r['height']}) {n_changes}处文字修改, {n_btn_changes}处按钮联动")
 
         return edit_ops
 
@@ -667,10 +739,135 @@ class TextOverlayRenderer(BaseRenderer):
             return True
         return False
 
+    @staticmethod
+    def _looks_like_ticket_status(text: str) -> bool:
+        """是否像票量状态文本（如 有票/无票/16张/售罄）"""
+        t = (text or '').strip()
+        if not t:
+            return False
+        if t in ('有票', '无票', '售磬', '售罄'):
+            return True
+        if re.fullmatch(r'\d+\s*张', t):
+            return True
+        if re.fullmatch(r'\d+', t):
+            return True
+        return False
+
+    @staticmethod
+    def _extract_target_seat_keyword(instruction: str) -> Optional[str]:
+        """从指令中提取目标席位关键词（优先长词）。"""
+        text = instruction or ''
+        seat_keywords = ['高级软卧', '商务座', '硬卧', '软卧', '硬座', '无座', '二等', '一等']
+        return next((kw for kw in seat_keywords if kw in text), None)
+
+    def _find_row_anchor_y(self, ocr_items: List[dict], instruction: str) -> Optional[float]:
+        """
+        根据指令中的席位关键词（如硬卧/软卧）在 OCR 结果中找行锚点 y，
+        用于“状态文本”兜底匹配时对齐同一行。
+        """
+        target_kw = self._extract_target_seat_keyword(instruction)
+        if not target_kw:
+            return None
+
+        def _kw_centers(kw: str) -> List[float]:
+            ys = []
+            for item in ocr_items:
+                txt = (item.get('text') or '').strip()
+                if kw in txt:
+                    b = item.get('bbox', {})
+                    ys.append(b.get('y', 0) + b.get('height', 0) / 2)
+            return ys
+
+        # 1) 精确命中
+        exact = _kw_centers(target_kw)
+        if exact:
+            exact.sort()
+            return exact[len(exact) // 2]
+
+        # 2) 硬卧缺失时用“硬座-软卧”两行推断中间行
+        if target_kw == '硬卧':
+            upper = _kw_centers('硬座')
+            lower = _kw_centers('软卧')
+            if upper and lower:
+                uy = sorted(upper)[len(upper) // 2]
+                ly = sorted(lower)[len(lower) // 2]
+                return (uy + ly) / 2.0
+
+        # 其它情况不盲猜，避免改错行
+        return None
+
+    def _save_debug_component_artifacts(
+        self,
+        screenshot: Image.Image,
+        card_box_abs: Tuple[int, int, int, int],
+        crop_image: Image.Image,
+        ocr_items: List[dict],
+        op: EditOp,
+    ) -> Optional[Path]:
+        """保存中间组件裁剪图与 OCR 结果，便于定位问题。"""
+        if self._debug_crop_root is None:
+            return None
+        try:
+            self._debug_crop_counter += 1
+            comp_id = op.target_component if op.target_component is not None else "na"
+            op_dir = self._debug_crop_root / f"op_{self._debug_crop_counter:02d}_comp_{comp_id}"
+            op_dir.mkdir(parents=True, exist_ok=True)
+
+            # 1) 卡片裁剪图
+            crop_path = op_dir / "card_crop.png"
+            crop_image.save(crop_path)
+
+            # 2) OCR 可视化（在裁剪图上画框）
+            ocr_vis = crop_image.convert('RGBA').copy()
+            draw = ImageDraw.Draw(ocr_vis)
+            for i, item in enumerate(ocr_items):
+                b = item.get('bbox', {})
+                x, y = b.get('x', 0), b.get('y', 0)
+                w, h = b.get('width', 1), b.get('height', 1)
+                draw.rectangle([(x, y), (x + w, y + h)], outline=(255, 80, 80, 255), width=2)
+                label = f"{i}:{(item.get('text') or '')[:10]}"
+                draw.text((x + 1, max(0, y - 14)), label, fill=(255, 80, 80, 255))
+            ocr_vis.save(op_dir / "card_crop_ocr_boxes.png")
+
+            # 3) OCR 原始结构 + 指令上下文
+            x1, y1, x2, y2 = card_box_abs
+            payload = {
+                "target_component": op.target_component,
+                "instruction": op.style_hint.get('original_instruction', ''),
+                "card_box_abs": {"x1": x1, "y1": y1, "x2": x2, "y2": y2},
+                "ocr_items": ocr_items,
+            }
+            (op_dir / "ocr_items.json").write_text(
+                json.dumps(payload, ensure_ascii=False, indent=2),
+                encoding='utf-8'
+            )
+            return op_dir
+        except Exception as exc:
+            print(f"    ⚠ 保存调试裁剪失败: {exc}")
+            return None
+
+    @staticmethod
+    def _is_seat_specific_instruction(instruction: str) -> bool:
+        text = instruction or ''
+        return any(kw in text for kw in ['硬卧', '软卧', '硬座', '无座', '二等', '一等', '商务座', '高级软卧'])
+
+    @staticmethod
+    def _is_status_like_change(from_text: str, to_text: str) -> bool:
+        f = (from_text or '').strip()
+        t = (to_text or '').strip()
+        if f in ('有票', '无票', '售磬', '售罄') or t in ('有票', '无票', '售磬', '售罄'):
+            return True
+        if re.fullmatch(r'\d+\s*张', f) or re.fullmatch(r'\d+\s*张', t):
+            return True
+        if re.fullmatch(r'\d+', f) or re.fullmatch(r'\d+', t):
+            return True
+        return False
+
     def _refine_ops_with_ocr(
         self,
         card_ops: List[EditOp],
-        screenshot_path: str
+        screenshot_path: str,
+        include_button_changes: bool = False
     ) -> List[EditOp]:
         """
         用 PaddleOCR 将卡片级 EditOps 拆解为文字级 EditOps。
@@ -702,6 +899,7 @@ class TextOverlayRenderer(BaseRenderer):
                 continue
 
             text_changes = op.style_hint.get('text_changes', [])
+            button_changes = op.style_hint.get('button_changes', []) if include_button_changes else []
             if not text_changes:
                 refined_ops.append(op)
                 continue
@@ -757,70 +955,286 @@ class TextOverlayRenderer(BaseRenderer):
                 })
 
             print(f"    [OCR] 检测到 {len(ocr_items)} 个文字区域")
+            debug_dir = self._save_debug_component_artifacts(
+                screenshot=screenshot,
+                card_box_abs=(cx1, cy1, cx2, cy2),
+                crop_image=crop,
+                ocr_items=ocr_items,
+                op=op,
+            )
+            avg_text_h = max(1.0, sum(item['bbox']['height'] for item in ocr_items) / max(1, len(ocr_items)))
+            row_tolerance = max(22.0, avg_text_h * 1.25)
 
             # 匹配 text_changes 与 OCR 结果
             matched_ops: List[EditOp] = []
+            button_ops: List[EditOp] = []
             unmatched_changes: List[dict] = []
             used_ocr_indices: set = set()
+            original_instruction = str(op.style_hint.get('original_instruction', ''))
+            prefer_right = ('右侧' in original_instruction) or ('第三列' in original_instruction)
+            row_anchor_y = self._find_row_anchor_y(ocr_items, original_instruction)
+            seat_specific = self._is_seat_specific_instruction(original_instruction)
+            status_target_y: Optional[float] = row_anchor_y
 
             for tc in text_changes:
                 from_text = tc['from'].strip()
                 found = False
 
+                exact_candidates = []
                 for idx, ocr_item in enumerate(ocr_items):
                     if idx in used_ocr_indices:
                         continue
-                    if self._text_match(from_text, ocr_item['text']):
+                    if not self._text_match(from_text, ocr_item['text']):
+                        continue
+                    bb = ocr_item['bbox']
+                    cx = bb.get('x', 0) + bb.get('width', 0) / 2
+                    cy = bb.get('y', 0) + bb.get('height', 0) / 2
+                    anchor_y = status_target_y if status_target_y is not None else row_anchor_y
+                    row_penalty = abs(cy - anchor_y) if anchor_y is not None else 0.0
+                    if anchor_y is not None and row_penalty > row_tolerance and self._looks_like_ticket_status(from_text):
+                        # 指令中已有席位行锚点时，票量状态词必须落在同一行附近，避免误改软卧/硬卧另一行
+                        continue
+                    if anchor_y is None and seat_specific and self._looks_like_ticket_status(from_text):
+                        # 席位明确但锚点缺失时，不允许全局匹配票量状态，避免误改到其它行
+                        continue
+                    right_bonus = (-cx * 0.02) if prefer_right else 0.0
+                    exact_candidates.append((row_penalty + right_bonus, idx, ocr_item))
+
+                if exact_candidates:
+                    exact_candidates.sort(key=lambda x: x[0])
+                    _, idx, ocr_item = exact_candidates[0]
+                    used_ocr_indices.add(idx)
+                    bbox = ocr_item['bbox']
+                    # 转为绝对坐标（加上卡片偏移量）
+                    abs_bbox = {
+                        'x': cx1 + bbox['x'],
+                        'y': cy1 + bbox['y'],
+                        'width': bbox['width'],
+                        'height': bbox['height'],
+                    }
+                    # 从 OCR bbox 高度估算字号
+                    est_font_size = max(12, int(bbox['height'] * 0.75))
+                    color_req = str(op.style_hint.get('color_requirement', '')).lower()
+                    force_gray = bool(op.style_hint.get('need_disable_button')) or ('灰' in color_req or 'gray' in color_req or 'grey' in color_req)
+
+                    text_op = EditOp(
+                        action='modify_text',
+                        region=abs_bbox,
+                        content=tc['to'],
+                        target_component=op.target_component,
+                        style_hint={
+                            'use_ai_edit': False,
+                            'font_size': est_font_size,
+                            'color_type': 'sampled',
+                            **({'font_color': '#9A9A9A'} if force_gray else {}),
+                        },
+                        reference_component=op.reference_component,
+                    )
+                    matched_ops.append(text_op)
+                    # status_target_y 统一使用“裁剪局部坐标系”，用于后续按钮同一行匹配
+                    status_target_y = bbox['y'] + bbox['height'] / 2
+                    found = True
+                    print(f"      ✓ OCR匹配: \"{from_text}\"→\"{tc['to']}\" "
+                          f"@ ({abs_bbox['x']},{abs_bbox['y']}) "
+                          f"{abs_bbox['width']}x{abs_bbox['height']} "
+                          f"conf={ocr_item['conf']:.2f}")
+                    if debug_dir is not None:
+                        try:
+                            screenshot.crop((
+                                abs_bbox['x'],
+                                abs_bbox['y'],
+                                abs_bbox['x'] + abs_bbox['width'],
+                                abs_bbox['y'] + abs_bbox['height'],
+                            )).save(debug_dir / f"text_match_{idx:02d}.png")
+                        except Exception:
+                            pass
+
+                if not found:
+                    # 兜底：目标是“无票/有票/售罄”等状态词时，允许从票量状态样式中推断目标区域
+                    to_text = str(tc.get('to', '')).strip()
+                    if self._is_status_like_change(from_text, to_text) and seat_specific and status_target_y is None:
+                        unmatched_changes.append(tc)
+                        print(f"      ⓘ 跳过状态修改（席位锚点缺失，避免误改行）: \"{from_text}\"→\"{to_text}\"")
+                        continue
+                    if to_text in ('无票', '有票', '售磬', '售罄'):
+                        candidates = []
+                        for idx, ocr_item in enumerate(ocr_items):
+                            if idx in used_ocr_indices:
+                                continue
+                            if not self._looks_like_ticket_status(ocr_item.get('text', '')):
+                                continue
+                            bb = ocr_item.get('bbox', {})
+                            cx = bb.get('x', 0) + bb.get('width', 0) / 2
+                            cy = bb.get('y', 0) + bb.get('height', 0) / 2
+                            # 打分：优先同一行；当指令明确“右侧/第三列”时偏好更右
+                            anchor_y = status_target_y if status_target_y is not None else row_anchor_y
+                            row_penalty = abs(cy - anchor_y) if anchor_y is not None else 0
+                            if anchor_y is not None and row_penalty > row_tolerance:
+                                continue
+                            right_bonus = (-cx * 0.02) if prefer_right else 0
+                            score = row_penalty + right_bonus
+                            candidates.append((score, idx, ocr_item))
+
+                        if candidates:
+                            candidates.sort(key=lambda x: x[0])
+                            _, idx, ocr_item = candidates[0]
+                            used_ocr_indices.add(idx)
+                            bbox = ocr_item['bbox']
+                            abs_bbox = {
+                                'x': cx1 + bbox['x'],
+                                'y': cy1 + bbox['y'],
+                                'width': bbox['width'],
+                                'height': bbox['height'],
+                            }
+                            est_font_size = max(12, int(bbox['height'] * 0.75))
+                            color_req = str(op.style_hint.get('color_requirement', '')).lower()
+                            force_gray = bool(op.style_hint.get('need_disable_button')) or ('灰' in color_req or 'gray' in color_req or 'grey' in color_req)
+                            text_op = EditOp(
+                                action='modify_text',
+                                region=abs_bbox,
+                                content=to_text,
+                                target_component=op.target_component,
+                                style_hint={
+                                    'use_ai_edit': False,
+                                    'font_size': est_font_size,
+                                    'color_type': 'sampled',
+                                    **({'font_color': '#9A9A9A'} if force_gray else {}),
+                                },
+                                reference_component=op.reference_component,
+                            )
+                            matched_ops.append(text_op)
+                            # status_target_y 统一使用“裁剪局部坐标系”，用于后续按钮同一行匹配
+                            status_target_y = bbox['y'] + bbox['height'] / 2
+                            found = True
+                            print(f"      ✓ OCR兜底匹配: \"{from_text}\"→\"{to_text}\" "
+                                  f"(from OCR \"{ocr_item.get('text', '')}\") "
+                                  f"@ ({abs_bbox['x']},{abs_bbox['y']}) "
+                                  f"{abs_bbox['width']}x{abs_bbox['height']}")
+                            if debug_dir is not None:
+                                try:
+                                    screenshot.crop((
+                                        abs_bbox['x'],
+                                        abs_bbox['y'],
+                                        abs_bbox['x'] + abs_bbox['width'],
+                                        abs_bbox['y'] + abs_bbox['height'],
+                                    )).save(debug_dir / f"text_fallback_{idx:02d}.png")
+                                except Exception:
+                                    pass
+
+                    if not found:
+                        unmatched_changes.append(tc)
+
+            # 可选：按钮灰化联动（只在 include_button_changes=True 时启用）
+            if button_changes:
+                matched_btn = 0
+                for bc in button_changes:
+                    from_btn = str(bc.get('from', '')).strip()
+                    to_btn = str(bc.get('to', from_btn)).strip() or from_btn
+                    if not from_btn:
+                        continue
+                    found_btn = False
+                    btn_candidates = []
+                    for idx, ocr_item in enumerate(ocr_items):
+                        if idx in used_ocr_indices:
+                            continue
+                        if not self._text_match(from_btn, ocr_item['text']):
+                            continue
+                        bb = ocr_item['bbox']
+                        cx = bb.get('x', 0) + bb.get('width', 0) / 2
+                        cy = bb.get('y', 0) + bb.get('height', 0) / 2
+                        target_y = status_target_y if status_target_y is not None else row_anchor_y
+                        if seat_specific and target_y is None:
+                            continue
+                        row_penalty = abs(cy - target_y) if target_y is not None else 0.0
+                        if target_y is not None and row_penalty > row_tolerance:
+                            continue
+                        right_bonus = (-cx * 0.03) if prefer_right else 0.0
+                        btn_candidates.append((row_penalty + right_bonus, idx, ocr_item))
+
+                    for _, idx, ocr_item in sorted(btn_candidates, key=lambda x: x[0]):
                         used_ocr_indices.add(idx)
                         bbox = ocr_item['bbox']
 
-                        # 转为绝对坐标（加上卡片偏移量）
-                        abs_bbox = {
-                            'x': cx1 + bbox['x'],
-                            'y': cy1 + bbox['y'],
-                            'width': bbox['width'],
-                            'height': bbox['height'],
-                        }
-                        # 从 OCR bbox 高度估算字号
-                        est_font_size = max(12, int(bbox['height'] * 0.75))
+                        # 基于按钮文字框外扩估算按钮整体范围
+                        # 旧策略在中文短词（如“预订”）上容易偏窄，导致灰化未完整覆盖按钮底色。
+                        raw_x = cx1 + bbox['x']
+                        raw_y = cy1 + bbox['y']
+                        raw_w = bbox['width']
+                        raw_h = bbox['height']
 
-                        text_op = EditOp(
+                        card_w = max(1, cx2 - cx1)
+                        btn_text = to_btn or from_btn
+                        char_cnt = max(1, len(btn_text))
+
+                        # 宽高估算：提升最小宽度 + 增大文字外扩倍数，确保覆盖按钮底色。
+                        min_btn_w = max(72, int(char_cnt * 26))
+                        max_btn_w = max(110, int(card_w * 0.36))
+                        btn_w = max(min_btn_w, raw_w + 30, int(raw_w * 3.2))
+                        btn_w = min(btn_w, max_btn_w)
+
+                        btn_h = max(34, raw_h + 14, int(raw_h * 2.2))
+
+                        # 优先水平居中覆盖文字；若文字明显在卡片右侧，改为右锚点贴齐右边距。
+                        bx = raw_x - (btn_w - raw_w) // 2
+                        right_area = raw_x >= cx1 + int(card_w * 0.56)
+                        if right_area:
+                            right_margin = max(8, int(card_w * 0.02))
+                            bx = cx2 - right_margin - btn_w
+
+                        by = raw_y - (btn_h - raw_h) // 2
+                        bx = max(cx1, bx)
+                        by = max(cy1, by)
+                        btn_w = min(btn_w, cx2 - bx)
+                        btn_h = min(btn_h, cy2 - by)
+                        if btn_w <= 0 or btn_h <= 0:
+                            break
+
+                        btn_op = EditOp(
                             action='modify_text',
-                            region=abs_bbox,
-                            content=tc['to'],
+                            region={'x': bx, 'y': by, 'width': btn_w, 'height': btn_h},
+                            content=to_btn,
                             target_component=op.target_component,
                             style_hint={
                                 'use_ai_edit': False,
-                                'font_size': est_font_size,
-                                'color_type': 'sampled',
+                                'button_disable_gray': True,
+                                'font_size': max(12, int(raw_h * 0.85)),
+                                'font_color': '#F2F2F2',
                             },
                             reference_component=op.reference_component,
                         )
-                        matched_ops.append(text_op)
-                        found = True
-                        print(f"      ✓ OCR匹配: \"{from_text}\"→\"{tc['to']}\" "
-                              f"@ ({abs_bbox['x']},{abs_bbox['y']}) "
-                              f"{abs_bbox['width']}x{abs_bbox['height']} "
-                              f"conf={ocr_item['conf']:.2f}")
+                        button_ops.append(btn_op)
+                        matched_btn += 1
+                        found_btn = True
+                        print(f"      ✓ 按钮灰化匹配: \"{from_btn}\" @ ({bx},{by}) {btn_w}x{btn_h}")
+                        if debug_dir is not None:
+                            try:
+                                screenshot.crop((bx, by, bx + btn_w, by + btn_h)).save(
+                                    debug_dir / f"button_match_{idx:02d}.png"
+                                )
+                            except Exception:
+                                pass
                         break
+                    if not found_btn:
+                        print(f"      ⓘ 按钮未匹配，跳过: \"{from_btn}\"")
+                if matched_btn:
+                    print(f"    ✓ 按钮联动灰化: {matched_btn}/{len(button_changes)}")
 
-                if not found:
-                    unmatched_changes.append(tc)
-
-            # 全部未匹配 → VLM 规划可能有误（目标文字不存在于该组件），跳过整个操作
-            if not matched_ops:
-                print(f"    ✗ OCR 0/{len(text_changes)} 匹配，判定为 VLM 误规划，跳过组件{op.target_component}: "
-                      f"{[tc['from'] for tc in text_changes]}")
+            # 汇总本组件 OCR 精化结果：允许“仅按钮成功”或“仅文本成功”
+            total_ok = len(matched_ops) + len(button_ops)
+            if total_ok == 0:
+                print(f"    ✗ OCR 未匹配到可执行操作，跳过组件{op.target_component}: "
+                      f"text={ [tc.get('from') for tc in text_changes] }, "
+                      f"button={ [bc.get('from') for bc in button_changes] }")
                 continue
 
-            # 添加 OCR 精定位成功的操作 (PIL 模式)
-            refined_ops.extend(matched_ops)
-            print(f"    ✓ OCR 精定位: {len(matched_ops)}/{len(text_changes)} 个文字匹配成功 → PIL 渲染")
-
-            # 部分未匹配 → 仅记录跳过（OCR 模式下不降级到 AI）
+            if matched_ops:
+                print(f"    ✓ OCR 文字精定位: {len(matched_ops)}/{len(text_changes)}")
             if unmatched_changes:
-                print(f"    ⓘ {len(unmatched_changes)} 个未匹配，跳过: "
+                print(f"    ⓘ {len(unmatched_changes)} 个文字未匹配: "
                       f"{[tc['from'] for tc in unmatched_changes]}")
+
+            refined_ops.extend(matched_ops)
+            refined_ops.extend(button_ops)
 
         return refined_ops
 
@@ -1523,6 +1937,9 @@ class TextOverlayRenderer(BaseRenderer):
           2. style_hint.color_type == 'sampled' 或缺省 — 从原区域采样文字色
           3. style_hint.color_type == 'accent' — 保留原采样文字色（不强制橙色）
         """
+        if edit_op.style_hint.get('button_disable_gray'):
+            return self._exec_disable_button_pil(image, edit_op)
+
         r = edit_op.region
         x, y, w, h = r['x'], r['y'], r['width'], r['height']
 
@@ -1584,11 +2001,32 @@ class TextOverlayRenderer(BaseRenderer):
             fill=(*text_color, 255)
         )
 
-        # 边缘羽化
-        erased = self._feather_edges(erased, original_region, feather_px=2)
-
         result = image.copy()
         result.paste(erased, (x, y), erased)
+        return result
+
+    def _exec_disable_button_pil(self, image: Image.Image, edit_op: EditOp) -> Image.Image:
+        """
+        将按钮渲染为灰色禁用态。
+
+        纯去饱和方案：对区域整体去色即可。
+        白色/浅灰像素去饱和后不变（等效透明），有色按钮像素变为对应灰度，
+        自然保留圆角、抗锯齿、渐变等细节，无需蒙版。
+        """
+        r = edit_op.region
+        x, y, w, h = r['x'], r['y'], r['width'], r['height']
+        img_w, img_h = image.size
+        x = max(0, min(x, img_w - 1))
+        y = max(0, min(y, img_h - 1))
+        w = min(w, img_w - x)
+        h = min(h, img_h - y)
+        if w <= 0 or h <= 0:
+            return image
+
+        result = image.copy()
+        region = result.crop((x, y, x + w, y + h)).convert('RGB')
+        gray_region = ImageEnhance.Color(region).enhance(0.0)
+        result.paste(gray_region, (x, y))
         return result
 
     def _exec_modify_text_ai(
@@ -1643,6 +2081,7 @@ class TextOverlayRenderer(BaseRenderer):
 
             # 构建编辑 prompt
             text_changes = edit_op.style_hint.get('text_changes', [])
+            button_changes = edit_op.style_hint.get('button_changes', [])
             edit_desc = edit_op.style_hint.get('edit_description', edit_op.content)
 
             # 颜色要求：优先读取规划阶段直接从原始指令中提取的颜色词
@@ -1656,6 +2095,7 @@ class TextOverlayRenderer(BaseRenderer):
                 color_requirement = next((kw for kw in _color_kws if kw in _check), None)
 
             has_color_override = bool(color_requirement)
+            need_disable_button = bool(edit_op.style_hint.get('need_disable_button'))
 
             prompt_lines = [
                 "请对这张App截图区域进行精确的文字修改。",
@@ -1667,12 +2107,26 @@ class TextOverlayRenderer(BaseRenderer):
                 fr = tc.get('from', '')
                 to = tc.get('to', '')
                 prompt_lines.append(f'- 找到文字"{fr}"，将其替换为"{to}"')
+            if button_changes:
+                prompt_lines.append("- 按钮联动修改：")
+                for bc in button_changes:
+                    b_from = bc.get('from', '')
+                    b_to = bc.get('to', b_from)
+                    b_state = bc.get('state', 'disabled_gray')
+                    prompt_lines.append(f'  - 按钮"{b_from}"改为"{b_to}"，状态设为"{b_state}"（灰色禁用态）')
 
             prompt_lines.extend([
                 "",
                 "严格要求：",
                 "- 仅修改上述指定的文字内容，其他所有元素（背景、布局、图标、边框）保持完全不变",
             ])
+            if need_disable_button:
+                prompt_lines.append(
+                    "- 与“无票/售罄”对应的操作按钮必须同步改成灰色禁用态（灰色按钮底 + 灰色或白灰按钮字），视觉上明确不可点击"
+                )
+                prompt_lines.append(
+                    "- 若同一行原本为蓝色“预订”或橙色“候补”按钮，需改为统一灰色禁用风格，不要保留高亮色"
+                )
 
             if has_color_override:
                 prompt_lines.append(
@@ -2094,6 +2548,10 @@ class TextOverlayRenderer(BaseRenderer):
         edit_plan = kwargs.get('edit_plan')
         mode = kwargs.get('mode', 'default')
         e2e_full_image = kwargs.get('e2e_full_image', False)
+        ts = datetime.now().strftime('%Y%m%d_%H%M%S')
+        self._debug_crop_root = Path(output_dir) / f"debug_component_crops_{ts}"
+        self._debug_crop_counter = 0
+        self._debug_crop_root.mkdir(parents=True, exist_ok=True)
         result_img, executed_ops = self.render_all(
             screenshot_path=screenshot_path,
             ui_json=ui_json,
@@ -2128,6 +2586,7 @@ class TextOverlayRenderer(BaseRenderer):
                 'edit_count': len(executed_ops),
                 'diff_path': str(diff_path),
                 'edit_plan_path': str(plan_path),
+                'debug_component_crops_dir': str(self._debug_crop_root),
             },
         )
 
