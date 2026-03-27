@@ -4,7 +4,7 @@
 
 [![Project Status](https://img.shields.io/badge/status-prototype-blue)]()
 [![Phase](https://img.shields.io/badge/phase-2_prototype-green)]()
-[![Last Updated](https://img.shields.io/badge/updated-2026--03--09-brightgreen)]()
+[![Last Updated](https://img.shields.io/badge/updated-2026--03--26-brightgreen)]()
 
 ---
 
@@ -31,7 +31,10 @@
 | `dialog` | 弹窗覆盖注入 | 优惠券弹窗、广告弹窗、权限请求 |
 | `area_loading` | 区域加载异常 | 列表加载超时、网络错误 |
 | `content_duplicate` | 内容重复/歧义 | 底部浮层重复、信息冗余 |
-| `text_overlay` | 局部文字覆盖 | 价格篡改、文案异常 |
+| `text_overlay` | 局部文字覆盖 | 价格篡改、文案插入 |
+| `modify_text_ai` | AI 图像编辑（组件级） | 席位状态、难 OCR 文案替换 |
+| `modify_text_ocr` / `modify_text` | OCR 定位 + PIL 重绘 | 表格文字、规整 UI 文案 |
+| `modify_text_e2e` | 端到端图像编辑（可跳过检测） | 细粒度文本、检测难覆盖区域 |
 
 此外，**注入决策流水线**（`injection_pipeline.py`）可基于操作序列自动分析注入点并推荐异常类型。
 
@@ -65,7 +68,7 @@ python run_pipeline.py \
 
 ### 3. 探索更多
 
-- 四种异常模式详解 → [ui_semantic_patch README](./prototypes/ui_semantic_patch/README.md)
+- 异常模式与文字编辑系列详解 → [ui_semantic_patch README](./prototypes/ui_semantic_patch/README.md)
 - 脚本命令行参数速查 → [scripts README](./prototypes/ui_semantic_patch/scripts/README.md)
 - 模块架构与接口文档 → [代码手册](./docs/plans/2026-03-06-code-manual.md)
 
@@ -76,7 +79,7 @@ python run_pipeline.py \
 ```
 App_Test_Agent/
 ├── README.md                              # 项目概览（本文件）
-├── CLAUDE.md                              # AI 协作配置
+├── Claude.md                              # AI 协作配置（CLAUDE.md）
 ├── .env.example                           # 环境变量模板
 │
 ├── prototypes/ui_semantic_patch/          # 核心原型框架
@@ -86,7 +89,7 @@ App_Test_Agent/
 │   │   ├── injection_pipeline.py          # 注入决策流水线
 │   │   ├── launch.sh                      # 一键启动
 │   │   ├── analysis/                      # AI 感知层（OmniParser + VLM）
-│   │   ├── renderers/                     # 异常渲染层（4 种模式）
+│   │   ├── renderers/                     # 异常渲染层（dialog 等 + 文字编辑）
 │   │   ├── generators/                    # 元数据生成层
 │   │   ├── injection/                     # 注入决策层
 │   │   ├── utils/                         # 工具库
@@ -131,7 +134,8 @@ App_Test_Agent/
 **Milestone 4: 架构重构与注入决策** (2026-03-09)
 - 完成脚本层重构：拆分为 `analysis/`、`renderers/`、`generators/`、`injection/` 四个子包
 - 实现渲染器统一基类（`renderers/base.py`）
-- 新增 `text_overlay` 文字覆盖异常模式
+- 新增 `text_overlay` 文字覆盖模式；扩展 `modify_text_ai` / `modify_text_ocr` / `modify_text_e2e` 等细粒度文字编辑路径
+- 持续扩充 GT 模板与 bounds；文档示例与根目录 `Claude.md` 对齐（如 `弹窗覆盖原UI/05.jpg` + `modify_text_ai`）
 - 实现异常注入决策模块：操作序列分析 → 异常推荐 → 序列改写
 - 新增 `injection_pipeline.py` 注入决策流水线
 
@@ -174,6 +178,7 @@ App_Test_Agent/
 
 ---
 
-**最后更新**: 2026-03-09
+**最后更新**: 2026-03-26
+**文档同步**: AI 协作、环境与 `run_pipeline` 示例以 [Claude.md](./Claude.md) 为准。
 **项目状态**: Phase 2 进行中
 **里程碑**: Milestone 4 完成

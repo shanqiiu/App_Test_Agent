@@ -670,4 +670,5 @@ class TeacherDataAdapter(DataAdapter):
 ---
 
 **文档版本**: v1.0
-**最后更新**: 2026-03-10
+**最后更新**: 2026-03-26
+**文档同步**: 流水线约定见仓库根目录 [Claude.md](../../../Claude.md)。

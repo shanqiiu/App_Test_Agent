@@ -145,7 +145,7 @@ python -m analysis.visualize \
 python run_pipeline.py \
   --screenshot <截图路径> \
   --instruction <异常指令> \
-  [--anomaly-mode dialog|area_loading|content_duplicate|text_overlay] \
+  [--anomaly-mode dialog|area_loading|content_duplicate|text_overlay|modify_text|modify_text_ai|modify_text_ocr|modify_text_e2e] \
   [--gt-category <GT类别>] [--gt-sample <GT样本>] \
   [--output <输出目录>]
 ```
@@ -188,6 +188,13 @@ python run_pipeline.py \
   --instruction "将z112次车座位信息弹窗卡片第三列的硬卧、软卧车票席位状态改为灰色无票字样" \
   --anomaly-mode modify_text_ai \
   --output ./output/demo
+
+# 5b. modify_text_ai — GT 05.jpg（与仓库根 Claude.md 一致）
+python run_pipeline.py \
+  --screenshot ../data/Agent执行遇到的典型异常UI类型/analysis/gt_templates/弹窗覆盖原UI/05.jpg \
+  --instruction "将z156次车座位信息弹窗卡片的硬卧席位右侧第三列的状态从有票改为灰色无票字样，预订按钮置灰" \
+  --anomaly-mode modify_text_ai \
+  --output ./output/12306无座_modify_text
 
 # 6. modify_text_ocr / modify_text — OCR精定位 + PIL 渲染
 python run_pipeline.py \
@@ -801,4 +808,5 @@ OMNIPARSER_DEVICE=cuda       # OmniParser 设备
 
 ---
 
-**最后更新**: 2026-03-23
+**最后更新**: 2026-03-26
+**文档同步**: 与同仓库 [Claude.md](../../../Claude.md) 中的 `run_pipeline` 示例一致。

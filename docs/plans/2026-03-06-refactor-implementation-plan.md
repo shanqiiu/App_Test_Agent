@@ -444,7 +444,7 @@ Phase 3:  3.1 ──→ 3.2 ┐
 
 ## 六、验收标准
 
-- [ ] 四种异常模式（dialog、area_loading、content_duplicate、text_overlay）通过 `RENDERER_MAP` 统一路由产出正确结果
+- [ ] 基础异常模式及文字编辑子模式（dialog、area_loading、content_duplicate、text_overlay、`modify_text*`）通过 `RENDERER_MAP` / `TextOverlayRenderer` 统一路由产出正确结果
 - [ ] `batch_pipeline.py` dry-run 无 ImportError（接口向后兼容）
 - [ ] `style_transfer.py` 已删除；`SemanticDialogGenerator.extract_gt_style()` 可用
 - [ ] 删除 `index.json` 后 `GTManager.get_template()` 仍能通过目录扫描找到模板
@@ -477,3 +477,7 @@ Phase 3:  3.1 ──→ 3.2 ┐
 *实施计划生成时间：2026-03-06*
 *基于设计文档：`docs/plans/2026-03-06-refactor-design.md`*
 *代码审查版本：commit 5572033*
+
+---
+
+**文档同步**: 2026-03-26 — 流水线路由与异常模式以仓库根目录 [Claude.md](../../Claude.md) 为准。

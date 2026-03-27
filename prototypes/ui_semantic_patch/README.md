@@ -72,6 +72,13 @@ python run_pipeline.py \
   --anomaly-mode modify_text_ai \
   --output ./output/demo
 
+# 5b. modify_text_ai — GT 样本 05.jpg（与仓库根目录 Claude.md 示例一致）
+python run_pipeline.py \
+  --screenshot ../data/Agent执行遇到的典型异常UI类型/analysis/gt_templates/弹窗覆盖原UI/05.jpg \
+  --instruction "将z156次车座位信息弹窗卡片的硬卧席位右侧第三列的状态从有票改为灰色无票字样，预订按钮置灰" \
+  --anomaly-mode modify_text_ai \
+  --output ./output/12306无座_modify_text
+
 # 6. modify_text_ocr / modify_text — OCR精定位 + PIL渲染文字替换
 python run_pipeline.py \
   --screenshot ../data/Agent执行遇到的典型异常UI类型/analysis/gt_templates/弹窗覆盖原UI/12306无票弹窗.jpg \
@@ -321,7 +328,7 @@ ui_semantic_patch/
 - 语义感知弹窗生成、参考图风格学习
 
 ### Phase 2 - 工具链 ✅
-- 四种异常模式（dialog / area_loading / content_duplicate / text_overlay）
+- 基础四种模式（dialog / area_loading / content_duplicate / text_overlay）+ 文字编辑系列（`modify_text*`）
 - GT 模板驱动、批量生成、一键启动
 - 架构重构：analysis / renderers / generators / injection 子包
 - 注入决策流水线（含 Mock 模式）
@@ -372,4 +379,5 @@ ui_semantic_patch/
 
 ---
 
-**最后更新**: 2026-03-23
+**最后更新**: 2026-03-26
+**文档同步**: 简版与详版命令以仓库根目录 [Claude.md](../../Claude.md) 交叉对齐。

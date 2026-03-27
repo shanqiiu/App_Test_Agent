@@ -284,3 +284,7 @@ def omni_vlm_fusion(...) -> dict:
 
 *设计时间：2026-03-06*
 *参考文档：`docs/plans/2026-03-06-code-manual.md`*
+
+---
+
+**文档同步**: 2026-03-26 — 当前流水线能力、`--anomaly-mode`（含 `modify_text*`）与示例命令以仓库根目录 [Claude.md](../../Claude.md) 为准。

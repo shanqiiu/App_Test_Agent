@@ -2,7 +2,7 @@
 
 **项目**：ui_semantic_patch — 异常测试场景自动生成原型
 **路径**：`prototypes/ui_semantic_patch/scripts/`
-**版本**：2026-03-06
+**版本**：2026-03-26（同步 `modify_text*` 与根目录 Claude.md 示例）
 **读者**：技术负责人
 
 ---
@@ -18,7 +18,7 @@
 ```
 用户输入
   ├─ 原始截图 (PNG/JPG)
-  ├─ 异常模式 (dialog / area_loading / content_duplicate / text_overlay)
+  ├─ 异常模式 (dialog / area_loading / content_duplicate / text_overlay / modify_text*)
   ├─ 文本指令 (自然语言描述)
   └─ GT 参考模板 (可选, meta.json + 样本图)
          │
@@ -78,7 +78,7 @@
 |------|------|------|------|
 | `--screenshot` / `-s` | 路径 | ✅ | 原始截图 |
 | `--instruction` / `-i` | 字符串 | ✅ | 自然语言异常描述 |
-| `--anomaly-mode` | 枚举 | ✅ | `dialog` / `area_loading` / `content_duplicate` / `text_overlay` |
+| `--anomaly-mode` | 枚举 | ✅ | `dialog` / `area_loading` / `content_duplicate` / `text_overlay` / `modify_text` / `modify_text_ai` / `modify_text_ocr` / `modify_text_e2e` |
 | `--gt-category` | 字符串 | dialog 模式必需 | GT 类别名，如 `弹窗覆盖原UI` |
 | `--gt-sample` | 字符串 | dialog 模式必需 | GT 样本文件名，如 `弹出广告.jpg` |
 | `--output` / `-o` | 路径 | 否 | 输出目录（默认 `./output`） |
@@ -221,7 +221,7 @@ def omni_vlm_fusion(
 
 ## 4. 第三层：异常渲染层
 
-四个渲染器对应四种 `--anomaly-mode`，均接收「原始截图 + Stage 2 UI-JSON + 指令」作为基础输入，输出合成后的 PNG。
+四个渲染器基类实现对应多种 `--anomaly-mode`（其中 `text_overlay` 与 `modify_text*` 由 `TextOverlayRenderer` 统一路由），均接收「原始截图 + Stage 2 UI-JSON + 指令」（`modify_text_e2e` 可跳过 Stage 1/2）作为输入，输出合成后的 PNG。
 
 ---
 
@@ -699,3 +699,7 @@ python visualize_omni.py \
 
 *文档生成时间：2026-03-06*
 *基于代码版本：commit 813149e*
+
+---
+
+**文档同步**: 2026-03-26 — 能力与命令示例以仓库根目录 [Claude.md](../../Claude.md) 为准（含 `modify_text*` 等模式）。

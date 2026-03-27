@@ -81,6 +81,8 @@ python run_pipeline.py \
   --instruction "在租车服务卡片中插入优惠信息" \
   --anomaly-mode text_overlay \
   --output ./output/demo
+
+python run_pipeline.py --screenshot "../data/Agent执行遇到的典型异常UI类型/analysis/gt_templates/弹窗覆盖原UI/05.jpg" --instruction "将z156次车座位信息弹窗卡片的硬卧席位右侧第三列的状态从有票改为灰色无票字样，预订按钮置灰" --anomaly-mode modify_text_ai --output ./output/12306无座_modify_text
 ```
 
 ### 批量生成
@@ -180,5 +182,6 @@ docs/
 
 ---
 
-**配置版本**: v4.0
-**最后更新**: 2026-03-04
+**配置版本**: v4.1
+**最后更新**: 2026-03-26
+**文档角色**: 仓库内 Markdown 中与流水线、`VLM_API_KEY`、`--anomaly-mode`（含 `modify_text*`）及示例命令一致的权威入口。

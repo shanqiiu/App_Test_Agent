@@ -403,3 +403,7 @@ prototypes/ui_semantic_patch/
 **创建日期**: 2026-03-06
 **基于**: UI-Venus 项目分析 + App_Test_Agent 需求澄清
 **下一步**: 创建实现计划
+
+---
+
+**文档同步**: 2026-03-26 — 环境变量与流水线入口说明以仓库根目录 [Claude.md](../../Claude.md) 为准。

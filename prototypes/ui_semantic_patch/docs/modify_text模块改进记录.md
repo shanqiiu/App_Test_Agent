@@ -246,3 +246,8 @@ Edit Plan JSON 中通过 `style_hint.use_ai_edit` 控制走哪种执行路径：
 | OCR 匹配依赖文字完全可见 | 被遮挡或截断的文字无法匹配 | 使用 `modify_text_ai` 模式 |
 | PaddleOCR 依赖 | 需安装 paddleocr 和 paddlepaddle | 未安装时自动回退到像素级 VLM 规划 |
 | PIL 字体渲染 | 简体中文字体需系统安装或指定 `--fonts-dir` | 确保系统有中文字体 |
+
+---
+
+**最后更新**: 2026-03-26
+**文档同步**: `modify_text*` 用法与示例以仓库根目录 [Claude.md](../../../Claude.md) 为准。

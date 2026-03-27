@@ -110,3 +110,8 @@ SequenceAnalyzer (VLM)
 - **离线回归**：结合 `MockSequenceAnalyzer` + `MockSequenceRewriter` 可以模拟整条流水线，验证 UI 序列改写逻辑而无需任何外部模型依赖。
 
 以上内容即可作为 `injection` 目录的 README，帮助快速理解并配置异常注入模块。
+
+---
+
+**最后更新**: 2026-03-26
+**文档同步**: 环境与流水线总览以仓库根目录 [Claude.md](../../../../Claude.md) 为准。

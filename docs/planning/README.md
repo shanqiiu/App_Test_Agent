@@ -42,7 +42,7 @@
 
 **Milestone 2: 异常生成MVP** ✅ (2026-02)
 - OmniParser + VLM 三阶段流水线上线
-- 四种异常模式实现（dialog / area_loading / content_duplicate / text_overlay）
+- 基础四种异常模式 + 文字编辑系列（`modify_text_ai` / `modify_text_ocr` / `modify_text_e2e` 等）
 - GT模板库建立（3类，10个样本）
 - meta.json驱动精准生成
 
@@ -100,5 +100,6 @@
 ---
 
 **创建日期**: 2024-12-30
-**最后更新**: 2026-03-04
+**最后更新**: 2026-03-26
+**文档同步**: 开发与运行入口以仓库根目录 [Claude.md](../../Claude.md) 为准。
 **当前阶段**: Phase 2 - 核心开发

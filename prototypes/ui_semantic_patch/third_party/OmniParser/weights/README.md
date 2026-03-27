@@ -31,3 +31,7 @@ This model hub includes a finetuned version of YOLOv8 and a finetuned Florence-2
 
 # License
 Please note that icon_detect model is under AGPL license, and icon_caption is under MIT license. Please refer to the LICENSE file in the folder of each model.
+
+---
+
+**Doc sync (2026-03-26)**: This repo’s pipeline setup, `VLM_API_KEY`, and `run_pipeline` examples are canonical in the root [Claude.md](../../../../../../Claude.md).

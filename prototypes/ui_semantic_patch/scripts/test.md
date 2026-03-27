@@ -15,3 +15,7 @@ python run_pipeline.py --screenshot "../data/原图/app首页类-开屏广告弹
 python run_pipeline.py --screenshot "../data/原图/app首页类-开屏广告弹窗/02.jpg" --instruction "出现提示是否允许携程向你发送通知的弹窗" --gt-category "弹窗覆盖原UI" --gt-sample "携程通知.jpg" --output ./output/开启微信、支付宝提示通知的弹窗 --anomaly-mode dialog
 
 python run_pipeline.py --screenshot "../data/原图/app首页类-开屏广告弹窗/02.jpg" --instruction "携程开屏优惠广告（新人特惠满减）的弹窗" --gt-category "弹窗覆盖原UI" --gt-sample "携程开屏优惠广告.jpg" --output ./output/开启微信、支付宝提示通知的弹窗 --anomaly-mode dialog
+
+---
+**最后更新**: 2026-03-26
+**文档同步**: 示例命令的权威说明见仓库根目录 [Claude.md](../../../Claude.md)。

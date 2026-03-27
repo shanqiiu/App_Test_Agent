@@ -333,3 +333,8 @@ batch_output/
 | loading_timeout | `loading_timeout` | `area_loading` | AreaLoadingRenderer |
 
 batch_pipeline.py 会从 meta.json 的 `category` 字段自动推断 `anomaly_mode`，无需手动指定。
+
+---
+
+**最后更新**: 2026-03-26
+**文档同步**: 流水线模式说明以仓库根目录 [Claude.md](../../../Claude.md) 为准。

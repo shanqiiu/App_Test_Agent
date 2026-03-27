@@ -1,7 +1,7 @@
 # Claude Code Skills 参考手册
 
 > 当前 Claude Code 安装的所有 Skill 汇总说明
-> 最后更新：2026-03-06
+> 最后更新：2026-03-26
 
 ---
 
@@ -236,3 +236,7 @@
 E2E 测试?          → everything-claude-code:e2e
 Docker/部署?       → everything-claude-code:docker-patterns + deployment-patterns
 ```
+
+---
+
+**文档同步**: 2026-03-26 — 本仓库原型运行说明见根目录 [Claude.md](../Claude.md)。
