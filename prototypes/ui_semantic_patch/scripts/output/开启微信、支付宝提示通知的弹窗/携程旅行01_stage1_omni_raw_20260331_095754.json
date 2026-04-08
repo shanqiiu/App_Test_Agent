@@ -1,0 +1,757 @@
+{
+  "metadata": {
+    "source": "携程旅行01.jpg",
+    "extractionMethod": "OmniParser",
+    "models": {
+      "detection": "YOLO (icon_detect)",
+      "ocr": "PaddleOCR",
+      "caption": "Florence2"
+    },
+    "timestamp": "2026-03-31T09:58:41.481253",
+    "resolution": {
+      "width": 1279,
+      "height": 2774
+    }
+  },
+  "components": [
+    {
+      "index": 0,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 9,
+        "y": 22,
+        "width": 432,
+        "height": 139
+      },
+      "text": "14:32 ",
+      "clickable": true,
+      "source": "box_yolo_content_ocr",
+      "contentDesc": "14:32 "
+    },
+    {
+      "index": 1,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 500,
+        "y": 36,
+        "width": 279,
+        "height": 129
+      },
+      "text": "Meitlini",
+      "clickable": true,
+      "source": "box_yolo_content_yolo",
+      "contentDesc": "Meitlini"
+    },
+    {
+      "index": 2,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 1065,
+        "y": 40,
+        "width": 107,
+        "height": 92
+      },
+      "text": "61",
+      "clickable": true,
+      "source": "box_yolo_content_yolo",
+      "contentDesc": "61"
+    },
+    {
+      "index": 3,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 893,
+        "y": 45,
+        "width": 94,
+        "height": 82
+      },
+      "text": "App Store",
+      "clickable": true,
+      "source": "box_yolo_content_yolo",
+      "contentDesc": "App Store"
+    },
+    {
+      "index": 4,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 986,
+        "y": 45,
+        "width": 72,
+        "height": 80
+      },
+      "text": "5G",
+      "clickable": true,
+      "source": "box_yolo_content_yolo",
+      "contentDesc": "5G"
+    },
+    {
+      "index": 5,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 12,
+        "y": 162,
+        "width": 420,
+        "height": 118
+      },
+      "text": "Xiaohongshu (Xia)",
+      "clickable": true,
+      "source": "box_yolo_content_yolo",
+      "contentDesc": "Xiaohongshu (Xia)"
+    },
+    {
+      "index": 6,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 1076,
+        "y": 175,
+        "width": 95,
+        "height": 104
+      },
+      "text": "Partial Right",
+      "clickable": true,
+      "source": "box_yolo_content_yolo",
+      "contentDesc": "Partial Right"
+    },
+    {
+      "index": 7,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 1169,
+        "y": 182,
+        "width": 86,
+        "height": 91
+      },
+      "text": "Asian People People",
+      "clickable": true,
+      "source": "box_yolo_content_yolo",
+      "contentDesc": "Asian People People"
+    },
+    {
+      "index": 8,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 913,
+        "y": 186,
+        "width": 156,
+        "height": 84
+      },
+      "text": "Xiaohongshu (Little Red Book)",
+      "clickable": true,
+      "source": "box_yolo_content_yolo",
+      "contentDesc": "Xiaohongshu (Little Red Book)"
+    },
+    {
+      "index": 9,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 832,
+        "y": 191,
+        "width": 82,
+        "height": 86
+      },
+      "text": "Testimonials",
+      "clickable": true,
+      "source": "box_yolo_content_yolo",
+      "contentDesc": "Testimonials"
+    },
+    {
+      "index": 10,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 14,
+        "y": 322,
+        "width": 263,
+        "height": 218
+      },
+      "text": "A website or application related to e-mails.",
+      "clickable": true,
+      "source": "box_yolo_content_yolo",
+      "contentDesc": "A website or application related to e-mails."
+    },
+    {
+      "index": 11,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 271,
+        "y": 323,
+        "width": 247,
+        "height": 212
+      },
+      "text": "A website or application related to Chinese architecture.",
+      "clickable": true,
+      "source": "box_yolo_content_yolo",
+      "contentDesc": "A website or application related to Chinese architecture."
+    },
+    {
+      "index": 12,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 516,
+        "y": 327,
+        "width": 246,
+        "height": 207
+      },
+      "text": "A website or application related to travel.",
+      "clickable": true,
+      "source": "box_yolo_content_yolo",
+      "contentDesc": "A website or application related to travel."
+    },
+    {
+      "index": 13,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 763,
+        "y": 327,
+        "width": 242,
+        "height": 207
+      },
+      "text": "A mobile phone service.",
+      "clickable": true,
+      "source": "box_yolo_content_yolo",
+      "contentDesc": "A mobile phone service."
+    },
+    {
+      "index": 14,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 1005,
+        "y": 327,
+        "width": 254,
+        "height": 209
+      },
+      "text": "A website or application related to Chinese language.",
+      "clickable": true,
+      "source": "box_yolo_content_yolo",
+      "contentDesc": "A website or application related to Chinese language."
+    },
+    {
+      "index": 15,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 775,
+        "y": 548,
+        "width": 212,
+        "height": 172
+      },
+      "text": "Carrier",
+      "clickable": true,
+      "source": "box_yolo_content_yolo",
+      "contentDesc": "Carrier"
+    },
+    {
+      "index": 16,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 1011,
+        "y": 548,
+        "width": 242,
+        "height": 201
+      },
+      "text": "Paintbrush",
+      "clickable": true,
+      "source": "box_yolo_content_yolo",
+      "contentDesc": "Paintbrush"
+    },
+    {
+      "index": 17,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 23,
+        "y": 549,
+        "width": 248,
+        "height": 193
+      },
+      "text": "Xiaohongshu (Little Red Book)",
+      "clickable": true,
+      "source": "box_yolo_content_yolo",
+      "contentDesc": "Xiaohongshu (Little Red Book)"
+    },
+    {
+      "index": 18,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 276,
+        "y": 550,
+        "width": 234,
+        "height": 195
+      },
+      "text": "Video connector",
+      "clickable": true,
+      "source": "box_yolo_content_yolo",
+      "contentDesc": "Video connector"
+    },
+    {
+      "index": 19,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 510,
+        "y": 553,
+        "width": 252,
+        "height": 169
+      },
+      "text": "Xiaohongshu (K)",
+      "clickable": true,
+      "source": "box_yolo_content_yolo",
+      "contentDesc": "Xiaohongshu (K)"
+    },
+    {
+      "index": 20,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 491,
+        "y": 767,
+        "width": 71,
+        "height": 69
+      },
+      "text": "Security Lock",
+      "clickable": true,
+      "source": "box_yolo_content_yolo",
+      "contentDesc": "Security Lock"
+    },
+    {
+      "index": 21,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 563,
+        "y": 767,
+        "width": 64,
+        "height": 73
+      },
+      "text": "Gold",
+      "clickable": true,
+      "source": "box_yolo_content_yolo",
+      "contentDesc": "Gold"
+    },
+    {
+      "index": 22,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 424,
+        "y": 768,
+        "width": 64,
+        "height": 68
+      },
+      "text": "crown",
+      "clickable": true,
+      "source": "box_yolo_content_yolo",
+      "contentDesc": "crown"
+    },
+    {
+      "index": 23,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 357,
+        "y": 770,
+        "width": 64,
+        "height": 68
+      },
+      "text": "Bus",
+      "clickable": true,
+      "source": "box_yolo_content_yolo",
+      "contentDesc": "Bus"
+    },
+    {
+      "index": 24,
+      "class": "TextView",
+      "bounds": {
+        "x": 637,
+        "y": 785,
+        "width": 276,
+        "height": 40
+      },
+      "text": "+12",
+      "clickable": false,
+      "source": "box_ocr_content_ocr"
+    },
+    {
+      "index": 25,
+      "class": "Avatar",
+      "bounds": {
+        "x": 1047,
+        "y": 906,
+        "width": 196,
+        "height": 159
+      },
+      "text": "A user profile or account.",
+      "clickable": true,
+      "source": "box_yolo_content_yolo",
+      "contentDesc": "A user profile or account."
+    },
+    {
+      "index": 26,
+      "class": "SearchBar",
+      "bounds": {
+        "x": 900,
+        "y": 933,
+        "width": 134,
+        "height": 106
+      },
+      "text": "Search function.",
+      "clickable": true,
+      "source": "box_yolo_content_yolo",
+      "contentDesc": "Search function."
+    },
+    {
+      "index": 27,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 980,
+        "y": 1058,
+        "width": 267,
+        "height": 110
+      },
+      "text": "Asian People People",
+      "clickable": true,
+      "source": "box_yolo_content_yolo",
+      "contentDesc": "Asian People People"
+    },
+    {
+      "index": 28,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 41,
+        "y": 1062,
+        "width": 166,
+        "height": 90
+      },
+      "text": "Junior View",
+      "clickable": true,
+      "source": "box_yolo_content_yolo",
+      "contentDesc": "Junior View"
+    },
+    {
+      "index": 29,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 362,
+        "y": 1066,
+        "width": 148,
+        "height": 79
+      },
+      "text": "Level Construction",
+      "clickable": true,
+      "source": "box_yolo_content_yolo",
+      "contentDesc": "Level Construction"
+    },
+    {
+      "index": 30,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 516,
+        "y": 1070,
+        "width": 142,
+        "height": 79
+      },
+      "text": "Asian People People",
+      "clickable": true,
+      "source": "box_yolo_content_yolo",
+      "contentDesc": "Asian People People"
+    },
+    {
+      "index": 31,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 667,
+        "y": 1071,
+        "width": 144,
+        "height": 71
+      },
+      "text": "Xiaohongshu (Xiao)",
+      "clickable": true,
+      "source": "box_yolo_content_yolo",
+      "contentDesc": "Xiaohongshu (Xiao)"
+    },
+    {
+      "index": 32,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 215,
+        "y": 1073,
+        "width": 130,
+        "height": 74
+      },
+      "text": "Chinese language",
+      "clickable": true,
+      "source": "box_yolo_content_yolo",
+      "contentDesc": "Chinese language"
+    },
+    {
+      "index": 33,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 816,
+        "y": 1074,
+        "width": 161,
+        "height": 68
+      },
+      "text": "Asian People People",
+      "clickable": true,
+      "source": "box_yolo_content_yolo",
+      "contentDesc": "Asian People People"
+    },
+    {
+      "index": 34,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 1012,
+        "y": 1205,
+        "width": 238,
+        "height": 209
+      },
+      "text": "Asian League",
+      "clickable": true,
+      "source": "box_yolo_content_yolo",
+      "contentDesc": "Asian League"
+    },
+    {
+      "index": 35,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 32,
+        "y": 1206,
+        "width": 237,
+        "height": 212
+      },
+      "text": "Competitiveetitiveetitive",
+      "clickable": true,
+      "source": "box_yolo_content_yolo",
+      "contentDesc": "Competitiveetitiveetitive"
+    },
+    {
+      "index": 36,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 768,
+        "y": 1206,
+        "width": 234,
+        "height": 202
+      },
+      "text": "Xiaohongshu (Hongkong)",
+      "clickable": true,
+      "source": "box_yolo_content_yolo",
+      "contentDesc": "Xiaohongshu (Hongkong)"
+    },
+    {
+      "index": 37,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 277,
+        "y": 1207,
+        "width": 234,
+        "height": 204
+      },
+      "text": "World Tour",
+      "clickable": true,
+      "source": "box_yolo_content_yolo",
+      "contentDesc": "World Tour"
+    },
+    {
+      "index": 38,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 520,
+        "y": 1210,
+        "width": 235,
+        "height": 200
+      },
+      "text": "Asian currency",
+      "clickable": true,
+      "source": "box_yolo_content_yolo",
+      "contentDesc": "Asian currency"
+    },
+    {
+      "index": 39,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 636,
+        "y": 1442,
+        "width": 616,
+        "height": 600
+      },
+      "text": "A movie or TV show called The King of Thrones.",
+      "clickable": true,
+      "source": "box_yolo_content_yolo",
+      "contentDesc": "A movie or TV show called The King of Thrones."
+    },
+    {
+      "index": 40,
+      "class": "TextView",
+      "bounds": {
+        "x": 140,
+        "y": 1500,
+        "width": 380,
+        "height": 40
+      },
+      "text": "ONEREPUBLIC",
+      "clickable": false,
+      "source": "box_ocr_content_ocr"
+    },
+    {
+      "index": 41,
+      "class": "TextView",
+      "bounds": {
+        "x": 287,
+        "y": 1880,
+        "width": 97,
+        "height": 32
+      },
+      "text": "04.19",
+      "clickable": false,
+      "source": "box_ocr_content_ocr"
+    },
+    {
+      "index": 42,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 644,
+        "y": 2039,
+        "width": 604,
+        "height": 185
+      },
+      "text": "4 ",
+      "clickable": true,
+      "source": "box_yolo_content_ocr",
+      "contentDesc": "4 "
+    },
+    {
+      "index": 43,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 16,
+        "y": 2131,
+        "width": 200,
+        "height": 188
+      },
+      "text": "Facebook.",
+      "clickable": true,
+      "source": "box_yolo_content_yolo",
+      "contentDesc": "Facebook."
+    },
+    {
+      "index": 44,
+      "class": "TextView",
+      "bounds": {
+        "x": 196,
+        "y": 2153,
+        "width": 307,
+        "height": 40
+      },
+      "text": "201700",
+      "clickable": false,
+      "source": "box_ocr_content_ocr"
+    },
+    {
+      "index": 45,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 641,
+        "y": 2218,
+        "width": 610,
+        "height": 205
+      },
+      "text": "A computer monitor or desktop monitor.",
+      "clickable": true,
+      "source": "box_yolo_content_yolo",
+      "contentDesc": "A computer monitor or desktop monitor."
+    },
+    {
+      "index": 46,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 25,
+        "y": 2252,
+        "width": 613,
+        "height": 281
+      },
+      "text": "World War Z: The World of Wars: The Empire State Building",
+      "clickable": true,
+      "source": "box_yolo_content_yolo",
+      "contentDesc": "World War Z: The World of Wars: The Empire State Building"
+    },
+    {
+      "index": 47,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 761,
+        "y": 2525,
+        "width": 268,
+        "height": 162
+      },
+      "text": "China",
+      "clickable": true,
+      "source": "box_yolo_content_yolo",
+      "contentDesc": "China"
+    },
+    {
+      "index": 48,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 1035,
+        "y": 2525,
+        "width": 219,
+        "height": 172
+      },
+      "text": "Person",
+      "clickable": true,
+      "source": "box_yolo_content_yolo",
+      "contentDesc": "Person"
+    },
+    {
+      "index": 49,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 559,
+        "y": 2527,
+        "width": 151,
+        "height": 153
+      },
+      "text": "Xiaohongshu (Little Red Book)",
+      "clickable": true,
+      "source": "box_yolo_content_yolo",
+      "contentDesc": "Xiaohongshu (Little Red Book)"
+    },
+    {
+      "index": 50,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 26,
+        "y": 2529,
+        "width": 242,
+        "height": 161
+      },
+      "text": "Home",
+      "clickable": true,
+      "source": "box_yolo_content_yolo",
+      "contentDesc": "Home"
+    },
+    {
+      "index": 51,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 446,
+        "y": 2535,
+        "width": 117,
+        "height": 148
+      },
+      "text": "M0,0L0,5 4.5,5z",
+      "clickable": true,
+      "source": "box_yolo_content_yolo",
+      "contentDesc": "M0,0L0,5 4.5,5z"
+    },
+    {
+      "index": 52,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 325,
+        "y": 2541,
+        "width": 125,
+        "height": 138
+      },
+      "text": "Chinese translation",
+      "clickable": true,
+      "source": "box_yolo_content_yolo",
+      "contentDesc": "Chinese translation"
+    }
+  ],
+  "componentCount": 53
+}

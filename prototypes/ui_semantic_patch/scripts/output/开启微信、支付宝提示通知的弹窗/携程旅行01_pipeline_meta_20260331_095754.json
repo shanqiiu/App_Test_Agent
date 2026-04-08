@@ -1,0 +1,103 @@
+{
+  "timestamp": "20260331_095754",
+  "screenshot": "../data/原图/app首页类-开屏广告弹窗/携程旅行01.jpg",
+  "instruction": "开启微信、支付宝提示通知的弹窗",
+  "outputs": {
+    "stage1_omni_raw": "output\\开启微信、支付宝提示通知的弹窗\\携程旅行01_stage1_omni_raw_20260331_095754.json",
+    "stage1_annotated": "output\\开启微信、支付宝提示通知的弹窗\\携程旅行01_stage1_annotated_20260331_095754.png",
+    "stage2_filtered": "output\\开启微信、支付宝提示通知的弹窗\\携程旅行01_stage2_filtered_20260331_095754.json",
+    "stage2_annotated": "output\\开启微信、支付宝提示通知的弹窗\\携程旅行01_stage2_annotated_20260331_095754.png",
+    "final_image": "output\\开启微信、支付宝提示通知的弹窗\\final_20260331_095950.png",
+    "meta_driven": true
+  },
+  "timing": {
+    "stage1": 46.99,
+    "stage2": 30.29,
+    "stage3": 38.42
+  },
+  "stage2_status": "success",
+  "render_metadata": {
+    "gt_category": "弹窗覆盖原UI",
+    "gt_sample": "关闭按钮干扰.jpg",
+    "meta_driven": true,
+    "warnings": [
+      {
+        "type": "position_fallback",
+        "message": "位置回退：未找到关键词对应组件，使用百分比定位 (116, 963)"
+      }
+    ],
+    "render_info": {
+      "dialog_bounds": {
+        "x": 116,
+        "y": 963,
+        "width": 1046,
+        "height": 848
+      },
+      "screen_size": {
+        "width": 1279,
+        "height": 2774
+      },
+      "position_method": "fallback",
+      "dialog_position_type": "center",
+      "ui_components_count": 13,
+      "ui_components_preview": [
+        {
+          "index": 0,
+          "class": "StatusBar",
+          "bounds": {
+            "x": 9,
+            "y": 22,
+            "width": 1163,
+            "height": 143
+          }
+        },
+        {
+          "index": 1,
+          "class": "NavigationBar",
+          "bounds": {
+            "x": 12,
+            "y": 162,
+            "width": 1243,
+            "height": 118
+          }
+        },
+        {
+          "index": 2,
+          "class": "Card",
+          "bounds": {
+            "x": 14,
+            "y": 322,
+            "width": 1245,
+            "height": 218
+          }
+        },
+        {
+          "index": 3,
+          "class": "Card",
+          "bounds": {
+            "x": 23,
+            "y": 548,
+            "width": 1230,
+            "height": 201
+          }
+        },
+        {
+          "index": 4,
+          "class": "TextView",
+          "bounds": {
+            "x": 357,
+            "y": 767,
+            "width": 556,
+            "height": 73
+          }
+        }
+      ]
+    }
+  },
+  "warnings": [
+    {
+      "type": "position_fallback",
+      "message": "位置回退：未找到关键词对应组件，使用百分比定位 (116, 963)"
+    }
+  ]
+}
