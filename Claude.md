@@ -22,10 +22,10 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 cp .env.example .env
 
 # 2. 安装 ui_semantic_patch 核心依赖
-pip install -r prototypes/ui_semantic_patch/requirements.txt
+pip install -r ui_semantic_patch/requirements.txt
 
 # 3. 安装 OmniParser 依赖（需要 GPU/CUDA 推荐）
-pip install -r prototypes/ui_semantic_patch/third_party/OmniParser/requirements.txt
+pip install -r ui_semantic_patch/third_party/OmniParser/requirements.txt
 ```
 
 `.env` 必需变量：
@@ -36,12 +36,12 @@ pip install -r prototypes/ui_semantic_patch/third_party/OmniParser/requirements.
 
 ## 运行原型代码
 
-所有脚本从 `prototypes/ui_semantic_patch/scripts/` 目录执行。
+所有脚本从 `ui_semantic_patch/scripts/` 目录执行。
 
 ### 一键启动（推荐）
 
 ```bash
-cd prototypes/ui_semantic_patch/scripts
+cd ui_semantic_patch/scripts
 bash launch.sh              # 交互式菜单
 bash launch.sh single       # 单图模式（使用脚本内默认配置）
 bash launch.sh batch --run  # 批量模式
@@ -53,7 +53,7 @@ bash launch.sh list         # 列出所有可用异常类别
 #### 1. 异常生成流水线（run_pipeline.py）
 
 ```bash
-cd prototypes/ui_semantic_patch/scripts
+cd ui_semantic_patch/scripts
 
 # 弹窗模式（meta-driven，推荐）
 python run_pipeline.py \
@@ -104,7 +104,7 @@ python run_pipeline.py \
 #### 2. 注入决策流水线（injection_pipeline.py）
 
 ```bash
-cd prototypes/ui_semantic_patch/scripts
+cd ui_semantic_patch/scripts
 
 # 分析操作序列并推荐异常注入点
 python injection_pipeline.py \
@@ -116,7 +116,7 @@ python injection_pipeline.py \
 #### 3. 批量生成（batch_pipeline.py）
 
 ```bash
-cd prototypes/ui_semantic_patch/scripts
+cd ui_semantic_patch/scripts
 python batch_pipeline.py \
   --input-dir ../data/原图/app首页类-开屏广告弹窗 \
   --gt-category "弹窗覆盖原UI" \
@@ -127,7 +127,7 @@ python batch_pipeline.py \
 #### 4. GT 元数据生成（generate_meta.py）
 
 ```bash
-cd prototypes/ui_semantic_patch/scripts
+cd ui_semantic_patch/scripts
 
 # 为 GT 模板目录生成 meta.json
 python generate_meta.py \
@@ -154,7 +154,7 @@ python generate_meta.py \
 ### 2. 目录结构
 
 ```
-prototypes/ui_semantic_patch/
+ui_semantic_patch/
 ├── scripts/                           # 核心脚本层（17,186 行）
 │   ├── 主控层
 │   │   ├── run_pipeline.py            # 三阶段主流水线

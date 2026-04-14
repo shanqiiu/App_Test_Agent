@@ -371,7 +371,7 @@ result = pipeline.run(screenshot, instruction="生成弹窗")  # 一行调用
 ## 三、已创建文件清单
 
 ```
-prototypes/ui_semantic_patch/
+ui_semantic_patch/
 ├── scripts/
 │   ├── injection/
 │   │   ├── __init__.py              ✅ 模块初始化
@@ -392,7 +392,7 @@ prototypes/ui_semantic_patch/
 ## 四、使用方法
 
 ```bash
-cd prototypes/ui_semantic_patch/scripts
+cd ui_semantic_patch/scripts
 
 # 交互式模式
 python injection_pipeline.py --input-dir examples/injection_demo --output-dir output/injected

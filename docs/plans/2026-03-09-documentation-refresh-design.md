@@ -18,8 +18,8 @@
 | 文档 | 操作 | 优先级 |
 |------|------|--------|
 | 根目录 README.md | 全面重写 | P0 |
-| prototypes/ui_semantic_patch/README.md | 全面重写 | P0 |
-| prototypes/ui_semantic_patch/scripts/README.md | 全面重写 | P0 |
+| ui_semantic_patch/README.md | 全面重写 | P0 |
+| ui_semantic_patch/scripts/README.md | 全面重写 | P0 |
 | docs/plans/2026-03-06-code-manual.md | 增量更新 | P0 |
 | docs/research/README.md | 简单同步 | P1 |
 | docs/technical/README.md | 简单同步 | P1 |
@@ -92,7 +92,7 @@
 - 调研文档 → docs/research/
 - 技术文档 → docs/technical/
 - 代码手册 → docs/plans/code-manual.md
-- 原型代码 → prototypes/ui_semantic_patch/
+- 原型代码 → ui_semantic_patch/
 
 ## 当前进展（时间线）
 - 最新 Milestone + 下一步工作
@@ -304,11 +304,11 @@
    - 更新模块路径引用
    - 新增架构关系图
 
-2. 重写 `prototypes/ui_semantic_patch/scripts/README.md`
+2. 重写 `ui_semantic_patch/scripts/README.md`
    - 按子包组织模块说明
    - 快速命令置顶
 
-3. 重写 `prototypes/ui_semantic_patch/README.md`
+3. 重写 `ui_semantic_patch/README.md`
    - 简化模块架构表格
    - 引用 code-manual.md
 

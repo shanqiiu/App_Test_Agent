@@ -46,13 +46,13 @@
 
 ```bash
 cp .env.example .env                                          # 填写 VLM_API_KEY
-pip install -r prototypes/ui_semantic_patch/requirements.txt  # 安装核心依赖
+pip install -r ui_semantic_patch/requirements.txt  # 安装核心依赖
 ```
 
 ### 2. 运行示例
 
 ```bash
-cd prototypes/ui_semantic_patch/scripts
+cd ui_semantic_patch/scripts
 
 # 一键启动（交互式菜单）
 bash launch.sh
@@ -68,8 +68,8 @@ python run_pipeline.py \
 
 ### 3. 探索更多
 
-- 异常模式与文字编辑系列详解 → [ui_semantic_patch README](./prototypes/ui_semantic_patch/README.md)
-- 脚本命令行参数速查 → [scripts README](./prototypes/ui_semantic_patch/scripts/README.md)
+- 异常模式与文字编辑系列详解 → [ui_semantic_patch README](./ui_semantic_patch/README.md)
+- 脚本命令行参数速查 → [scripts README](./ui_semantic_patch/scripts/README.md)
 - 模块架构与接口文档 → [代码手册](./docs/plans/2026-03-06-code-manual.md)
 
 ---
@@ -82,7 +82,7 @@ App_Test_Agent/
 ├── Claude.md                              # AI 协作配置（CLAUDE.md）
 ├── .env.example                           # 环境变量模板
 │
-├── prototypes/ui_semantic_patch/          # 核心原型框架
+├── ui_semantic_patch/          # 核心原型框架
 │   ├── scripts/
 │   │   ├── run_pipeline.py                # 三阶段主流水线
 │   │   ├── batch_pipeline.py              # 批量生成
@@ -119,7 +119,7 @@ App_Test_Agent/
 | 参考资源 | [docs/references/](./docs/references/) | 学术论文（15 篇）、开源项目（12 个） |
 | 研究规划 | [docs/planning/](./docs/planning/) | 路线图、待研究问题清单 |
 | 设计文档 | [docs/plans/](./docs/plans/) | 重构设计、注入决策模块设计、代码手册 |
-| 原型代码 | [prototypes/ui_semantic_patch/](./prototypes/ui_semantic_patch/) | 框架架构、使用说明 |
+| 原型代码 | [ui_semantic_patch/](./ui_semantic_patch/) | 框架架构、使用说明 |
 | 环境搭建 | [docs/setup/环境搭建指南.md](./docs/setup/环境搭建指南.md) | 开发环境配置 |
 
 ---

@@ -1,6 +1,6 @@
 # Injection 模块技术说明
 
-`prototypes/ui_semantic_patch/scripts/injection` 封装异常注入决策流水线的核心组件：增量式语义分析、异常类型推荐、序列改写以及离线 mock 能力。该目录内的模块既可以直接被 `injection_pipeline.py` 调用，也可以按需嵌入到其他自动化测试框架。
+`ui_semantic_patch/scripts/injection` 封装异常注入决策流水线的核心组件：增量式语义分析、异常类型推荐、序列改写以及离线 mock 能力。该目录内的模块既可以直接被 `injection_pipeline.py` 调用，也可以按需嵌入到其他自动化测试框架。
 
 ## 目录与职责
 
@@ -77,7 +77,7 @@ SequenceAnalyzer (VLM)
 3. **GT 模板**：保持默认路径或通过 `--gt-template-dir` 指向自定义的 `analysis/gt_templates`。
 4. **执行命令**（真实生成）：
    ```bash
-   python prototypes/ui_semantic_patch/scripts/injection_pipeline.py \
+   python ui_semantic_patch/scripts/injection_pipeline.py \
      --input-dir examples/injection_demo \
      --output-dir output/injected \
      --max-history 10 \
@@ -89,7 +89,7 @@ SequenceAnalyzer (VLM)
      --input-dir ./screenshots \
      --output-dir ./mock_output \
      --mock \
-     --mock-config prototypes/ui_semantic_patch/scripts/injection/mock_config_example.json
+     --mock-config ui_semantic_patch/scripts/injection/mock_config_example.json
    ```
    该模式仍使用真实 `SequenceAnalyzer`（除非显式替换为 `MockSequenceAnalyzer`），但序列改写阶段会直接复制预置异常图片。
 6. **交互确认**：默认 `--interactive`。若批量运行，可添加 `--no-interactive` 跳过人工确认步骤。

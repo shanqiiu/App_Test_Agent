@@ -86,7 +86,7 @@ Stage 3: 异常渲染（renderers/*）
 ## 快速命令
 
 ```bash
-cd prototypes/ui_semantic_patch/scripts
+cd ui_semantic_patch/scripts
 
 # ===== Pipeline 执行 =====
 
