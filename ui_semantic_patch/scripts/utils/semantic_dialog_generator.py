@@ -25,9 +25,7 @@ from pathlib import Path
 from typing import Optional, Tuple, List, Dict, Any
 from PIL import Image, ImageDraw, ImageFont, ImageFilter, ImageChops
 import io
-
-import dashscope
-from dashscope import MultiModalConversation
+from urllib.parse import urljoin
 
 from utils.reference_analyzer import ReferenceAnalyzer, ReferenceStyleApplier
 
@@ -88,6 +86,60 @@ def _normalize_size_for_dashscope(width: int, height: int) -> Tuple[int, int]:
     return width, height
 
 
+def _load_image_from_local_result(
+    result: dict,
+    api_url: str,
+    timeout: int
+) -> Optional[Image.Image]:
+    """从本地文生图服务响应中提取图片。"""
+    if not isinstance(result, dict):
+        print("  ⚠ 本地图像服务返回格式异常（非 JSON 对象）")
+        return None
+
+    # 兼容常见 base64 字段
+    for key in ("image_base64", "base64", "b64"):
+        b64_data = result.get(key)
+        if isinstance(b64_data, str) and b64_data.strip():
+            try:
+                image_bytes = base64.b64decode(b64_data)
+                return Image.open(io.BytesIO(image_bytes)).convert("RGBA")
+            except Exception as exc:
+                print(f"  ⚠ 解析 base64 图片失败 ({key}): {exc}")
+
+    # 兼容常见 URL / path 字段
+    image_ref = None
+    for key in ("path", "image_url", "url", "image"):
+        value = result.get(key)
+        if isinstance(value, str) and value.strip():
+            image_ref = value.strip()
+            break
+
+    if not image_ref:
+        print("  ⚠ 本地图像服务响应中未找到 path/url/base64 字段")
+        return None
+
+    # 本地文件路径（绝对路径）
+    maybe_file = Path(image_ref)
+    if maybe_file.exists() and maybe_file.is_file():
+        return Image.open(maybe_file).convert("RGBA")
+
+    # 相对路径时按 API URL 拼接
+    image_url = image_ref
+    if not image_ref.startswith("http://") and not image_ref.startswith("https://"):
+        image_url = urljoin(api_url.rstrip("/") + "/", image_ref.lstrip("/"))
+
+    resp = requests.get(
+        image_url,
+        timeout=timeout,
+        proxies={"http": None, "https": None},
+    )
+    if resp.status_code != 200:
+        print(f"  ⚠ 下载本地服务图片失败: {resp.status_code} {image_url}")
+        return None
+
+    return Image.open(io.BytesIO(resp.content)).convert("RGBA")
+
+
 def generate_image_dashscope(
     prompt: str,
     api_key: str = None,
@@ -99,15 +151,15 @@ def generate_image_dashscope(
     force_model: str = None
 ) -> Optional[Image.Image]:
     """
-    使用 DashScope MultiModalConversation API 生成图像
+    生成图像（优先本地文生图服务，失败时回退 DashScope）
 
-    当提供 reference_image_path 时，使用 qwen-image-edit-max 模型进行图文混合生成，
-    参考图直接传入模型，实现更精准的风格迁移。
-    否则使用 qwen-image-max 纯文生图。
+    优先级：
+    1. 若配置了 LOCAL_IMAGE_API_URL，优先调用本地文生图服务
+    2. 若本地服务不可用，回退到 DashScope MultiModalConversation API
 
     Args:
         prompt: 图像描述提示词
-        api_key: DashScope API Key（默认从环境变量 DASHSCOPE_API_KEY 获取）
+        api_key: DashScope API Key（未显式传入时读取 DASHSCOPE_API_KEY）
         size: 图像尺寸，格式 'width*height'，会自动规范化到支持范围 [512, 2048]
         negative_prompt: 负面提示词
         save_path: 可选的保存路径
@@ -118,17 +170,7 @@ def generate_image_dashscope(
     Returns:
         生成的 PIL Image 对象，失败返回 None
     """
-    # 配置 DashScope
-    dashscope.base_http_api_url = 'https://dashscope.aliyuncs.com/api/v1'
-
-    if api_key is None:
-        api_key = os.getenv("DASHSCOPE_API_KEY")
-
-    if not api_key:
-        print("  ⚠ 未提供 DASHSCOPE_API_KEY")
-        return None
-
-    # 解析并规范化尺寸
+    # 解析尺寸（本地服务与 DashScope 都使用）
     try:
         w, h = size.split('*')
         orig_width, orig_height = int(w), int(h)
@@ -138,7 +180,76 @@ def generate_image_dashscope(
         size = f"{norm_width}*{norm_height}"
     except ValueError:
         print(f"  ⚠ 无效的尺寸格式: {size}，使用默认 1024*1024")
+        orig_width, orig_height = 1024, 1024
         size = "1024*1024"
+
+    local_api_url = (os.getenv("LOCAL_IMAGE_API_URL") or "").strip()
+    local_api_steps = int(os.getenv("LOCAL_IMAGE_API_STEPS", "9"))
+    local_api_timeout = int(os.getenv("LOCAL_IMAGE_API_TIMEOUT", "120"))
+    local_api_seed = (os.getenv("LOCAL_IMAGE_API_SEED") or "").strip()
+
+    # ===== 优先尝试本地文生图服务 =====
+    if local_api_url:
+        print(f"  ℹ 使用本地图像服务: {local_api_url}")
+        local_payload = {
+            "prompt": prompt,
+            "height": orig_height,
+            "width": orig_width,
+            "steps": local_api_steps,
+        }
+        if negative_prompt:
+            local_payload["negative_prompt"] = negative_prompt
+        if local_api_seed:
+            try:
+                local_payload["seed"] = int(local_api_seed)
+            except ValueError:
+                local_payload["seed"] = local_api_seed
+        if force_model:
+            local_payload["mode"] = force_model
+        if reference_image_path and Path(reference_image_path).exists():
+            local_payload["reference_image_path"] = str(Path(reference_image_path).resolve())
+
+        try:
+            resp = requests.post(
+                local_api_url,
+                json=local_payload,
+                timeout=local_api_timeout,
+                proxies={"http": None, "https": None},
+            )
+            if resp.status_code == 200:
+                result = resp.json()
+                image = _load_image_from_local_result(result, local_api_url, local_api_timeout)
+                if image is not None:
+                    if save_path:
+                        image.save(save_path)
+                        print(f"  ✓ 图片已保存至: {save_path}")
+                    print("  ✓ 本地图像服务生成成功")
+                    return image
+                print("  ⚠ 本地图像服务响应不可解析，回退到 DashScope")
+            else:
+                print(f"  ⚠ 本地图像服务返回错误: {resp.status_code}")
+        except Exception as exc:
+            print(f"  ⚠ 本地图像服务调用失败，回退到 DashScope: {exc}")
+
+    # ===== 回退到 DashScope =====
+    if api_key is None:
+        api_key = os.getenv("DASHSCOPE_API_KEY")
+
+    if not api_key:
+        print("  ⚠ 未提供 DASHSCOPE_API_KEY，且本地图像服务不可用")
+        return None
+
+    try:
+        import dashscope
+        from dashscope import MultiModalConversation
+    except ImportError:
+        print("  ⚠ dashscope 模块未安装，且本地图像服务不可用")
+        return None
+
+    dashscope.base_http_api_url = os.getenv(
+        "DASHSCOPE_API_URL",
+        "https://dashscope.aliyuncs.com/api/v1",
+    )
 
     # 根据 force_model 和 reference_image_path 决定模型和消息格式
     has_ref = reference_image_path and Path(reference_image_path).exists()
@@ -216,7 +327,11 @@ def generate_image_dashscope(
                         print(f"  ✓ 图片生成成功，正在下载...")
 
                         # 下载图片
-                        img_response = requests.get(image_url, timeout=60)
+                        img_response = requests.get(
+                            image_url,
+                            timeout=60,
+                            proxies={"http": None, "https": None},
+                        )
                         if img_response.status_code == 200:
                             image = Image.open(io.BytesIO(img_response.content)).convert('RGBA')
 
