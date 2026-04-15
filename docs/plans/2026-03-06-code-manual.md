@@ -1,7 +1,7 @@
 # 工程代码说明书
 
 **项目**：ui_semantic_patch — 异常测试场景自动生成原型
-**路径**：`prototypes/ui_semantic_patch/scripts/`
+**路径**：`ui_semantic_patch/scripts/`
 **版本**：2026-03-26（同步 `modify_text*` 与根目录 Claude.md 示例）
 **读者**：技术负责人
 

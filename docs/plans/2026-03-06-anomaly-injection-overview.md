@@ -23,7 +23,7 @@
 ## 文件结构
 
 ```
-prototypes/ui_semantic_patch/
+ui_semantic_patch/
 ├── scripts/
 │   ├── injection/
 │   │   ├── __init__.py              # 模块初始化，导出核心类
@@ -47,7 +47,7 @@ prototypes/ui_semantic_patch/
 ### 命令行调用
 
 ```bash
-cd prototypes/ui_semantic_patch/scripts
+cd ui_semantic_patch/scripts
 
 # 交互式模式（推荐）
 python injection_pipeline.py \

@@ -2,7 +2,7 @@
 
 **基于设计文档**：`docs/plans/2026-03-06-refactor-design.md`
 **日期**：2026-03-06
-**所有路径前缀**：`prototypes/ui_semantic_patch/scripts/`
+**所有路径前缀**：`ui_semantic_patch/scripts/`
 
 ---
 
@@ -256,7 +256,7 @@
 - **文件**：`scripts/` 全目录（只读核查）
 - **改动内容**：无代码改动。最终确认：
   ```bash
-  grep -r "style_transfer" prototypes/ui_semantic_patch/
+  grep -r "style_transfer" ui_semantic_patch/
   ```
   结果应仅有文件自身（已确认：零外部引用）。
 - **验证方式**：grep 排除文件自身后零匹配
@@ -270,7 +270,7 @@
 - **文件**：`scripts/style_transfer.py`（删除）
 - **改动内容**：
   ```bash
-  git rm prototypes/ui_semantic_patch/scripts/style_transfer.py
+  git rm ui_semantic_patch/scripts/style_transfer.py
   ```
 - **验证方式**：所有四种流水线模式正常运行，无 `ImportError`
 - **依赖**：Step 2.3

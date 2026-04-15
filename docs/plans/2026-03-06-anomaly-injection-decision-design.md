@@ -300,7 +300,7 @@ def inject_anomaly_pipeline(
 ### 新增文件
 
 ```
-prototypes/ui_semantic_patch/
+ui_semantic_patch/
 ├── scripts/
 │   ├── run_pipeline.py              # 已有：异常生成入口
 │   ├── injection_pipeline.py        # 新增：异常注入决策主入口
