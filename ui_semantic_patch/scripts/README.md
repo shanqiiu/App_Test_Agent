@@ -319,6 +319,9 @@ python injection_pipeline.py \
   --output-dir ./output/injected \
   --mock --no-interactive
 
+# 一键脚本（等价于上面的 mock 命令）
+bash run_injection_mock.sh
+
 # Mock 模式 + 自定义配置
 python injection_pipeline.py \
   --input-dir ./examples/injection_demo \
@@ -771,6 +774,10 @@ VLM_API_URL=https://...      # VLM API 端点
 VLM_MODEL=gpt-4o             # VLM 模型名称
 STRUCTURE_MODEL=qwen-vl-max  # 结构提取模型
 DASHSCOPE_API_KEY=sk-xxx     # DashScope（可选，用于 AI 图像生成）
+LOCAL_IMAGE_API_URL=http://127.0.0.1:8042/generate  # 本地文生图服务（可选，配置后优先于 DashScope）
+LOCAL_IMAGE_API_STEPS=9      # 本地服务 steps 参数（可选）
+LOCAL_IMAGE_API_SEED=42      # 本地服务 seed 参数（可选）
+LOCAL_IMAGE_API_TIMEOUT=120  # 本地服务超时秒数（可选）
 OMNIPARSER_DEVICE=cuda       # OmniParser 设备
 ```
 
