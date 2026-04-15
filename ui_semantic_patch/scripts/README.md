@@ -319,6 +319,9 @@ python injection_pipeline.py \
   --output-dir ./output/injected \
   --mock --no-interactive
 
+# 一键脚本（等价于上面的 mock 命令）
+bash run_injection_mock.sh
+
 # Mock 模式 + 自定义配置
 python injection_pipeline.py \
   --input-dir ./examples/injection_demo \
