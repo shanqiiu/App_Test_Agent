@@ -319,8 +319,9 @@ python injection_pipeline.py \
   --output-dir ./output/injected \
   --mock --no-interactive
 
-# 一键脚本（等价于上面的 mock 命令）
+# 一键脚本（默认 mock；传 real 可走真实生成链路）
 bash run_injection_mock.sh
+bash run_injection_mock.sh real
 
 # Mock 模式 + 自定义配置
 python injection_pipeline.py \
