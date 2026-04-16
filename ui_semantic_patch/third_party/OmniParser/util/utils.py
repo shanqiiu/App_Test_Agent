@@ -33,8 +33,8 @@ if TYPE_CHECKING:
 # 检测 GPU 可用性
 _use_gpu = torch.cuda.is_available()
 
-# 初始化 OCR 引擎
-reader = easyocr.Reader(['en'], gpu=_use_gpu)
+# OCR 引擎实例（懒加载，避免 import omni_inference 时触发重型初始化）
+reader = None
 
 
 def _resolve_paddle_model_root() -> Optional[Path]:
@@ -178,7 +178,24 @@ def _init_paddle_ocr() -> Optional["PaddleOCR"]:
     return None
 
 
-paddle_ocr = _init_paddle_ocr()
+paddle_ocr = None
+
+
+def _get_easyocr_reader():
+    """懒加载 EasyOCR reader。"""
+    global reader
+    if reader is None:
+        print("[INFO] 初始化 EasyOCR reader...")
+        reader = easyocr.Reader(['en'], gpu=_use_gpu)
+    return reader
+
+
+def _get_paddle_ocr():
+    """懒加载 PaddleOCR。"""
+    global paddle_ocr
+    if paddle_ocr is None:
+        paddle_ocr = _init_paddle_ocr()
+    return paddle_ocr
 
 
 def get_caption_model_processor(model_name, model_name_or_path="Salesforce/blip2-opt-2.7b", device=None):
@@ -647,25 +664,34 @@ def check_ocr_box(image_source: Union[str, Image.Image], display_img=False, outp
     image_np = np.array(image_source)
 
     if use_paddleocr:
+        ocr_engine = _get_paddle_ocr()
         text_threshold = easyocr_args.get('text_threshold', 0.5) if easyocr_args else 0.5
-        try:
-            result = paddle_ocr.ocr(image_np, cls=False)
-            if result and result[0]:
-                coord = [item[0] for item in result[0] if item[1][1] > text_threshold]
-                text = [item[1][0] for item in result[0] if item[1][1] > text_threshold]
-            else:
-                coord, text = [], []
-        except Exception as e:
-            print(f"[WARN] PaddleOCR failed: {e}, falling back to EasyOCR")
+        if ocr_engine is not None:
+            try:
+                result = ocr_engine.ocr(image_np, cls=False)
+                if result and result[0]:
+                    coord = [item[0] for item in result[0] if item[1][1] > text_threshold]
+                    text = [item[1][0] for item in result[0] if item[1][1] > text_threshold]
+                else:
+                    coord, text = [], []
+            except Exception as e:
+                print(f"[WARN] PaddleOCR failed: {e}, falling back to EasyOCR")
+                if easyocr_args is None:
+                    easyocr_args = {}
+                result = _get_easyocr_reader().readtext(image_np, **easyocr_args)
+                coord = [item[0] for item in result]
+                text = [item[1] for item in result]
+        else:
+            print("[WARN] PaddleOCR 不可用，使用 EasyOCR")
             if easyocr_args is None:
                 easyocr_args = {}
-            result = reader.readtext(image_np, **easyocr_args)
+            result = _get_easyocr_reader().readtext(image_np, **easyocr_args)
             coord = [item[0] for item in result]
             text = [item[1] for item in result]
     else:
         if easyocr_args is None:
             easyocr_args = {}
-        result = reader.readtext(image_np, **easyocr_args)
+        result = _get_easyocr_reader().readtext(image_np, **easyocr_args)
         coord = [item[0] for item in result]
         text = [item[1] for item in result]
 
