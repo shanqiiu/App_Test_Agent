@@ -198,6 +198,26 @@ def _get_paddle_ocr():
     return paddle_ocr
 
 
+def _resolve_florence_processor_source(model_name_or_path: str) -> str:
+    """
+    解析 Florence processor 的本地来源路径。
+
+    优先级：
+    1) OMNIPARSER_PROCESSOR_PATH 指定目录
+    2) model_name_or_path（通常是 icon_caption_florence）
+    3) 默认 HuggingFace repo id（最后兜底）
+    """
+    explicit = os.environ.get("OMNIPARSER_PROCESSOR_PATH")
+    if explicit and Path(explicit).exists():
+        return explicit
+
+    local_model_path = Path(model_name_or_path)
+    if local_model_path.exists():
+        return str(local_model_path)
+
+    return "microsoft/Florence-2-base"
+
+
 def get_caption_model_processor(model_name, model_name_or_path="Salesforce/blip2-opt-2.7b", device=None):
     if not device:
         device = "cuda" if torch.cuda.is_available() else "cpu"
@@ -214,22 +234,27 @@ def get_caption_model_processor(model_name, model_name_or_path="Salesforce/blip2
         ).to(device)
     elif model_name == "florence2":
         from transformers import AutoProcessor, AutoModelForCausalLM
-        # 保持与原始行为一致：processor 从官方 Florence-2-base 加载，
-        # model 权重从传入的本地目录/名称加载。
-        processor = AutoProcessor.from_pretrained("microsoft/Florence-2-base", trust_remote_code=True)
+        processor_source = _resolve_florence_processor_source(model_name_or_path)
+        local_only = os.environ.get("OMNIPARSER_LOCAL_FILES_ONLY", "1").lower() not in {"0", "false", "no"}
+
+        processor_kwargs = {"trust_remote_code": True}
+        model_kwargs = {"trust_remote_code": True, "attn_implementation": "eager"}
+        if local_only:
+            processor_kwargs["local_files_only"] = True
+            model_kwargs["local_files_only"] = True
+
+        processor = AutoProcessor.from_pretrained(processor_source, **processor_kwargs)
         if device == 'cpu':
             model = AutoModelForCausalLM.from_pretrained(
                 model_name_or_path,
                 torch_dtype=torch.float32,
-                trust_remote_code=True,
-                attn_implementation="eager",
+                **model_kwargs,
             )
         else:
             model = AutoModelForCausalLM.from_pretrained(
                 model_name_or_path,
                 torch_dtype=torch.float16,
-                trust_remote_code=True,
-                attn_implementation="eager",
+                **model_kwargs,
             ).to(device)
     return {'model': model.to(device), 'processor': processor}
 
