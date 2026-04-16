@@ -214,11 +214,38 @@ def get_caption_model_processor(model_name, model_name_or_path="Salesforce/blip2
         ).to(device)
     elif model_name == "florence2":
         from transformers import AutoProcessor, AutoModelForCausalLM
-        processor = AutoProcessor.from_pretrained("microsoft/Florence-2-base", trust_remote_code=True)
+        # 优先使用本地目录，避免离线/内网环境访问 HuggingFace
+        model_path = str(model_name_or_path)
+        local_path_exists = Path(model_path).exists()
+        processor_source = model_path if local_path_exists else "microsoft/Florence-2-base"
+        local_only = os.environ.get("OMNIPARSER_LOCAL_FILES_ONLY", "1").lower() not in {"0", "false", "no"}
+
+        processor_kwargs = {"trust_remote_code": True}
+        model_kwargs = {"trust_remote_code": True, "attn_implementation": "eager"}
+        if local_only:
+            processor_kwargs["local_files_only"] = True
+            model_kwargs["local_files_only"] = True
+
+        try:
+            processor = AutoProcessor.from_pretrained(processor_source, **processor_kwargs)
+        except Exception as e:
+            raise RuntimeError(
+                "Florence processor 加载失败。请确认本地目录包含 processor/tokenizer 配置文件，"
+                f"source={processor_source}, local_only={local_only}, err={e}"
+            ) from e
+
         if device == 'cpu':
-            model = AutoModelForCausalLM.from_pretrained(model_name_or_path, torch_dtype=torch.float32, trust_remote_code=True, attn_implementation="eager")
+            model = AutoModelForCausalLM.from_pretrained(
+                model_path,
+                torch_dtype=torch.float32,
+                **model_kwargs,
+            )
         else:
-            model = AutoModelForCausalLM.from_pretrained(model_name_or_path, torch_dtype=torch.float16, trust_remote_code=True, attn_implementation="eager").to(device)
+            model = AutoModelForCausalLM.from_pretrained(
+                model_path,
+                torch_dtype=torch.float16,
+                **model_kwargs,
+            ).to(device)
     return {'model': model.to(device), 'processor': processor}
 
 
