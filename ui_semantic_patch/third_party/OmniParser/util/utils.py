@@ -3,6 +3,7 @@ import os
 import base64
 import time
 from pathlib import Path
+from typing import Optional
 
 import cv2
 import numpy as np
@@ -33,7 +34,99 @@ _use_gpu = torch.cuda.is_available()
 
 # 初始化 OCR 引擎
 reader = easyocr.Reader(['en'], gpu=_use_gpu)
-paddle_ocr = PaddleOCR(lang='en', use_angle_cls=False, use_gpu=_use_gpu, show_log=False)
+
+
+def _resolve_paddle_model_root() -> Optional[Path]:
+    """解析 PaddleOCR 本地模型根目录（含 det/rec 子目录）。"""
+    candidates = []
+    explicit_root = os.environ.get("PADDLE_OCR_MODEL_ROOT")
+    if explicit_root:
+        candidates.append(Path(explicit_root))
+
+    if "PADDLE_PDX_CACHE_HOME" in os.environ:
+        candidates.append(Path(os.environ["PADDLE_PDX_CACHE_HOME"]) / "official_models")
+
+    candidates.append(_THIRD_PARTY_ROOT / ".paddlex" / "official_models")
+    candidates.append(Path.home() / ".paddlex" / "official_models")
+
+    for path in candidates:
+        if path.exists() and path.is_dir():
+            return path
+    return None
+
+
+def _resolve_model_dir(model_root: Path, preferred_names: list[str]) -> Optional[Path]:
+    """按优先级匹配模型目录，不存在则尝试关键字兜底。"""
+    for name in preferred_names:
+        candidate = model_root / name
+        if candidate.exists() and candidate.is_dir():
+            return candidate
+
+    # 兜底：按关键字匹配第一个目录
+    all_subdirs = [p for p in model_root.iterdir() if p.is_dir()]
+    for name in preferred_names:
+        token = name.lower()
+        for subdir in all_subdirs:
+            if token in subdir.name.lower():
+                return subdir
+    return None
+
+
+def _init_paddle_ocr() -> Optional[PaddleOCR]:
+    """
+    初始化 PaddleOCR。
+
+    优先使用本地 det/rec 模型目录，避免触发在线下载。
+    若本地目录不完整或初始化失败，返回 None（后续自动回退 EasyOCR）。
+    """
+    kwargs = {
+        "lang": "en",
+        "use_angle_cls": False,
+        "use_gpu": _use_gpu,
+        "show_log": False,
+    }
+
+    model_root = _resolve_paddle_model_root()
+    if model_root:
+        det_dir = _resolve_model_dir(
+            model_root,
+            [
+                "PP-OCRv5_server_det",
+                "en_PP-OCRv5_server_det",
+                "en_PP-OCRv4_det",
+            ],
+        )
+        rec_dir = _resolve_model_dir(
+            model_root,
+            [
+                "en_PP-OCRv5_mobile_rec",
+                "PP-OCRv5_mobile_rec",
+                "en_PP-OCRv4_rec",
+            ],
+        )
+
+        if det_dir and rec_dir:
+            kwargs["det_model_dir"] = str(det_dir)
+            kwargs["rec_model_dir"] = str(rec_dir)
+            print(f"[INFO] PaddleOCR 使用本地模型 det={det_dir.name}, rec={rec_dir.name}")
+        else:
+            print(
+                "[WARN] 本地 PaddleOCR 模型目录不完整，"
+                f"model_root={model_root}，det={det_dir}, rec={rec_dir}。将回退 EasyOCR。"
+            )
+            return None
+    else:
+        print("[WARN] 未找到本地 PaddleOCR 模型根目录，将回退 EasyOCR。")
+        return None
+
+    try:
+        return PaddleOCR(**kwargs)
+    except Exception as e:
+        print(f"[WARN] PaddleOCR 初始化失败: {e}，将回退 EasyOCR。")
+        return None
+
+
+paddle_ocr = _init_paddle_ocr()
 
 
 def get_caption_model_processor(model_name, model_name_or_path="Salesforce/blip2-opt-2.7b", device=None):
