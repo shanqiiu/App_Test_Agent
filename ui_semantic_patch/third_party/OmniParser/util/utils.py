@@ -3,7 +3,7 @@ import os
 import base64
 import time
 from pathlib import Path
-from typing import Optional
+from typing import Optional, TYPE_CHECKING
 
 import cv2
 import numpy as np
@@ -27,7 +27,8 @@ if "PADDLE_PDX_CACHE_HOME" not in os.environ and _LOCAL_PDX_CACHE.exists():
     os.environ["PADDLE_PDX_CACHE_HOME"] = str(_LOCAL_PDX_CACHE)
 os.environ.setdefault("PADDLE_PDX_DISABLE_MODEL_SOURCE_CHECK", "True")
 
-from paddleocr import PaddleOCR
+if TYPE_CHECKING:
+    from paddleocr import PaddleOCR
 
 # 检测 GPU 可用性
 _use_gpu = torch.cuda.is_available()
@@ -72,13 +73,14 @@ def _resolve_model_dir(model_root: Path, preferred_names: list[str]) -> Optional
     return None
 
 
-def _init_paddle_ocr() -> Optional[PaddleOCR]:
+def _init_paddle_ocr() -> Optional["PaddleOCR"]:
     """
     初始化 PaddleOCR。
 
     优先使用本地 det/rec 模型目录，避免触发在线下载。
     若本地目录不完整或初始化失败，返回 None（后续自动回退 EasyOCR）。
     """
+    print("[INFO] _init_paddle_ocr entered")
     kwargs = {
         "lang": "en",
         "use_angle_cls": False,
@@ -134,6 +136,13 @@ def _init_paddle_ocr() -> Optional[PaddleOCR]:
     # 显式设置强制回退开关，便于快速定位线上环境问题
     if os.environ.get("PADDLE_OCR_FORCE_EASYOCR", "").lower() in {"1", "true", "yes"}:
         print("[WARN] PADDLE_OCR_FORCE_EASYOCR 已启用，跳过 PaddleOCR，使用 EasyOCR。")
+        return None
+
+    # 延迟导入，避免在模块导入阶段触发 PaddleOCR 内部副作用
+    try:
+        from paddleocr import PaddleOCR  # type: ignore
+    except Exception as e:
+        print(f"[WARN] 导入 PaddleOCR 失败: {e}，将回退 EasyOCR。")
         return None
 
     # 逐步尝试参数组合，兼容不同版本 PaddleOCR 构造参数
