@@ -1,12 +1,13 @@
 import io
+import os
 import base64
 import time
+from pathlib import Path
 
 import cv2
 import numpy as np
 import torch
 import easyocr
-from paddleocr import PaddleOCR
 from PIL import Image
 from typing import Tuple, List, Union
 from torchvision.ops import box_convert
@@ -15,6 +16,17 @@ import torchvision.transforms as T
 import supervision as sv
 
 from util.box_annotator import BoxAnnotator
+
+# PaddleOCR/PaddleX 离线场景配置：
+# - 优先使用 third_party/.paddlex 作为本地缓存目录（若存在）
+# - 关闭模型源连通性检查，避免内网环境启动失败
+_THIRD_PARTY_ROOT = Path(__file__).resolve().parents[2]
+_LOCAL_PDX_CACHE = _THIRD_PARTY_ROOT / ".paddlex"
+if "PADDLE_PDX_CACHE_HOME" not in os.environ and _LOCAL_PDX_CACHE.exists():
+    os.environ["PADDLE_PDX_CACHE_HOME"] = str(_LOCAL_PDX_CACHE)
+os.environ.setdefault("PADDLE_PDX_DISABLE_MODEL_SOURCE_CHECK", "True")
+
+from paddleocr import PaddleOCR
 
 # 检测 GPU 可用性
 _use_gpu = torch.cuda.is_available()
