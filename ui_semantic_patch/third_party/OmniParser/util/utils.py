@@ -106,9 +106,21 @@ def _init_paddle_ocr() -> Optional[PaddleOCR]:
         )
 
         if det_dir and rec_dir:
-            kwargs["det_model_dir"] = str(det_dir)
-            kwargs["rec_model_dir"] = str(rec_dir)
-            print(f"[INFO] PaddleOCR 使用本地模型 det={det_dir.name}, rec={rec_dir.name}")
+            det_dir_str = str(det_dir)
+            rec_dir_str = str(rec_dir)
+
+            # 兼容不同 PaddleOCR 版本参数名：
+            # - 旧版常用: det_model_dir / rec_model_dir
+            # - 新版 Pipeline 风格: text_detection_model_dir / text_recognition_model_dir
+            kwargs["det_model_dir"] = det_dir_str
+            kwargs["rec_model_dir"] = rec_dir_str
+            kwargs["text_detection_model_dir"] = det_dir_str
+            kwargs["text_recognition_model_dir"] = rec_dir_str
+
+            print(
+                "[INFO] PaddleOCR 本地模型参数已注入: "
+                f"det={det_dir_str}, rec={rec_dir_str}"
+            )
         else:
             print(
                 "[WARN] 本地 PaddleOCR 模型目录不完整，"
@@ -119,11 +131,42 @@ def _init_paddle_ocr() -> Optional[PaddleOCR]:
         print("[WARN] 未找到本地 PaddleOCR 模型根目录，将回退 EasyOCR。")
         return None
 
-    try:
-        return PaddleOCR(**kwargs)
-    except Exception as e:
-        print(f"[WARN] PaddleOCR 初始化失败: {e}，将回退 EasyOCR。")
+    # 显式设置强制回退开关，便于快速定位线上环境问题
+    if os.environ.get("PADDLE_OCR_FORCE_EASYOCR", "").lower() in {"1", "true", "yes"}:
+        print("[WARN] PADDLE_OCR_FORCE_EASYOCR 已启用，跳过 PaddleOCR，使用 EasyOCR。")
         return None
+
+    # 逐步尝试参数组合，兼容不同版本 PaddleOCR 构造参数
+    attempt_kwargs = []
+    # 尝试 1：完整参数集（新旧参数一起给）
+    attempt_kwargs.append(dict(kwargs))
+    # 尝试 2：仅旧参数
+    kw_legacy = dict(kwargs)
+    kw_legacy.pop("text_detection_model_dir", None)
+    kw_legacy.pop("text_recognition_model_dir", None)
+    attempt_kwargs.append(kw_legacy)
+    # 尝试 3：仅新参数
+    kw_modern = dict(kwargs)
+    kw_modern.pop("det_model_dir", None)
+    kw_modern.pop("rec_model_dir", None)
+    attempt_kwargs.append(kw_modern)
+
+    last_err: Optional[Exception] = None
+    for idx, kw in enumerate(attempt_kwargs, 1):
+        try:
+            print(f"[INFO] 尝试初始化 PaddleOCR（方案 {idx}）")
+            return PaddleOCR(**kw)
+        except TypeError as e:
+            last_err = e
+            print(f"[WARN] PaddleOCR 参数不兼容（方案 {idx}）: {e}")
+            continue
+        except Exception as e:
+            last_err = e
+            print(f"[WARN] PaddleOCR 初始化失败（方案 {idx}）: {e}")
+            continue
+
+    print(f"[WARN] PaddleOCR 全部初始化方案失败: {last_err}，将回退 EasyOCR。")
+    return None
 
 
 paddle_ocr = _init_paddle_ocr()
