@@ -75,17 +75,25 @@ class OmniParser:
         self.device = device
 
         print(f"[OmniParser] Loading models on {device}...")
+        self.caption_model_processor = None
+        self.caption_model_available = False
 
         # 加载 YOLO 模型
         self.yolo_model = get_yolo_model(yolo_model_path)
         self.yolo_model.to(device)
 
-        # 加载 Caption 模型
-        self.caption_model_processor = get_caption_model_processor(
-            model_name=caption_model_name,
-            model_name_or_path=caption_model_path,
-            device=device
-        )
+        # 加载 Caption 模型（离线环境失败时降级）
+        try:
+            self.caption_model_processor = get_caption_model_processor(
+                model_name=caption_model_name,
+                model_name_or_path=caption_model_path,
+                device=device
+            )
+            self.caption_model_available = True
+        except Exception as e:
+            print(f"[WARN] Caption 模型加载失败，将禁用本地图标语义: {e}")
+            self.caption_model_processor = None
+            self.caption_model_available = False
 
         print("[OmniParser] Models loaded successfully.")
 
@@ -141,6 +149,9 @@ class OmniParser:
         text, ocr_bbox = ocr_bbox_rslt
 
         # Step 2: 图标检测 + 语义生成
+        effective_use_local_semantics = use_local_semantics and self.caption_model_available
+        if use_local_semantics and not self.caption_model_available:
+            print("[WARN] Caption 模型不可用，自动降级为 use_local_semantics=False")
         encoded_image, label_coordinates, parsed_content_list = get_som_labeled_img(
             image,
             self.yolo_model,
@@ -150,7 +161,7 @@ class OmniParser:
             draw_bbox_config=draw_bbox_config,
             caption_model_processor=self.caption_model_processor,
             ocr_text=text,
-            use_local_semantics=use_local_semantics,
+            use_local_semantics=effective_use_local_semantics,
             iou_threshold=iou_threshold,
             scale_img=False,
             batch_size=128
