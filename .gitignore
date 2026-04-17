@@ -83,3 +83,6 @@ prototypes/img2text2html2img/scripts/outputs/
 prototypes/img2text2html2img/scripts/output_images/
 
 .worktrees/
+
+# OmniParser local large model (keep local only)
+ui_semantic_patch/third_party/OmniParser/weights/icon_caption_florence/model.safetensors
