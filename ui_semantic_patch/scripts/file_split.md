@@ -88,52 +88,58 @@ batch_pipeline.py
 
 ### 环境变量（.env 文件，项目根目录）
 
-| 变量 | 必需 | 默认值 | 说明 |
-|------|------|--------|------|
-| `VLM_API_KEY` | **是** | — | VLM API 密钥（Stage 2 语义过滤 + Stage 3 弹窗生成） |
-| `VLM_API_URL` | 否 | `https://api.openai-next.com/v1/chat/completions` | VLM API 端点 |
-| `VLM_MODEL` | 否 | `gpt-4o` | VLM 模型名 |
-| `STRUCTURE_MODEL` | 否 | `qwen-vl-max` | Stage 2 结构提取/语义过滤模型 |
-| `DASHSCOPE_API_KEY` | 否 | — | DashScope API 密钥（dialog 模式 AI 图像生成） |
-| `OMNIPARSER_DEVICE` | 否 | `auto` | OmniParser 运行设备（`cuda` / `cpu`） |
+
+| 变量                  | 必需    | 默认值                                               | 说明                                      |
+| ------------------- | ----- | ------------------------------------------------- | --------------------------------------- |
+| `VLM_API_KEY`       | **是** | —                                                 | VLM API 密钥（Stage 2 语义过滤 + Stage 3 弹窗生成） |
+| `VLM_API_URL`       | 否     | `https://api.openai-next.com/v1/chat/completions` | VLM API 端点                              |
+| `VLM_MODEL`         | 否     | `gpt-4o`                                          | VLM 模型名                                 |
+| `STRUCTURE_MODEL`   | 否     | `qwen-vl-max`                                     | Stage 2 结构提取/语义过滤模型                     |
+| `DASHSCOPE_API_KEY` | 否     | —                                                 | DashScope API 密钥（dialog 模式 AI 图像生成）     |
+| `OMNIPARSER_DEVICE` | 否     | `auto`                                            | OmniParser 运行设备（`cuda` / `cpu`）         |
+
 
 ### run_pipeline.py 参数
 
-| 参数 | 简写 | 必需 | 默认值 | 说明 |
-|------|------|------|--------|------|
-| `--screenshot` | `-s` | **是** | — | 原始截图路径 |
-| `--instruction` | `-i` | **是** | — | 异常生成指令 |
-| `--output` | `-o` | 否 | `./output` | 输出目录 |
-| `--anomaly-mode` | — | 否 | `dialog` | 异常模式: `dialog` / `area_loading` / `content_duplicate` |
-| `--gt-category` | — | 否 | — | GT类别名（启用 meta 驱动生成） |
-| `--gt-sample` | — | 否 | — | GT样本文件名（与 `--gt-category` 配合） |
-| `--gt-dir` | — | 否 | 自动检测 | GT模板根目录 |
-| `--reference` | `-r` | 否 | — | 参考弹窗图片路径 |
-| `--reference-icon` | — | 否 | — | 参考加载图标路径（area_loading 模式） |
-| `--target-component` | — | 否 | — | 目标组件ID（area_loading 模式） |
-| `--api-key` | — | 否 | `$VLM_API_KEY` | VLM API 密钥 |
-| `--api-url` | — | 否 | `$VLM_API_URL` | VLM API 端点 |
-| `--structure-model` | — | 否 | `$STRUCTURE_MODEL` | 语义过滤模型 |
-| `--vlm-api-url` | — | 否 | `$VLM_API_URL` | 弹窗生成 VLM 端点 |
-| `--vlm-model` | — | 否 | `$VLM_MODEL` | 弹窗生成 VLM 模型 |
-| `--omni-device` | — | 否 | `auto` | OmniParser 设备 |
-| `--no-visualize` | — | 否 | `false` | 禁用中间结果可视化 |
-| `--fonts-dir` | — | 否 | 系统默认 | 自定义字体目录 |
+
+| 参数                   | 简写   | 必需    | 默认值                | 说明                                                    |
+| -------------------- | ---- | ----- | ------------------ | ----------------------------------------------------- |
+| `--screenshot`       | `-s` | **是** | —                  | 原始截图路径                                                |
+| `--instruction`      | `-i` | **是** | —                  | 异常生成指令                                                |
+| `--output`           | `-o` | 否     | `./output`         | 输出目录                                                  |
+| `--anomaly-mode`     | —    | 否     | `dialog`           | 异常模式: `dialog` / `area_loading` / `content_duplicate` |
+| `--gt-category`      | —    | 否     | —                  | GT类别名（启用 meta 驱动生成）                                   |
+| `--gt-sample`        | —    | 否     | —                  | GT样本文件名（与 `--gt-category` 配合）                         |
+| `--gt-dir`           | —    | 否     | 自动检测               | GT模板根目录                                               |
+| `--reference`        | `-r` | 否     | —                  | 参考弹窗图片路径                                              |
+| `--reference-icon`   | —    | 否     | —                  | 参考加载图标路径（area_loading 模式）                             |
+| `--target-component` | —    | 否     | —                  | 目标组件ID（area_loading 模式）                               |
+| `--api-key`          | —    | 否     | `$VLM_API_KEY`     | VLM API 密钥                                            |
+| `--api-url`          | —    | 否     | `$VLM_API_URL`     | VLM API 端点                                            |
+| `--structure-model`  | —    | 否     | `$STRUCTURE_MODEL` | 语义过滤模型                                                |
+| `--vlm-api-url`      | —    | 否     | `$VLM_API_URL`     | 弹窗生成 VLM 端点                                           |
+| `--vlm-model`        | —    | 否     | `$VLM_MODEL`       | 弹窗生成 VLM 模型                                           |
+| `--omni-device`      | —    | 否     | `auto`             | OmniParser 设备                                         |
+| `--no-visualize`     | —    | 否     | `false`            | 禁用中间结果可视化                                             |
+| `--fonts-dir`        | —    | 否     | 系统默认               | 自定义字体目录                                               |
+
 
 ### batch_pipeline.py 参数
 
-| 参数 | 简写 | 必需 | 默认值 | 说明 |
-|------|------|------|--------|------|
-| `--input-dir` | `-i` | **是** | — | 原图目录 |
-| `--gt-category` | `-c` | **是** | — | 异常类别名 |
-| `--output` | `-o` | 否 | `./batch_output` | 输出根目录 |
-| `--gt-dir` | — | 否 | 自动检测 | GT模板根目录 |
-| `--pattern` | — | 否 | `*.jpg` | 文件匹配模式 |
-| `--list-categories` | — | 否 | — | 列出所有异常类别 |
-| `--dry-run` | — | 否 | — | 只打印计划 |
-| `--run` | — | 否 | — | 实际执行（默认为 dry-run） |
-| `--no-visualize` | — | 否 | — | 禁用可视化 |
-| API 相关参数 | — | — | — | 同 run_pipeline.py |
+
+| 参数                  | 简写   | 必需    | 默认值              | 说明                |
+| ------------------- | ---- | ----- | ---------------- | ----------------- |
+| `--input-dir`       | `-i` | **是** | —                | 原图目录              |
+| `--gt-category`     | `-c` | **是** | —                | 异常类别名             |
+| `--output`          | `-o` | 否     | `./batch_output` | 输出根目录             |
+| `--gt-dir`          | —    | 否     | 自动检测             | GT模板根目录           |
+| `--pattern`         | —    | 否     | `*.jpg`          | 文件匹配模式            |
+| `--list-categories` | —    | 否     | —                | 列出所有异常类别          |
+| `--dry-run`         | —    | 否     | —                | 只打印计划             |
+| `--run`             | —    | 否     | —                | 实际执行（默认为 dry-run） |
+| `--no-visualize`    | —    | 否     | —                | 禁用可视化             |
+| API 相关参数            | —    | —     | —                | 同 run_pipeline.py |
+
 
 ---
 
@@ -157,6 +163,7 @@ python batch_pipeline.py --list-categories
 ```
 
 输出示例：
+
 ```
 可用异常类别 (3 个):
 ============================================================
@@ -326,11 +333,13 @@ batch_output/
 
 ## anomaly_mode 与 GT 类别映射
 
-| GT 类别 | meta.json category | 自动映射 anomaly_mode | Stage 3 渲染器 |
-|---------|--------------------|-----------------------|----------------|
-| 弹窗覆盖原UI | `dialog_blocking` | `dialog` | SemanticDialogGenerator / PatchRenderer |
-| 内容歧义、重复 | `content_duplicate` | `content_duplicate` | ContentDuplicateRenderer |
-| loading_timeout | `loading_timeout` | `area_loading` | AreaLoadingRenderer |
+
+| GT 类别           | meta.json category  | 自动映射 anomaly_mode   | Stage 3 渲染器                             |
+| --------------- | ------------------- | ------------------- | --------------------------------------- |
+| 弹窗覆盖原UI         | `dialog_blocking`   | `dialog`            | SemanticDialogGenerator / PatchRenderer |
+| 内容歧义、重复         | `content_duplicate` | `content_duplicate` | ContentDuplicateRenderer                |
+| loading_timeout | `loading_timeout`   | `area_loading`      | AreaLoadingRenderer                     |
+
 
 batch_pipeline.py 会从 meta.json 的 `category` 字段自动推断 `anomaly_mode`，无需手动指定。
 

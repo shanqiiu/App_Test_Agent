@@ -21,16 +21,38 @@ import base64
 import time
 import os
 import requests
+from urllib.parse import urljoin, urlparse
 from pathlib import Path
 from typing import Optional, Tuple, List, Dict, Any
 from PIL import Image, ImageDraw, ImageFont, ImageFilter, ImageChops
 import io
-from urllib.parse import urljoin
+
+try:
+    import dashscope
+    from dashscope import MultiModalConversation
+except ImportError:
+    dashscope = None
+    MultiModalConversation = None
 
 from utils.reference_analyzer import ReferenceAnalyzer, ReferenceStyleApplier
 
 
-# ==================== DashScope 图像生成工具函数 ====================
+# ==================== 图像生成工具函数 ====================
+LOCAL_TEXT2IMAGE_URL = "http://10.85.177.2:8042/generate"
+
+
+def _parse_size_string(size: str, default: Tuple[int, int] = (1024, 1024)) -> Tuple[int, int]:
+    """
+    解析 'width*height' 格式尺寸。
+    """
+    try:
+        w, h = size.split('*')
+        return int(w), int(h)
+    except (AttributeError, ValueError):
+        print(f"  ⚠ 无效的尺寸格式: {size}，使用默认 {default[0]}*{default[1]}")
+        return default
+
+
 def _normalize_size_for_dashscope(width: int, height: int) -> Tuple[int, int]:
     """
     将尺寸规范化到 DashScope qwen-image-max 支持的范围，同时尽量保持宽高比
@@ -86,58 +108,151 @@ def _normalize_size_for_dashscope(width: int, height: int) -> Tuple[int, int]:
     return width, height
 
 
-def _load_image_from_local_result(
-    result: dict,
-    api_url: str,
-    timeout: int
-) -> Optional[Image.Image]:
-    """从本地文生图服务响应中提取图片。"""
+def _save_image_if_needed(image: Image.Image, save_path: Optional[str]) -> None:
+    """
+    按需保存生成结果。
+    """
+    if not save_path:
+        return
+    image.save(save_path)
+    print(f"  ✓ 图片已保存至: {save_path}")
+
+
+def _load_image_from_url(image_url: str) -> Optional[Image.Image]:
+    """
+    从 URL 下载图片。
+    """
+    try:
+        img_response = requests.get(
+            image_url,
+            timeout=60,
+            proxies={"http": None, "https": None},
+        )
+        img_response.raise_for_status()
+        return Image.open(io.BytesIO(img_response.content)).convert('RGBA')
+    except (requests.RequestException, OSError) as exc:
+        print(f"  ⚠ 下载图片失败: {exc}")
+        return None
+
+
+def _load_image_from_local_result(result: Dict[str, Any], api_url: str) -> Optional[Image.Image]:
+    """
+    兼容本地文生图服务常见返回格式。
+    """
     if not isinstance(result, dict):
-        print("  ⚠ 本地图像服务返回格式异常（非 JSON 对象）")
+        print(f"  ⚠ 本地文生图返回格式异常: {type(result)}")
         return None
 
-    # 兼容常见 base64 字段
-    for key in ("image_base64", "base64", "b64"):
-        b64_data = result.get(key)
-        if isinstance(b64_data, str) and b64_data.strip():
+    parsed_api = urlparse(api_url)
+    api_origin = f"{parsed_api.scheme}://{parsed_api.netloc}/" if parsed_api.scheme and parsed_api.netloc else None
+
+    image_ref = result.get("path") or result.get("url") or result.get("image_url")
+    if image_ref:
+        if isinstance(image_ref, str) and image_ref.startswith(("http://", "https://")):
+            return _load_image_from_url(image_ref)
+
+        image_path = Path(image_ref)
+        if image_path.exists():
             try:
-                image_bytes = base64.b64decode(b64_data)
-                return Image.open(io.BytesIO(image_bytes)).convert("RGBA")
-            except Exception as exc:
-                print(f"  ⚠ 解析 base64 图片失败 ({key}): {exc}")
+                return Image.open(image_path).convert('RGBA')
+            except OSError as exc:
+                print(f"  ⚠ 打开本地图片失败: {exc}")
+                return None
 
-    # 兼容常见 URL / path 字段
-    image_ref = None
-    for key in ("path", "image_url", "url", "image"):
-        value = result.get(key)
-        if isinstance(value, str) and value.strip():
-            image_ref = value.strip()
-            break
+        if isinstance(image_ref, str) and image_ref.startswith("/") and api_origin:
+            resolved_url = urljoin(api_origin, image_ref.lstrip("/"))
+            return _load_image_from_url(resolved_url)
 
-    if not image_ref:
-        print("  ⚠ 本地图像服务响应中未找到 path/url/base64 字段")
+        if isinstance(image_ref, str) and api_origin:
+            resolved_url = urljoin(api_origin, image_ref)
+            return _load_image_from_url(resolved_url)
+
+        print(f"  ⚠ 无法解析本地文生图返回路径: {image_ref}")
         return None
 
-    # 本地文件路径（绝对路径）
-    maybe_file = Path(image_ref)
-    if maybe_file.exists() and maybe_file.is_file():
-        return Image.open(maybe_file).convert("RGBA")
+    image_b64 = result.get("image_base64") or result.get("base64")
+    if image_b64:
+        if isinstance(image_b64, str) and "," in image_b64:
+            image_b64 = image_b64.split(",", 1)[1]
+        try:
+            image_bytes = base64.b64decode(image_b64)
+            return Image.open(io.BytesIO(image_bytes)).convert('RGBA')
+        except Exception as exc:
+            print(f"  ⚠ 解析 base64 图片失败: {exc}")
+            return None
 
-    # 相对路径时按 API URL 拼接
-    image_url = image_ref
-    if not image_ref.startswith("http://") and not image_ref.startswith("https://"):
-        image_url = urljoin(api_url.rstrip("/") + "/", image_ref.lstrip("/"))
+    print(f"  ⚠ 本地文生图响应中未找到可用图片字段: {list(result.keys())}")
+    return None
 
-    resp = requests.get(
-        image_url,
-        timeout=timeout,
-        proxies={"http": None, "https": None},
-    )
-    if resp.status_code != 200:
-        print(f"  ⚠ 下载本地服务图片失败: {resp.status_code} {image_url}")
+
+def _generate_image_local_text2image(
+    prompt: str,
+    size: str = '1024*1024',
+    negative_prompt: str = None,
+    save_path: str = None,
+) -> Optional[Image.Image]:
+    """
+    调用本地文生图 HTTP 服务。
+    """
+    api_url = os.getenv("LOCAL_TEXT2IMAGE_URL", LOCAL_TEXT2IMAGE_URL)
+    width, height = _parse_size_string(size)
+
+    steps_raw = os.getenv("LOCAL_TEXT2IMAGE_STEPS", "9")
+    seed_raw = os.getenv("LOCAL_TEXT2IMAGE_SEED", "42")
+    try:
+        steps = int(steps_raw)
+    except ValueError:
+        print(f"  ⚠ LOCAL_TEXT2IMAGE_STEPS 非法: {steps_raw}，回退为 9")
+        steps = 9
+    try:
+        seed = int(seed_raw)
+    except ValueError:
+        print(f"  ⚠ LOCAL_TEXT2IMAGE_SEED 非法: {seed_raw}，回退为 42")
+        seed = 42
+
+    payload = {
+        "prompt": prompt,
+        "height": height,
+        "width": width,
+        "steps": steps,
+        "seed": seed,
+    }
+
+    if negative_prompt:
+        print("  ℹ 本地文生图服务当前未使用 negative_prompt 参数")
+
+    print(f"  ℹ 使用本地文生图服务: {api_url} ({width}x{height}, steps={steps}, seed={seed})")
+
+    try:
+        response = requests.post(
+            api_url,
+            json=payload,
+            timeout=180,
+            proxies={"http": None, "https": None},
+        )
+        response.raise_for_status()
+    except requests.RequestException as exc:
+        print(f"  ⚠ 本地文生图请求失败: {exc}")
         return None
 
-    return Image.open(io.BytesIO(resp.content)).convert("RGBA")
+    content_type = response.headers.get("Content-Type", "").lower()
+    if content_type.startswith("image/"):
+        image = Image.open(io.BytesIO(response.content)).convert('RGBA')
+        _save_image_if_needed(image, save_path)
+        return image
+
+    try:
+        result = response.json()
+    except ValueError as exc:
+        print(f"  ⚠ 本地文生图响应不是合法 JSON: {exc}")
+        return None
+
+    image = _load_image_from_local_result(result, api_url=api_url)
+    if image is None:
+        return None
+
+    _save_image_if_needed(image, save_path)
+    return image
 
 
 def generate_image_dashscope(
@@ -151,139 +266,74 @@ def generate_image_dashscope(
     force_model: str = None
 ) -> Optional[Image.Image]:
     """
-    生成图像（优先本地文生图服务，失败时回退 DashScope）
+    兼容包装层：
+    - 纯文生图：走本地 HTTP 文生图服务
+    - 参考图编辑：走 DashScope MultiModalConversation API
 
-    优先级：
-    1. 若配置了 LOCAL_IMAGE_API_URL，优先调用本地文生图服务
-    2. 若本地服务不可用，回退到 DashScope MultiModalConversation API
+    当提供 reference_image_path 时，使用 qwen-image-edit-max 模型进行图文混合生成，
+    参考图直接传入模型，实现更精准的风格迁移。
+    否则使用本地文生图服务。
 
     Args:
         prompt: 图像描述提示词
-        api_key: DashScope API Key（未显式传入时读取 DASHSCOPE_API_KEY）
-        size: 图像尺寸，格式 'width*height'，会自动规范化到支持范围 [512, 2048]
+        api_key: DashScope API Key（仅编辑模式需要，默认从环境变量 DASHSCOPE_API_KEY 获取）
+        size: 图像尺寸，格式 'width*height'
         negative_prompt: 负面提示词
         save_path: 可选的保存路径
-        prompt_extend: 是否启用提示词扩展（meta驱动生成建议关闭以保持精确控制）
+        prompt_extend: 是否启用提示词扩展（仅 DashScope 编辑模式生效）
         reference_image_path: 参考图片路径（可选），提供后模型可直接看到参考图的视觉风格
-        force_model: 强制指定模型 ('gen'=纯文生图 qwen-image-max, 'edit'=图像编辑 qwen-image-edit-max, None=自动选择)
+        force_model: 强制指定模型 ('gen'=本地纯文生图, 'edit'=DashScope 图像编辑, None=自动选择)
 
     Returns:
         生成的 PIL Image 对象，失败返回 None
     """
-    # 解析尺寸（本地服务与 DashScope 都使用）
-    try:
-        w, h = size.split('*')
-        orig_width, orig_height = int(w), int(h)
-        norm_width, norm_height = _normalize_size_for_dashscope(orig_width, orig_height)
-        if (norm_width, norm_height) != (orig_width, orig_height):
-            print(f"  ℹ 尺寸已调整: {orig_width}*{orig_height} → {norm_width}*{norm_height}")
-        size = f"{norm_width}*{norm_height}"
-    except ValueError:
-        print(f"  ⚠ 无效的尺寸格式: {size}，使用默认 1024*1024")
-        orig_width, orig_height = 1024, 1024
-        size = "1024*1024"
+    has_ref = reference_image_path and Path(reference_image_path).exists()
+    use_local_text2image = force_model == 'gen' or (force_model != 'edit' and not has_ref)
 
-    local_api_url = (os.getenv("LOCAL_IMAGE_API_URL") or "").strip()
-    local_api_steps = int(os.getenv("LOCAL_IMAGE_API_STEPS", "9"))
-    local_api_timeout = int(os.getenv("LOCAL_IMAGE_API_TIMEOUT", "120"))
-    local_api_seed = (os.getenv("LOCAL_IMAGE_API_SEED") or "").strip()
+    if use_local_text2image:
+        if has_ref and force_model == 'gen':
+            print("  ℹ 强制文生图模式，忽略参考图")
+        else:
+            print("  ℹ 纯文生图模式")
+        return _generate_image_local_text2image(
+            prompt=prompt,
+            size=size,
+            negative_prompt=negative_prompt,
+            save_path=save_path,
+        )
 
-    # ===== 优先尝试本地文生图服务 =====
-    if local_api_url:
-        print(f"  ℹ 使用本地图像服务: {local_api_url}")
-        local_payload = {
-            "prompt": prompt,
-            "height": orig_height,
-            "width": orig_width,
-            "steps": local_api_steps,
-        }
-        if negative_prompt:
-            local_payload["negative_prompt"] = negative_prompt
-        if local_api_seed:
-            try:
-                local_payload["seed"] = int(local_api_seed)
-            except ValueError:
-                local_payload["seed"] = local_api_seed
-        if force_model:
-            local_payload["mode"] = force_model
-        if reference_image_path and Path(reference_image_path).exists():
-            local_payload["reference_image_path"] = str(Path(reference_image_path).resolve())
+    if not has_ref:
+        print("  ⚠ 指定 edit 模式但无参考图，回退到本地文生图")
+        return _generate_image_local_text2image(
+            prompt=prompt,
+            size=size,
+            negative_prompt=negative_prompt,
+            save_path=save_path,
+        )
 
-        try:
-            resp = requests.post(
-                local_api_url,
-                json=local_payload,
-                timeout=local_api_timeout,
-                proxies={"http": None, "https": None},
-            )
-            if resp.status_code == 200:
-                result = resp.json()
-                image = _load_image_from_local_result(result, local_api_url, local_api_timeout)
-                if image is not None:
-                    if save_path:
-                        image.save(save_path)
-                        print(f"  ✓ 图片已保存至: {save_path}")
-                    print("  ✓ 本地图像服务生成成功")
-                    return image
-                print("  ⚠ 本地图像服务响应不可解析，回退到 DashScope")
-            else:
-                print(f"  ⚠ 本地图像服务返回错误: {resp.status_code}")
-        except Exception as exc:
-            print(f"  ⚠ 本地图像服务调用失败，回退到 DashScope: {exc}")
+    if MultiModalConversation is None or dashscope is None:
+        print("  ⚠ 未安装 dashscope，无法使用参考图编辑模式")
+        return None
 
-    # ===== 回退到 DashScope =====
+    dashscope.base_http_api_url = 'https://dashscope.aliyuncs.com/api/v1'
+
     if api_key is None:
         api_key = os.getenv("DASHSCOPE_API_KEY")
 
     if not api_key:
-        print("  ⚠ 未提供 DASHSCOPE_API_KEY，且本地图像服务不可用")
+        print("  ⚠ 未提供 DASHSCOPE_API_KEY")
         return None
 
-    try:
-        import dashscope
-        from dashscope import MultiModalConversation
-    except ImportError:
-        print("  ⚠ dashscope 模块未安装，且本地图像服务不可用")
-        return None
+    orig_width, orig_height = _parse_size_string(size)
+    norm_width, norm_height = _normalize_size_for_dashscope(orig_width, orig_height)
+    if (norm_width, norm_height) != (orig_width, orig_height):
+        print(f"  ℹ 尺寸已调整: {orig_width}*{orig_height} → {norm_width}*{norm_height}")
+    size = f"{norm_width}*{norm_height}"
 
-    dashscope.base_http_api_url = os.getenv(
-        "DASHSCOPE_API_URL",
-        "https://dashscope.aliyuncs.com/api/v1",
-    )
-
-    # 根据 force_model 和 reference_image_path 决定模型和消息格式
-    has_ref = reference_image_path and Path(reference_image_path).exists()
-
-    if force_model == 'gen':
-        # 强制纯文生图模式，不传参考图给模型
-        model = "qwen-image-max"
-        messages = [{"role": "user", "content": [{"text": prompt}]}]
-        if has_ref:
-            print(f"  ℹ 强制文生图模式，忽略参考图 (model={model})")
-        else:
-            print(f"  ℹ 文生图模式 (model={model})")
-    elif force_model == 'edit':
-        # 强制图像编辑模式
-        if has_ref:
-            ref_path = str(Path(reference_image_path).resolve())
-            messages = [{"role": "user", "content": [{"image": ref_path}, {"text": prompt}]}]
-            model = "qwen-image-edit-max"
-            print(f"  ℹ 强制图像编辑模式 (model={model})")
-        else:
-            # 无参考图时无法使用编辑模型，fallback 到文生图
-            model = "qwen-image-max"
-            messages = [{"role": "user", "content": [{"text": prompt}]}]
-            print(f"  ⚠ 指定 edit 模式但无参考图，回退到文生图 (model={model})")
-    else:
-        # 自动选择：有参考图用编辑模型，无参考图用文生图
-        if has_ref:
-            ref_path = str(Path(reference_image_path).resolve())
-            messages = [{"role": "user", "content": [{"image": ref_path}, {"text": prompt}]}]
-            model = "qwen-image-edit-max"
-            print(f"  ℹ 使用参考图直接输入模式 (model={model})")
-        else:
-            messages = [{"role": "user", "content": [{"text": prompt}]}]
-            model = "qwen-image-max"
+    ref_path = str(Path(reference_image_path).resolve())
+    messages = [{"role": "user", "content": [{"image": ref_path}, {"text": prompt}]}]
+    model = "qwen-image-edit-max"
+    print(f"  ℹ 图像编辑模式 (model={model})")
 
     # 默认负面提示词（排除非黑色背景、低质量图像、通用品牌相关、关闭按钮）
     # 注意：具体参考图品牌的 negative_prompt 应由调用方通过 negative_prompt 参数传入
@@ -326,24 +376,10 @@ def generate_image_dashscope(
                         image_url = item["image"]
                         print(f"  ✓ 图片生成成功，正在下载...")
 
-                        # 下载图片
-                        img_response = requests.get(
-                            image_url,
-                            timeout=60,
-                            proxies={"http": None, "https": None},
-                        )
-                        if img_response.status_code == 200:
-                            image = Image.open(io.BytesIO(img_response.content)).convert('RGBA')
-
-                            # 保存图片（如果指定了路径）
-                            if save_path:
-                                with open(save_path, "wb") as f:
-                                    f.write(img_response.content)
-                                print(f"  ✓ 图片已保存至: {save_path}")
-
+                        image = _load_image_from_url(image_url)
+                        if image is not None:
+                            _save_image_if_needed(image, save_path)
                             return image
-                        else:
-                            print(f"  ⚠ 下载图片失败，状态码: {img_response.status_code}")
 
                 print("  ⚠ 响应中未找到图片URL")
                 return None
@@ -686,10 +722,10 @@ class SemanticDialogGenerator:
             vlm_api_url: VLM API 端点（用于语义分析）
             vlm_model: VLM 模型名称
             reference_path: 参考弹窗图片路径（用于风格学习）
-            image_model: 图像生成模型选择 ('gen'=纯文生图, 'edit'=图像编辑, None=自动选择)
+            image_model: 图像生成模型选择 ('gen'=本地纯文生图, 'edit'=图像编辑, None=自动选择)
 
         Note:
-            图像生成使用 DashScope API，API Key 从环境变量 DASHSCOPE_API_KEY 获取
+            纯文生图使用本地 HTTP 服务；图像编辑使用 DashScope API
         """
         self.fonts_dir = fonts_dir
         self.api_key = api_key
@@ -1326,7 +1362,7 @@ class SemanticDialogGenerator:
         app_style: str = 'wechat'
     ) -> Optional[Image.Image]:
         """
-        使用 DashScope qwen-image-max 模型生成弹窗图像
+        使用 AI 生成弹窗图像
 
         Args:
             content: 弹窗内容配置
@@ -1347,7 +1383,7 @@ class SemanticDialogGenerator:
         # 构建详细的提示词
         prompt = self._build_ai_prompt(title, message, style, buttons, is_ad, app_style)
 
-        print(f"  正在使用 DashScope AI 生成弹窗 (目标尺寸: {width}x{height})...")
+        print(f"  正在使用 AI 生成弹窗 (目标尺寸: {width}x{height})...")
 
         gen_size = f"{width}*{height}"
 

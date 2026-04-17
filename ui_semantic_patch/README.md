@@ -11,11 +11,13 @@
               YOLO + PaddleOCR + Florence2     合并/过滤/语义分组       多模式专用渲染器
 ```
 
-| 阶段 | 技术 | 输出 |
-|------|------|------|
+
+| 阶段      | 技术                                        | 输出                         |
+| ------- | ----------------------------------------- | -------------------------- |
 | Stage 1 | OmniParser (YOLO + PaddleOCR + Florence2) | `*_stage1_omni_raw_*.json` |
-| Stage 2 | VLM 语义过滤与分组 | `*_stage2_filtered_*.json` |
-| Stage 3 | 模式专用渲染器 | `*_final_*.png` |
+| Stage 2 | VLM 语义过滤与分组                               | `*_stage2_filtered_*.json` |
+| Stage 3 | 模式专用渲染器                                   | `*_final_*.png`            |
+
 
 所有中间结果均保存，便于调试和优化。
 
@@ -170,32 +172,34 @@ bash launch.sh list         # 列出异常类别
         └─────────────────────────────────────┘
 ```
 
-| 层级 | 模块 | 职责 |
-|------|------|------|
-| **主控** | `run_pipeline.py` | 三阶段串联，单图入口 |
-| | `batch_pipeline.py` | 批量执行（原图 × GT 笛卡尔积） |
-| | `injection_pipeline.py` | 注入决策流水线（操作序列分析） |
-| **AI 感知** | `analysis/omni_extractor.py` | OmniParser 本地推理 |
-| | `analysis/omni_vlm_fusion.py` | VLM 语义分组 |
-| | `analysis/gt_bounds.py` | GT 边界框精确提取 |
-| | `analysis/visualize.py` | 检测结果可视化 |
-| **异常渲染** | `renderers/base.py` | 渲染器统一基类 |
-| | `renderers/patch.py` | dialog 弹窗渲染 |
-| | `renderers/area_loading.py` | 区域加载异常 |
-| | `renderers/content_duplicate.py` | 内容重复 |
-| | `renderers/text_overlay.py` | 文字覆盖 + modify_text_ai/ocr/e2e |
-| **注入决策** | `injection/sequence_analyzer.py` | 操作序列语义分析 |
-| | `injection/anomaly_recommender.py` | 异常推荐决策 |
-| | `injection/sequence_rewriter.py` | 序列改写 |
-| | `injection/prompts.py` | VLM 提示词模板 |
-| | `injection/mock_provider.py` | Mock 模式（内网离线测试） |
-| **元数据** | `generators/meta.py` | meta.json 自动生成 |
-| | `generators/filename_descriptions.py` | 文件名描述生成 |
-| **工具库** | `utils/common.py` | 图片编码、JSON 提取 |
-| | `utils/meta_loader.py` | GT 元数据加载 |
-| | `utils/component_position_resolver.py` | 组件定位 |
-| | `utils/semantic_dialog_generator.py` | 弹窗生成器（支持 gen/edit 模型选择） |
-| | `utils/history_manager.py` | 注入历史记录管理 |
+
+| 层级        | 模块                                     | 职责                            |
+| --------- | -------------------------------------- | ----------------------------- |
+| **主控**    | `run_pipeline.py`                      | 三阶段串联，单图入口                    |
+|           | `batch_pipeline.py`                    | 批量执行（原图 × GT 笛卡尔积）            |
+|           | `injection_pipeline.py`                | 注入决策流水线（操作序列分析）               |
+| **AI 感知** | `analysis/omni_extractor.py`           | OmniParser 本地推理               |
+|           | `analysis/omni_vlm_fusion.py`          | VLM 语义分组                      |
+|           | `analysis/gt_bounds.py`                | GT 边界框精确提取                    |
+|           | `analysis/visualize.py`                | 检测结果可视化                       |
+| **异常渲染**  | `renderers/base.py`                    | 渲染器统一基类                       |
+|           | `renderers/patch.py`                   | dialog 弹窗渲染                   |
+|           | `renderers/area_loading.py`            | 区域加载异常                        |
+|           | `renderers/content_duplicate.py`       | 内容重复                          |
+|           | `renderers/text_overlay.py`            | 文字覆盖 + modify_text_ai/ocr/e2e |
+| **注入决策**  | `injection/sequence_analyzer.py`       | 操作序列语义分析                      |
+|           | `injection/anomaly_recommender.py`     | 异常推荐决策                        |
+|           | `injection/sequence_rewriter.py`       | 序列改写                          |
+|           | `injection/prompts.py`                 | VLM 提示词模板                     |
+|           | `injection/mock_provider.py`           | Mock 模式（内网离线测试）               |
+| **元数据**   | `generators/meta.py`                   | meta.json 自动生成                |
+|           | `generators/filename_descriptions.py`  | 文件名描述生成                       |
+| **工具库**   | `utils/common.py`                      | 图片编码、JSON 提取                  |
+|           | `utils/meta_loader.py`                 | GT 元数据加载                      |
+|           | `utils/component_position_resolver.py` | 组件定位                          |
+|           | `utils/semantic_dialog_generator.py`   | 弹窗生成器（支持 gen/edit 模型选择）       |
+|           | `utils/history_manager.py`             | 注入历史记录管理                      |
+
 
 > 详细接口契约与数据流见 [代码手册](../../docs/plans/2026-03-06-code-manual.md)
 
@@ -275,59 +279,67 @@ ui_semantic_patch/
 
 ### run_pipeline.py
 
-| 参数 | 说明 | 默认值 |
-|------|------|--------|
-| `--screenshot, -s` | 原始截图路径 | 必需 |
-| `--instruction, -i` | 异常指令 | 必需 |
-| `--output, -o` | 输出目录 | `./output` |
-| `--anomaly-mode` | `dialog` / `area_loading` / `content_duplicate` / `text_overlay` / `modify_text` / `modify_text_ai` / `modify_text_ocr` / `modify_text_e2e` | `dialog` |
-| `--gt-category` | GT 模板类别 | - |
-| `--gt-sample` | GT 模板样本 | - |
-| `--image-model` | 图像生成模型: `auto` / `gen` / `edit` | `auto` |
-| `--reference, -r` | 参考弹窗图片 | - |
-| `--reference-icon` | 参考加载图标 | - |
-| `--edit-plan` | 文本编辑模式使用预设 Edit Plan JSON | - |
-| `--e2e-full-image` | `modify_text_e2e` 下启用整图端到端编辑 | `False` |
-| `--fonts-dir` | 自定义字体目录 | 系统默认 |
-| `--omni-device` | OmniParser 设备 (`cuda`/`cpu`) | 环境变量 |
-| `--api-key` | VLM API 密钥 | 环境变量 |
+
+| 参数                  | 说明                                                                                                                                          | 默认值        |
+| ------------------- | ------------------------------------------------------------------------------------------------------------------------------------------- | ---------- |
+| `--screenshot, -s`  | 原始截图路径                                                                                                                                      | 必需         |
+| `--instruction, -i` | 异常指令                                                                                                                                        | 必需         |
+| `--output, -o`      | 输出目录                                                                                                                                        | `./output` |
+| `--anomaly-mode`    | `dialog` / `area_loading` / `content_duplicate` / `text_overlay` / `modify_text` / `modify_text_ai` / `modify_text_ocr` / `modify_text_e2e` | `dialog`   |
+| `--gt-category`     | GT 模板类别                                                                                                                                     | -          |
+| `--gt-sample`       | GT 模板样本                                                                                                                                     | -          |
+| `--image-model`     | 图像生成模型: `auto` / `gen` / `edit`                                                                                                             | `auto`     |
+| `--reference, -r`   | 参考弹窗图片                                                                                                                                      | -          |
+| `--reference-icon`  | 参考加载图标                                                                                                                                      | -          |
+| `--edit-plan`       | 文本编辑模式使用预设 Edit Plan JSON                                                                                                                   | -          |
+| `--e2e-full-image`  | `modify_text_e2e` 下启用整图端到端编辑                                                                                                                | `False`    |
+| `--fonts-dir`       | 自定义字体目录                                                                                                                                     | 系统默认       |
+| `--omni-device`     | OmniParser 设备 (`cuda`/`cpu`)                                                                                                                | 环境变量       |
+| `--api-key`         | VLM API 密钥                                                                                                                                  | 环境变量       |
+
 
 ### injection_pipeline.py
 
-| 参数 | 说明 | 默认值 |
-|------|------|--------|
-| `--input-dir` | 输入目录（含 `task.json` + `screenshots/`） | 必需 |
-| `--output-dir` | 输出目录 | 必需 |
-| `--interactive` / `--no-interactive` | 是否启用用户确认 | True |
-| `--mock` | Mock 模式（跳过图像生成） | False |
-| `--mock-config` | Mock 配置文件路径 | 内置默认 |
-| `--max-history` | 最大历史步数 | 10 |
-| `--min-steps` | 最少分析步数后才考虑注入 | 2 |
+
+| 参数                                   | 说明                                   | 默认值   |
+| ------------------------------------ | ------------------------------------ | ----- |
+| `--input-dir`                        | 输入目录（含 `task.json` + `screenshots/`） | 必需    |
+| `--output-dir`                       | 输出目录                                 | 必需    |
+| `--interactive` / `--no-interactive` | 是否启用用户确认                             | True  |
+| `--mock`                             | Mock 模式（跳过图像生成）                      | False |
+| `--mock-config`                      | Mock 配置文件路径                          | 内置默认  |
+| `--max-history`                      | 最大历史步数                               | 10    |
+| `--min-steps`                        | 最少分析步数后才考虑注入                         | 2     |
+
 
 ---
 
 ## 输出文件说明
 
-| 文件模式 | 说明 | 生成阶段 |
-|---------|------|--------|
+
+| 文件模式                       | 说明              | 生成阶段    |
+| -------------------------- | --------------- | ------- |
 | `*_stage1_omni_raw_*.json` | OmniParser 原始检测 | Stage 1 |
-| `*_stage1_annotated_*.png` | Stage 1 可视化 | Stage 1 |
-| `*_stage2_filtered_*.json` | VLM 语义过滤后 | Stage 2 |
-| `*_stage2_annotated_*.png` | Stage 2 可视化 | Stage 2 |
-| `diff_*.png` | 编辑像素差异可视化 | Stage 3 |
-| `edit_plan_*.json` | 文本编辑执行计划 | Stage 3 |
-| `*_final_*.png` | 最终异常截图 | Stage 3 |
-| `*_pipeline_meta_*.json` | 流水线元数据 | 完成时 |
+| `*_stage1_annotated_*.png` | Stage 1 可视化     | Stage 1 |
+| `*_stage2_filtered_*.json` | VLM 语义过滤后       | Stage 2 |
+| `*_stage2_annotated_*.png` | Stage 2 可视化     | Stage 2 |
+| `diff_*.png`               | 编辑像素差异可视化       | Stage 3 |
+| `edit_plan_*.json`         | 文本编辑执行计划        | Stage 3 |
+| `*_final_*.png`            | 最终异常截图          | Stage 3 |
+| `*_pipeline_meta_*.json`   | 流水线元数据          | 完成时     |
+
 
 ---
 
 ## 实施路线
 
 ### Phase 1 - POC ✅
+
 - OmniParser + VLM 融合模式
 - 语义感知弹窗生成、参考图风格学习
 
 ### Phase 2 - 工具链 ✅
+
 - 基础四种模式（dialog / area_loading / content_duplicate / text_overlay）+ 文字编辑系列（`modify_text*`）
 - GT 模板驱动、批量生成、一键启动
 - 架构重构：analysis / renderers / generators / injection 子包
@@ -336,9 +348,10 @@ ui_semantic_patch/
 - 测试指令批量生成
 
 ### Phase 3 - 待实施
-- [ ] ControlNet 精细控制
-- [ ] 样式库（Style-Library）
-- [ ] 闭环验证与微调
+
+- ControlNet 精细控制
+- 样式库（Style-Library）
+- 闭环验证与微调
 
 ---
 
@@ -353,29 +366,35 @@ ui_semantic_patch/
 
 ### 融合模式解决了什么？
 
-| 问题 | 说明 | 解决方案 |
-|------|------|----------|
+
+| 问题    | 说明            | 解决方案              |
+| ----- | ------------- | ----------------- |
 | 海报内文字 | YOLO 检测海报装饰文字 | VLM 合并为 ImageView |
-| 卡片内元素 | 多个元素被分别检测 | VLM 合并为 Card |
-| 重复检测 | OCR 和 YOLO 重复 | VLM 去重 |
+| 卡片内元素 | 多个元素被分别检测     | VLM 合并为 Card      |
+| 重复检测  | OCR 和 YOLO 重复 | VLM 去重            |
+
 
 ### 图像生成模型选择
 
-| 模式 | 模型 | 适用场景 |
-|------|------|----------|
-| `gen` | qwen-image-max | 全新弹窗生成，无需参考图 |
-| `edit` | qwen-image-edit-max | 基于参考图编辑，保留原图风格 |
-| `auto` | 自动判断 | 根据是否有参考图自动选择最优方案 |
+
+| 模式     | 模型                  | 适用场景             |
+| ------ | ------------------- | ---------------- |
+| `gen`  | qwen-image-max      | 全新弹窗生成，无需参考图     |
+| `edit` | qwen-image-edit-max | 基于参考图编辑，保留原图风格   |
+| `auto` | 自动判断                | 根据是否有参考图自动选择最优方案 |
+
 
 ---
 
 ### 细粒度编辑模式建议
 
-| 场景 | 推荐模式 | 说明 |
-|------|----------|------|
-| 结构稳定、组件可定位 | `modify_text_ai` / `modify_text_ocr` | 依赖检测与分组，局部可控性更强 |
-| 细粒度文本且检测难覆盖 | `modify_text_e2e --e2e-full-image` | 跳过检测/分组，直接整图端到端编辑 |
-| 希望降低整图重绘风险 | `modify_text_e2e`（不加 `--e2e-full-image`） | 指令驱动粗裁剪后编辑并贴回 |
+
+| 场景          | 推荐模式                                     | 说明                |
+| ----------- | ---------------------------------------- | ----------------- |
+| 结构稳定、组件可定位  | `modify_text_ai` / `modify_text_ocr`     | 依赖检测与分组，局部可控性更强   |
+| 细粒度文本且检测难覆盖 | `modify_text_e2e --e2e-full-image`       | 跳过检测/分组，直接整图端到端编辑 |
+| 希望降低整图重绘风险  | `modify_text_e2e`（不加 `--e2e-full-image`） | 指令驱动粗裁剪后编辑并贴回     |
+
 
 ---
 

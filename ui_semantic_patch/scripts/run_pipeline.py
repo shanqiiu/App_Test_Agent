@@ -298,7 +298,7 @@ def run_pipeline(
         target_component: 目标组件ID（仅area_loading模式使用）
         gt_category: GT模板类别（如"弹窗覆盖原UI"），启用meta驱动生成
         gt_sample: GT模板样本名（如"弹出广告.jpg"），与gt_category配合使用
-        image_model: 图像生成模型选择 ('gen'=纯文生图, 'edit'=图像编辑, None=自动选择)
+        image_model: 图像生成模型选择 ('gen'=本地纯文生图, 'edit'=图像编辑, None=自动选择)
         edit_plan_path: 文本覆盖模式下的自定义 edit_plan JSON（跳过 VLM 规划）
         e2e_full_image: modify_text_e2e 模式下是否强制整图编辑（默认 False=粗裁剪区域编辑）
 
@@ -306,9 +306,9 @@ def run_pipeline(
         包含所有输出路径的字典
 
     Note:
-        - dialog 模式：使用 semantic_ai 渲染模式（DashScope AI 图像生成）
+        - dialog 模式：使用 semantic_ai 渲染模式（gen=本地文生图，edit=DashScope 图像编辑）
         - area_loading 模式：在指定区域中心覆盖加载图标
-        - AI 图像生成 API Key 从环境变量 DASHSCOPE_API_KEY 获取
+        - 图像编辑 API Key 从环境变量 DASHSCOPE_API_KEY 获取
         - 当指定 gt_category 和 gt_sample 时，启用 meta.json 驱动的精准语义生成
     """
     timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
@@ -785,7 +785,7 @@ Auto-Meta 模式示例（推荐！无需预先生成 meta.json）:
                         help='GT模板样本名，如"弹出广告.jpg"（与--gt-category配合使用）')
     parser.add_argument('--image-model', choices=['auto', 'edit', 'gen'],
                         default='auto',
-                        help='图像生成模型: auto=自动选择(默认), gen=纯文生图(qwen-image-max), edit=图像编辑(qwen-image-edit-max)')
+                        help='图像生成模型: auto=自动选择(默认), gen=本地纯文生图, edit=图像编辑(qwen-image-edit-max)')
     parser.add_argument('--edit-plan',
                         help='文本覆盖/modify_text 模式使用的 Edit Plan JSON（跳过 VLM 规划）')
     parser.add_argument('--e2e-full-image', action='store_true',

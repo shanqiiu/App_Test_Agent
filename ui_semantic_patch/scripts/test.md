@@ -1,5 +1,5 @@
  python run_pipeline.py --screenshot ../data/原图/影视剧集类-内容歧义、重复/腾讯视频.jpg --instruction "页面底部弹出选集弹窗" --anomaly-mode=dialog_blocking --gt-category "内容歧义、重复" --gt-sample "部分信息重复.jpg" --output ./output/页面底部弹出选集弹窗
- 
+
 python run_pipeline.py --screenshot "../data/原图/个人主页类-控件点击弹窗/抖音原图01.jpg" --instruction " 作品控件下方有列表弹窗 内容为最热、最新" --gt-category "弹窗覆盖原UI" --gt-sample "弹出提示.jpg" --output ./output/作品控件下方有列表弹窗内容为最热、最新 --anomaly-mode dialog
 
 python run_pipeline.py --screenshot "../data/原图/app首页类-开屏广告弹窗/携程旅行01.jpg" --instruction "开启微信、支付宝提示通知的弹窗" --gt-category "弹窗覆盖原UI" --gt-sample "关闭按钮干扰.jpg" --output ./output/开启微信、支付宝提示通知的弹窗 --anomaly-mode dialog
@@ -17,5 +17,6 @@ python run_pipeline.py --screenshot "../data/原图/app首页类-开屏广告弹
 python run_pipeline.py --screenshot "../data/原图/app首页类-开屏广告弹窗/02.jpg" --instruction "携程开屏优惠广告（新人特惠满减）的弹窗" --gt-category "弹窗覆盖原UI" --gt-sample "携程开屏优惠广告.jpg" --output ./output/开启微信、支付宝提示通知的弹窗 --anomaly-mode dialog
 
 ---
+
 **最后更新**: 2026-03-26
 **文档同步**: 示例命令的权威说明见仓库根目录 [Claude.md](../../../Claude.md)。
