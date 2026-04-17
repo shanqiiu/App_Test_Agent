@@ -49,6 +49,35 @@ cp .env.example .env                                          # 填写 VLM_API_K
 pip install -r ui_semantic_patch/requirements.txt  # 安装核心依赖
 ```
 
+### 1.1 `omn` Conda 环境恢复（已导出）
+
+仓库已提供 `omn` 环境快照文件（根目录）：
+
+- `omn.environment.yml`：Conda 环境导出（推荐）
+- `omn.pip-freeze.txt`：pip 冻结快照（兜底）
+
+推荐恢复方式：
+
+```bash
+conda env create -f omn.environment.yml
+conda activate omn
+```
+
+如需快速验证 OmniParser 环境：
+
+```bash
+cd prototypes/ui_semantic_patch/third_party/OmniParser
+python omni_inference.py --image 05.jpg --output results/
+```
+
+若遇到 conda 解析冲突，可使用 pip 快照兜底：
+
+```bash
+conda create -n omn python=3.12 -y
+conda activate omn
+python -m pip install -r omn.pip-freeze.txt
+```
+
 ### 2. 运行示例
 
 ```bash
