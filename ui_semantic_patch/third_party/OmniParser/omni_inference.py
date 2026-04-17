@@ -80,7 +80,7 @@ class OmniParser:
         self.yolo_model = get_yolo_model(yolo_model_path)
         self.yolo_model.to(device)
 
-        # 加载 Caption 模型
+        # 严格模式：Caption 模型必须可用，否则直接抛错
         self.caption_model_processor = get_caption_model_processor(
             model_name=caption_model_name,
             model_name_or_path=caption_model_path,
