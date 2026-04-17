@@ -1,6 +1,7 @@
 import base64
 import io
 from typing import Any, Dict, List, Literal, Optional, Tuple, Union
+from pathlib import Path
 
 import cv2
 import easyocr
@@ -23,6 +24,7 @@ easyocr.Reader(["en"])
 
 class EndpointHandler:
     def __init__(self, model_dir: str = "/repository") -> None:
+        model_dir = str(Path(model_dir).resolve())
         self.device = (
             torch.device("cuda") if torch.cuda.is_available()
             else (torch.device("mps") if torch.backends.mps.is_available()
@@ -34,12 +36,15 @@ class EndpointHandler:
 
         # captioning model
         self.processor = AutoProcessor.from_pretrained(
-            "microsoft/Florence-2-base", trust_remote_code=True
+            f"{model_dir}/icon_caption_florence",
+            trust_remote_code=True,
+            local_files_only=True,
         )
         self.model = AutoModelForCausalLM.from_pretrained(
-            f"{model_dir}/icon_caption",
+            f"{model_dir}/icon_caption_florence",
             torch_dtype=torch.float16,
             trust_remote_code=True,
+            local_files_only=True,
         ).to(self.device)
 
         # ocr

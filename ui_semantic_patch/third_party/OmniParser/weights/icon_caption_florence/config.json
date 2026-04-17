@@ -1,11 +1,11 @@
 {
-  "_name_or_path": "microsoft/Florence-2-base-ft",
+  "_name_or_path": "icon_caption_florence",
   "architectures": [
     "Florence2ForConditionalGeneration"
   ],
   "auto_map": {
-    "AutoConfig": "microsoft/Florence-2-base-ft--configuration_florence2.Florence2Config",
-    "AutoModelForCausalLM": "microsoft/Florence-2-base-ft--modeling_florence2.Florence2ForConditionalGeneration"
+    "AutoConfig": "configuration_florence2.Florence2Config",
+    "AutoModelForCausalLM": "modeling_florence2.Florence2ForConditionalGeneration"
   },
   "bos_token_id": 2,
   "eos_token_id": 1,

@@ -1,23 +1,29 @@
-# Core
-torch
-torchvision
+# ================= Core =================
+torch==2.2.0
+torchvision==0.17.0  # 必须与 torch 2.2.0 严格对应
 
-# OCR
-easyocr
-paddlepaddle
-paddleocr
+# ================= OCR (固定官方兼容矩阵) =================
+paddlepaddle==2.6.2
+paddleocr==2.7.3
 
-# Object Detection
-ultralytics>=8.3.0
-
-# Vision Models
-transformers
-accelerate
+# ================= Vision & HF =================
+transformers==4.38.2
+accelerate==0.29.3   # 与 transformers 4.38.2 官方兼容
 timm
-einops>=0.8.0
+einops
 
-# Image Processing
-numpy>=1.26.0
-opencv-python
-Pillow
-supervision>=0.18.0
+# ================= Detection & Vis =================
+ultralytics==8.2.10  # 锁定兼容 torch 2.2.0 的版本
+supervision
+
+# ================= Image Processing =================
+numpy==1.26.4     # <2.0.0 安全线
+opencv-python-headless
+pillow
+
+
+
+# ================= Cloud & Engineering =================
+dashscope
+requests
+python-dotenv

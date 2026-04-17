@@ -21,6 +21,11 @@ from pathlib import Path
 from typing import Union, List, Dict, Optional
 from dataclasses import dataclass, asdict
 
+# 默认启用 HuggingFace 离线模式（若外部已设置则尊重外部值）
+os.environ.setdefault("HF_HUB_OFFLINE", "1")
+os.environ.setdefault("TRANSFORMERS_OFFLINE", "1")
+os.environ.setdefault("HF_DATASETS_OFFLINE", "1")
+
 import torch
 from PIL import Image
 
@@ -54,6 +59,8 @@ class ParseResult:
 class OmniParser:
     """OmniParser 端到端推理类"""
 
+    _ROOT = Path(__file__).resolve().parent
+
     def __init__(
         self,
         yolo_model_path: str = 'weights/icon_detect/model.pt',
@@ -73,6 +80,8 @@ class OmniParser:
         if device is None:
             device = 'cuda' if torch.cuda.is_available() else 'cpu'
         self.device = device
+        yolo_model_path = self._resolve_path(yolo_model_path)
+        caption_model_path = self._resolve_path(caption_model_path)
 
         print(f"[OmniParser] Loading models on {device}...")
 
@@ -88,6 +97,13 @@ class OmniParser:
         )
 
         print("[OmniParser] Models loaded successfully.")
+
+    @classmethod
+    def _resolve_path(cls, path: str) -> str:
+        resolved = Path(path)
+        if not resolved.is_absolute():
+            resolved = cls._ROOT / resolved
+        return str(resolved.resolve())
 
     def parse(
         self,
