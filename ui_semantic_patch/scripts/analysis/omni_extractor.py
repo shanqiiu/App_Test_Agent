@@ -10,7 +10,7 @@ omni_extractor.py - 基于 OmniParser 的 UI 结构提取
 - Florence2 图标描述更准确
 - 支持 GPU 加速
 """
-
+import os
 import sys
 import json
 from pathlib import Path
@@ -43,20 +43,32 @@ def omni_to_ui_json(
     image_path: str,
     box_threshold: float = 0.05,
     iou_threshold: float = 0.7,
-    use_paddleocr: bool = True,
+    use_paddleocr: Optional[bool] = None,
     device: str = None,
-    return_annotated_image: bool = False
+    return_annotated_image: bool = False,
+    offline_mode: bool = False  # 新增参数：离线模式（禁用 Florence-2）
 ) -> dict:
     """
     使用 OmniParser 从截图提取 UI 结构，输出 UI-JSON 格式
 
+    OCR 引擎选择策略（按优先级）：
+    1. 环境变量 OCR_ENGINE：
+       - 'paddle' → 使用 PaddleOCR（默认推荐，中文效果好）
+       - 'easy' → 使用 EasyOCR（英文为主）
+       - 'auto' → 尝试 PaddleOCR，失败回退 EasyOCR
+    2. 参数 use_paddleocr:
+       - True → 使用 PaddleOCR
+       - False → 使用 EasyOCR
+       - None (默认) → 根据环境变量决定
+    
     Args:
         image_path: 截图路径
         box_threshold: 检测置信度阈值
         iou_threshold: IOU 重叠过滤阈值
-        use_paddleocr: 是否使用 PaddleOCR
+        use_paddleocr: 是否使用 PaddleOCR (True/False) 或 None（使用环境变量配置）
         device: 运行设备 ('cuda' / 'cpu')
         return_annotated_image: 是否返回可视化图片
+        offline_mode: 是否启用离线模式（禁用需要 HuggingFace 的 Florence-2 模型）
 
     Returns:
         UI-JSON 格式的字典，若 return_annotated_image=True 则包含 'annotated_image' 键
@@ -65,6 +77,15 @@ def omni_to_ui_json(
     with Image.open(image_path) as img:
         width, height = img.size
 
+    # 确定 OCR 引擎
+    if use_paddleocr is None:
+        # 使用环境变量配置
+        default_engine = os.environ.get('OCR_ENGINE', 'auto').lower()
+        use_paddleocr = (default_engine == 'paddle') or (default_engine == 'auto')
+
+    # 确定是否使用语义（离线模式禁用）
+    use_local_semantics = not offline_mode
+
     # 获取 OmniParser 实例并解析
     parser = get_omni_parser(device)
     result = parser.parse(
@@ -72,7 +93,7 @@ def omni_to_ui_json(
         box_threshold=box_threshold,
         iou_threshold=iou_threshold,
         use_paddleocr=use_paddleocr,
-        use_local_semantics=True,
+        use_local_semantics=use_local_semantics,
         return_annotated_image=return_annotated_image
     )
 
