@@ -15,12 +15,23 @@ omni_vlm_fusion.py - OmniParser + VLM 融合提取
 
 import sys
 import json
+import os
 import requests
 import time
 from pathlib import Path
 from datetime import datetime
 from typing import List, Dict
 from PIL import Image
+
+# 自动加载项目根目录的 .env 文件（从 scripts 目录向上查找）
+try:
+    from dotenv import load_dotenv
+    env_path = Path(__file__).resolve().parents[2] / '.env'
+    if env_path.exists():
+        load_dotenv(env_path)
+except ImportError:
+    pass  # python-dotenv 未安装，使用系统环境变量
+
 
 from utils.common import encode_image, get_mime_type, extract_json
 
@@ -108,9 +119,10 @@ def _call_vlm_with_retry(
         解析后的 JSON 字典
     """
     headers = {
-        'Content-Type': 'application/json',
-        'Authorization': f'Bearer {api_key}'
+        'Content-Type': 'application/json'
     }
+    if api_key and api_key != 'not-needed':
+        headers['Authorization'] = f'Bearer {api_key}'
 
     base_wait = 5
     last_error = None
@@ -210,19 +222,17 @@ def call_vlm_for_grouping(
     payload = {
         'model': model,
         'messages': [
-            {'role': 'system', 'content': GROUPING_PROMPT},
             {
                 'role': 'user',
                 'content': [
+                    {'type': 'text', 'text': user_prompt},
                     {
                         'type': 'image_url',
                         'image_url': {'url': f'data:{mime_type};base64,{image_base64}'}
-                    },
-                    {'type': 'text', 'text': user_prompt}
+                    }
                 ]
             }
         ],
-        'temperature': 0.1,
         'max_tokens': 4096
     }
 
@@ -462,9 +472,9 @@ def _post_merge_adjacent_listitems(
 
 def omni_vlm_fusion(
     image_path: str,
-    api_key: str,
-    api_url: str = 'https://api.openai-next.com/v1/chat/completions',
-    vlm_model: str = 'gpt-4o',
+    api_key: str = None,
+    api_url: str = None,
+    vlm_model: str = None,
     omni_device: str = None,
     box_threshold: float = 0.05,
     iou_threshold: float = 0.7,
@@ -491,6 +501,14 @@ def omni_vlm_fusion(
     Returns:
         语义正确的 UI-JSON
     """
+    # 使用环境变量作为默认值
+    if not api_key:
+        api_key = os.getenv('VLM_API_KEY', '')
+    if not api_url:
+        api_url = os.getenv('VLM_API_URL', 'https://api.openai-next.com/v1/chat/completions')
+    if not vlm_model:
+        vlm_model = os.getenv('VLM_MODEL', 'qwen35-35b-vl')
+
     # 获取图片信息
     with Image.open(image_path) as img:
         width, height = img.size
@@ -525,6 +543,13 @@ def omni_vlm_fusion(
             omni_components=omni_components,
             max_retries=3
         )
+
+        # 调试：打印 VLM 返回结果的类型和内容摘要
+        print(f"  [DEBUG] grouping_result 类型：{type(grouping_result)}")
+        if isinstance(grouping_result, dict):
+            print(f"  [DEBUG] grouping_result 键：{list(grouping_result.keys())}")
+        elif isinstance(grouping_result, list):
+            print(f"  [DEBUG] grouping_result 长度：{len(grouping_result)}")
 
         groups = grouping_result.get('groups', [])
         print(f"  ✓ VLM 返回 {len(groups)} 个分组")
@@ -613,10 +638,10 @@ def main():
     parser.add_argument('--api-key', required=True,
                         help='VLM API 密钥')
     parser.add_argument('--api-url',
-                        default='https://api.openai-next.com/v1/chat/completions',
+                        default=os.getenv('VLM_API_URL', 'https://api.openai-next.com/v1/chat/completions'),
                         help='VLM API 端点')
     parser.add_argument('--vlm-model',
-                        default='gpt-4o',
+                        default=os.getenv('VLM_MODEL', 'qwen35-35b-vl'),
                         help='VLM 模型名称')
     parser.add_argument('--omni-device',
                         help='OmniParser 运行设备 (cuda/cpu)')
