@@ -1,14 +1,14 @@
 import io
-import os
 import base64
 import time
+import os
 from pathlib import Path
-from typing import Optional, TYPE_CHECKING
 
 import cv2
 import numpy as np
 import torch
 import easyocr
+from paddleocr import PaddleOCR
 from PIL import Image
 from typing import Tuple, List, Union
 from torchvision.ops import box_convert
@@ -18,243 +18,137 @@ import supervision as sv
 
 from util.box_annotator import BoxAnnotator
 
-# PaddleOCR/PaddleX 离线场景配置：
-# - 优先使用 third_party/.paddlex 作为本地缓存目录（若存在）
-# - 关闭模型源连通性检查，避免内网环境启动失败
-_THIRD_PARTY_ROOT = Path(__file__).resolve().parents[2]
-_LOCAL_PDX_CACHE = _THIRD_PARTY_ROOT / ".paddlex"
-if "PADDLE_PDX_CACHE_HOME" not in os.environ and _LOCAL_PDX_CACHE.exists():
-    os.environ["PADDLE_PDX_CACHE_HOME"] = str(_LOCAL_PDX_CACHE)
-os.environ.setdefault("PADDLE_PDX_DISABLE_MODEL_SOURCE_CHECK", "True")
-
-if TYPE_CHECKING:
-    from paddleocr import PaddleOCR
-
 # 检测 GPU 可用性
 _use_gpu = torch.cuda.is_available()
 
-# OCR 引擎实例（懒加载，避免 import omni_inference 时触发重型初始化）
-reader = None
+_OMNIPARSER_ROOT = Path(__file__).resolve().parents[1]
+_OCR_ROOT = _OMNIPARSER_ROOT / "weights" / "ocr"
+_EASYOCR_MODEL_DIR = _OCR_ROOT / "easyocr" / "model"
+_EASYOCR_USER_NETWORK_DIR = _OCR_ROOT / "easyocr" / "user_network"
+_PADDLE_DET_MODEL_DIR = _OCR_ROOT / "paddle" / "det" / "en_PP-OCRv3_det_infer"
+_PADDLE_REC_MODEL_DIR = _OCR_ROOT / "paddle" / "rec" / "en_PP-OCRv4_rec_infer"
+_PADDLE_CLS_MODEL_DIR = _OCR_ROOT / "paddle" / "cls" / "ch_ppocr_mobile_v2.0_cls_infer"
+_ALLOW_OCR_DOWNLOAD = os.environ.get("OMNIPARSER_ALLOW_OCR_DOWNLOAD", "0") == "1"
+
+_reader = None
+_paddle_ocr = None
 
 
-def _resolve_paddle_model_root() -> Optional[Path]:
-    """解析 PaddleOCR 本地模型根目录（含 det/rec 子目录）。"""
-    candidates = []
-    explicit_root = os.environ.get("PADDLE_OCR_MODEL_ROOT")
-    if explicit_root:
-        candidates.append(Path(explicit_root))
-
-    if "PADDLE_PDX_CACHE_HOME" in os.environ:
-        candidates.append(Path(os.environ["PADDLE_PDX_CACHE_HOME"]) / "official_models")
-
-    candidates.append(_THIRD_PARTY_ROOT / ".paddlex" / "official_models")
-    candidates.append(Path.home() / ".paddlex" / "official_models")
-
-    for path in candidates:
-        if path.exists() and path.is_dir():
-            return path
-    return None
-
-
-def _resolve_model_dir(model_root: Path, preferred_names: list[str]) -> Optional[Path]:
-    """按优先级匹配模型目录，不存在则尝试关键字兜底。"""
-    for name in preferred_names:
-        candidate = model_root / name
-        if candidate.exists() and candidate.is_dir():
-            return candidate
-
-    # 兜底：按关键字匹配第一个目录
-    all_subdirs = [p for p in model_root.iterdir() if p.is_dir()]
-    for name in preferred_names:
-        token = name.lower()
-        for subdir in all_subdirs:
-            if token in subdir.name.lower():
-                return subdir
-    return None
-
-
-def _init_paddle_ocr() -> Optional["PaddleOCR"]:
-    """
-    初始化 PaddleOCR。
-
-    优先使用本地 det/rec 模型目录，避免触发在线下载。
-    若本地目录不完整或初始化失败，返回 None（后续自动回退 EasyOCR）。
-    """
-    print("[INFO] _init_paddle_ocr entered")
-    kwargs = {
-        "lang": "en",
-        "use_angle_cls": False,
-        "use_gpu": _use_gpu,
-        "show_log": False,
-    }
-
-    model_root = _resolve_paddle_model_root()
-    if model_root:
-        det_dir = _resolve_model_dir(
-            model_root,
-            [
-                "PP-OCRv5_server_det",
-                "en_PP-OCRv5_server_det",
-                "en_PP-OCRv4_det",
-            ],
+def _require_paths_exist(paths: List[Path], message_prefix: str):
+    missing = [str(p) for p in paths if not p.exists()]
+    if missing:
+        raise FileNotFoundError(
+            f"{message_prefix} missing local OCR assets:\n"
+            + "\n".join(f"  - {p}" for p in missing)
+            + "\nSet OMNIPARSER_ALLOW_OCR_DOWNLOAD=1 to allow auto-download."
         )
-        rec_dir = _resolve_model_dir(
-            model_root,
-            [
-                "en_PP-OCRv5_mobile_rec",
-                "PP-OCRv5_mobile_rec",
-                "en_PP-OCRv4_rec",
-            ],
-        )
-
-        if det_dir and rec_dir:
-            det_dir_str = str(det_dir)
-            rec_dir_str = str(rec_dir)
-
-            # 兼容不同 PaddleOCR 版本参数名：
-            # - 旧版常用: det_model_dir / rec_model_dir
-            # - 新版 Pipeline 风格: text_detection_model_dir / text_recognition_model_dir
-            kwargs["det_model_dir"] = det_dir_str
-            kwargs["rec_model_dir"] = rec_dir_str
-            kwargs["text_detection_model_dir"] = det_dir_str
-            kwargs["text_recognition_model_dir"] = rec_dir_str
-
-            print(
-                "[INFO] PaddleOCR 本地模型参数已注入: "
-                f"det={det_dir_str}, rec={rec_dir_str}"
-            )
-        else:
-            print(
-                "[WARN] 本地 PaddleOCR 模型目录不完整，"
-                f"model_root={model_root}，det={det_dir}, rec={rec_dir}。将回退 EasyOCR。"
-            )
-            return None
-    else:
-        print("[WARN] 未找到本地 PaddleOCR 模型根目录，将回退 EasyOCR。")
-        return None
-
-    # 显式设置强制回退开关，便于快速定位线上环境问题
-    if os.environ.get("PADDLE_OCR_FORCE_EASYOCR", "").lower() in {"1", "true", "yes"}:
-        print("[WARN] PADDLE_OCR_FORCE_EASYOCR 已启用，跳过 PaddleOCR，使用 EasyOCR。")
-        return None
-
-    # 延迟导入，避免在模块导入阶段触发 PaddleOCR 内部副作用
-    try:
-        from paddleocr import PaddleOCR  # type: ignore
-    except Exception as e:
-        print(f"[WARN] 导入 PaddleOCR 失败: {e}，将回退 EasyOCR。")
-        return None
-
-    # 逐步尝试参数组合，兼容不同版本 PaddleOCR 构造参数
-    attempt_kwargs = []
-    # 尝试 1：完整参数集（新旧参数一起给）
-    attempt_kwargs.append(dict(kwargs))
-    # 尝试 2：仅旧参数
-    kw_legacy = dict(kwargs)
-    kw_legacy.pop("text_detection_model_dir", None)
-    kw_legacy.pop("text_recognition_model_dir", None)
-    attempt_kwargs.append(kw_legacy)
-    # 尝试 3：仅新参数
-    kw_modern = dict(kwargs)
-    kw_modern.pop("det_model_dir", None)
-    kw_modern.pop("rec_model_dir", None)
-    attempt_kwargs.append(kw_modern)
-
-    last_err: Optional[Exception] = None
-    for idx, kw in enumerate(attempt_kwargs, 1):
-        try:
-            print(f"[INFO] 尝试初始化 PaddleOCR（方案 {idx}）")
-            return PaddleOCR(**kw)
-        except TypeError as e:
-            last_err = e
-            print(f"[WARN] PaddleOCR 参数不兼容（方案 {idx}）: {e}")
-            continue
-        except Exception as e:
-            last_err = e
-            print(f"[WARN] PaddleOCR 初始化失败（方案 {idx}）: {e}")
-            continue
-
-    print(f"[WARN] PaddleOCR 全部初始化方案失败: {last_err}，将回退 EasyOCR。")
-    return None
-
-
-paddle_ocr = None
 
 
 def _get_easyocr_reader():
-    """懒加载 EasyOCR reader。"""
-    global reader
-    if reader is None:
-        print("[INFO] 初始化 EasyOCR reader...")
-        reader = easyocr.Reader(['en'], gpu=_use_gpu)
-    return reader
+    global _reader
+    if _reader is not None:
+        return _reader
+
+    if _ALLOW_OCR_DOWNLOAD:
+        _reader = easyocr.Reader(['en'], gpu=_use_gpu)
+        return _reader
+
+    _require_paths_exist(
+        [
+            _EASYOCR_MODEL_DIR / "craft_mlt_25k.pth",
+            _EASYOCR_MODEL_DIR / "english_g2.pth",
+        ],
+        "[EasyOCR]",
+    )
+    _EASYOCR_USER_NETWORK_DIR.mkdir(parents=True, exist_ok=True)
+    _reader = easyocr.Reader(
+        ['en'],
+        gpu=_use_gpu,
+        model_storage_directory=str(_EASYOCR_MODEL_DIR),
+        user_network_directory=str(_EASYOCR_USER_NETWORK_DIR),
+        download_enabled=False,
+    )
+    return _reader
 
 
 def _get_paddle_ocr():
-    """懒加载 PaddleOCR。"""
-    global paddle_ocr
-    if paddle_ocr is None:
-        paddle_ocr = _init_paddle_ocr()
-    return paddle_ocr
+    global _paddle_ocr
+    if _paddle_ocr is not None:
+        return _paddle_ocr
+
+    if _ALLOW_OCR_DOWNLOAD:
+        _paddle_ocr = PaddleOCR(lang='en', use_angle_cls=False, use_gpu=_use_gpu, show_log=False)
+        return _paddle_ocr
+
+    _require_paths_exist(
+        [
+            _PADDLE_DET_MODEL_DIR / "inference.pdmodel",
+            _PADDLE_DET_MODEL_DIR / "inference.pdiparams",
+            _PADDLE_REC_MODEL_DIR / "inference.pdmodel",
+            _PADDLE_REC_MODEL_DIR / "inference.pdiparams",
+            _PADDLE_CLS_MODEL_DIR / "inference.pdmodel",
+            _PADDLE_CLS_MODEL_DIR / "inference.pdiparams",
+        ],
+        "[PaddleOCR]",
+    )
+    _paddle_ocr = PaddleOCR(
+        lang='en',
+        use_angle_cls=False,
+        use_gpu=_use_gpu,
+        show_log=False,
+        det_model_dir=str(_PADDLE_DET_MODEL_DIR),
+        rec_model_dir=str(_PADDLE_REC_MODEL_DIR),
+        cls_model_dir=str(_PADDLE_CLS_MODEL_DIR),
+    )
+    return _paddle_ocr
 
 
-def _resolve_florence_processor_source(model_name_or_path: str) -> str:
-    """
-    解析 Florence processor 的本地来源路径。
-
-    优先级：
-    1) OMNIPARSER_PROCESSOR_PATH 指定目录
-    2) model_name_or_path（通常是 icon_caption_florence）
-    3) 默认 HuggingFace repo id（最后兜底）
-    """
-    explicit = os.environ.get("OMNIPARSER_PROCESSOR_PATH")
-    if explicit and Path(explicit).exists():
-        return explicit
-
-    local_model_path = Path(model_name_or_path)
-    if local_model_path.exists():
-        return str(local_model_path)
-
-    return "microsoft/Florence-2-base"
+def _resolve_local_model_path(model_name_or_path):
+    path = Path(model_name_or_path)
+    if not path.is_absolute():
+        path = _OMNIPARSER_ROOT / path
+    return path.resolve()
 
 
 def get_caption_model_processor(model_name, model_name_or_path="Salesforce/blip2-opt-2.7b", device=None):
     if not device:
         device = "cuda" if torch.cuda.is_available() else "cpu"
+    model_path = _resolve_local_model_path(model_name_or_path)
+    if not model_path.exists():
+        raise FileNotFoundError(f"Local caption model directory not found: {model_path}")
     if model_name == "blip2":
         from transformers import Blip2Processor, Blip2ForConditionalGeneration
-        processor = Blip2Processor.from_pretrained("Salesforce/blip2-opt-2.7b")
+        processor = Blip2Processor.from_pretrained(model_path, local_files_only=True)
         if device == 'cpu':
             model = Blip2ForConditionalGeneration.from_pretrained(
-            model_name_or_path, device_map=None, torch_dtype=torch.float32
+            model_path, device_map=None, torch_dtype=torch.float32, local_files_only=True
         ) 
         else:
             model = Blip2ForConditionalGeneration.from_pretrained(
-            model_name_or_path, device_map=None, torch_dtype=torch.float16
+            model_path, device_map=None, torch_dtype=torch.float16, local_files_only=True
         ).to(device)
     elif model_name == "florence2":
         from transformers import AutoProcessor, AutoModelForCausalLM
-        processor_source = _resolve_florence_processor_source(model_name_or_path)
-        local_only = os.environ.get("OMNIPARSER_LOCAL_FILES_ONLY", "1").lower() not in {"0", "false", "no"}
-
-        processor_kwargs = {"trust_remote_code": True}
-        model_kwargs = {"trust_remote_code": True, "attn_implementation": "eager"}
-        if local_only:
-            processor_kwargs["local_files_only"] = True
-            model_kwargs["local_files_only"] = True
-
-        processor = AutoProcessor.from_pretrained(processor_source, **processor_kwargs)
+        processor = AutoProcessor.from_pretrained(
+            model_path,
+            trust_remote_code=True,
+            local_files_only=True,
+        )
         if device == 'cpu':
             model = AutoModelForCausalLM.from_pretrained(
-                model_name_or_path,
+                model_path,
                 torch_dtype=torch.float32,
-                **model_kwargs,
+                trust_remote_code=True,
+                attn_implementation="eager",
+                local_files_only=True,
             )
         else:
             model = AutoModelForCausalLM.from_pretrained(
-                model_name_or_path,
+                model_path,
                 torch_dtype=torch.float16,
-                **model_kwargs,
+                trust_remote_code=True,
+                attn_implementation="eager",
+                local_files_only=True,
             ).to(device)
     return {'model': model.to(device), 'processor': processor}
 
@@ -700,35 +594,29 @@ def check_ocr_box(image_source: Union[str, Image.Image], display_img=False, outp
         image_source = image_source.convert('RGB')
     image_np = np.array(image_source)
 
+    easy_reader = _get_easyocr_reader()
+
     if use_paddleocr:
-        ocr_engine = _get_paddle_ocr()
         text_threshold = easyocr_args.get('text_threshold', 0.5) if easyocr_args else 0.5
-        if ocr_engine is not None:
-            try:
-                result = ocr_engine.ocr(image_np, cls=False)
-                if result and result[0]:
-                    coord = [item[0] for item in result[0] if item[1][1] > text_threshold]
-                    text = [item[1][0] for item in result[0] if item[1][1] > text_threshold]
-                else:
-                    coord, text = [], []
-            except Exception as e:
-                print(f"[WARN] PaddleOCR failed: {e}, falling back to EasyOCR")
-                if easyocr_args is None:
-                    easyocr_args = {}
-                result = _get_easyocr_reader().readtext(image_np, **easyocr_args)
-                coord = [item[0] for item in result]
-                text = [item[1] for item in result]
-        else:
-            print("[WARN] PaddleOCR 不可用，使用 EasyOCR")
+        try:
+            paddle_ocr = _get_paddle_ocr()
+            result = paddle_ocr.ocr(image_np, cls=False)
+            if result and result[0]:
+                coord = [item[0] for item in result[0] if item[1][1] > text_threshold]
+                text = [item[1][0] for item in result[0] if item[1][1] > text_threshold]
+            else:
+                coord, text = [], []
+        except Exception as e:
+            print(f"[WARN] PaddleOCR failed: {e}, falling back to EasyOCR")
             if easyocr_args is None:
                 easyocr_args = {}
-            result = _get_easyocr_reader().readtext(image_np, **easyocr_args)
+            result = easy_reader.readtext(image_np, **easyocr_args)
             coord = [item[0] for item in result]
             text = [item[1] for item in result]
     else:
         if easyocr_args is None:
             easyocr_args = {}
-        result = _get_easyocr_reader().readtext(image_np, **easyocr_args)
+        result = easy_reader.readtext(image_np, **easyocr_args)
         coord = [item[0] for item in result]
         text = [item[1] for item in result]
 
