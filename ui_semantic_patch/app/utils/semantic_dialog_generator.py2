@@ -1,0 +1,1343 @@
+               close_x = base_x + width - close_size // 2
+                close_y = base_y - close_size // 2
+                self._draw_close_button_styled(
+                    canvas, draw, (close_x, close_y), close_size,
+                    bg_color=close_config.get('background', '#FFFFFF'),
+                    icon_color=close_config.get('icon_color', '#666666')
+                )
+            else:
+                close_size = 24
+                close_x = base_x + width - close_size - 12
+                close_y = base_y + 12
+                self._draw_close_button(draw, (close_x, close_y), close_size)
+
+        return canvas
+
+    def _create_rounded_rect(
+        self,
+        width: int,
+        height: int,
+        radius: int,
+        fill_color: Tuple[int, int, int, int]
+    ) -> Image.Image:
+        """创建圆角矩形图像"""
+        # 使用更大的尺寸绘制，然后缩小以获得抗锯齿效果
+        scale = 2
+        img = Image.new('RGBA', (width * scale, height * scale), (0, 0, 0, 0))
+        draw = ImageDraw.Draw(img)
+
+        r = radius * scale
+        draw.rounded_rectangle(
+            [0, 0, width * scale - 1, height * scale - 1],
+            radius=r,
+            fill=fill_color
+        )
+
+        return img.resize((width, height), Image.Resampling.LANCZOS)
+
+    def _draw_rounded_rect(
+        self,
+        draw: ImageDraw.ImageDraw,
+        bbox: Tuple[int, int, int, int],
+        radius: int,
+        fill: Tuple[int, int, int, int],
+        corners: List[str] = None
+    ):
+        """绘制圆角矩形（支持指定圆角）"""
+        x1, y1, x2, y2 = bbox
+        draw.rounded_rectangle([x1, y1, x2, y2], radius=radius, fill=fill)
+
+    def _draw_icon(
+        self,
+        draw: ImageDraw.ImageDraw,
+        icon_type: str,
+        position: Tuple[int, int],
+        size: int,
+        color: str
+    ):
+        """绘制图标"""
+        x, y = position
+        color_rgba = self._parse_color(color)
+
+        # 绘制圆形背景
+        bg_color = (*color_rgba[:3], 30)  # 淡色背景
+        draw.ellipse([x, y, x + size, y + size], fill=bg_color)
+
+        # 绘制图标符号
+        center_x = x + size // 2
+        center_y = y + size // 2
+
+        if icon_type in ['error', 'warning']:
+            # 三角形警告图标
+            points = [
+                (center_x, y + 10),
+                (x + 10, y + size - 10),
+                (x + size - 10, y + size - 10)
+            ]
+            draw.polygon(points, outline=color_rgba, width=2)
+            # 感叹号
+            draw.text((center_x - 3, center_y - 8), '!', fill=color_rgba, font=self._get_font(16, bold=True))
+        elif icon_type == 'info':
+            # 圆形信息图标
+            draw.ellipse([x + 8, y + 8, x + size - 8, y + size - 8], outline=color_rgba, width=2)
+            draw.text((center_x - 3, center_y - 8), 'i', fill=color_rgba, font=self._get_font(16, bold=True))
+        elif icon_type == 'success':
+            # 对勾图标
+            draw.ellipse([x + 8, y + 8, x + size - 8, y + size - 8], outline=color_rgba, width=2)
+            # 简化的对勾
+            draw.line([(center_x - 8, center_y), (center_x - 2, center_y + 6), (center_x + 8, center_y - 6)],
+                     fill=color_rgba, width=2)
+        elif icon_type in ['coupon', 'vip', 'flash']:
+            # 礼物/优惠图标（简化为星形）
+            draw.ellipse([x + 4, y + 4, x + size - 4, y + size - 4], fill=color_rgba)
+            draw.text((center_x - 6, center_y - 10), '★', fill='#FFFFFF', font=self._get_font(20))
+
+    def _draw_button(
+        self,
+        draw: ImageDraw.ImageDraw,
+        canvas: Image.Image,
+        bbox: Tuple[int, int, int, int],
+        text: str,
+        primary: bool = True,
+        color: str = '#1890FF',
+        rounded: int = 8
+    ):
+        """绘制按钮"""
+        x1, y1, x2, y2 = bbox
+        width = x2 - x1
+        height = y2 - y1
+
+        if primary:
+            fill_color = self._parse_color(color)
+            text_color = '#333333' if self._is_light_color(fill_color) else '#FFFFFF'
+        else:
+            fill_color = (245, 245, 245, 255)
+            text_color = '#666666'
+
+        # 绘制圆角按钮
+        btn_img = self._create_rounded_rect(width, height, rounded, fill_color)
+        canvas.paste(btn_img, (x1, y1), btn_img)
+
+        # 绘制按钮文字
+        font = self._get_font(16 if self.style_applier else 15)
+        bbox_text = draw.textbbox((0, 0), text, font=font)
+        text_width = bbox_text[2] - bbox_text[0]
+        text_height = bbox_text[3] - bbox_text[1]
+
+        text_x = x1 + (width - text_width) // 2
+        text_y = y1 + (height - text_height) // 2
+        draw.text((text_x, text_y), text, font=font, fill=text_color)
+
+    def _is_light_color(self, rgba: Tuple[int, int, int, int]) -> bool:
+        """判断颜色是否为浅色（用于决定文字颜色）"""
+        r, g, b = rgba[:3]
+        # 计算亮度
+        brightness = (r * 299 + g * 587 + b * 114) / 1000
+        return brightness > 186
+
+    def _draw_close_button(
+        self,
+        draw: ImageDraw.ImageDraw,
+        position: Tuple[int, int],
+        size: int
+    ):
+        """绘制关闭按钮（基础样式）"""
+        x, y = position
+        # 圆形背景
+        draw.ellipse([x, y, x + size, y + size], fill=(0, 0, 0, 50))
+        # X 符号
+        padding = 6
+        draw.line([(x + padding, y + padding), (x + size - padding, y + size - padding)],
+                 fill='#FFFFFF', width=2)
+        draw.line([(x + size - padding, y + padding), (x + padding, y + size - padding)],
+                 fill='#FFFFFF', width=2)
+
+    def _draw_close_button_styled(
+        self,
+        canvas: Image.Image,
+        draw: ImageDraw.ImageDraw,
+        position: Tuple[int, int],
+        size: int,
+        bg_color: str = '#FFFFFF',
+        icon_color: str = '#666666'
+    ):
+        """绘制关闭按钮（参考风格样式 - 带阴影的白色圆形）"""
+        x, y = position
+
+        # 创建带阴影的关闭按钮
+        btn_size = size + 8  # 增加阴影空间
+        btn_canvas = Image.new('RGBA', (btn_size, btn_size), (0, 0, 0, 0))
+        btn_draw = ImageDraw.Draw(btn_canvas)
+
+        # 绘制阴影
+        shadow_offset = 2
+        btn_draw.ellipse(
+            [shadow_offset + 2, shadow_offset + 2, btn_size - 2, btn_size - 2],
+            fill=(0, 0, 0, 40)
+        )
+        btn_canvas = btn_canvas.filter(ImageFilter.GaussianBlur(3))
+        btn_draw = ImageDraw.Draw(btn_canvas)
+
+        # 绘制白色圆形背景
+        padding = 4
+        btn_draw.ellipse(
+            [padding, padding, btn_size - padding, btn_size - padding],
+            fill=self._parse_color(bg_color)
+        )
+
+        # 绘制 X 符号
+        icon_padding = 10
+        icon_color_rgba = self._parse_color(icon_color)
+        center = btn_size // 2
+        line_len = (btn_size - icon_padding * 2) // 2
+
+        btn_draw.line(
+            [(center - line_len, center - line_len), (center + line_len, center + line_len)],
+            fill=icon_color_rgba, width=3
+        )
+        btn_draw.line(
+            [(center + line_len, center - line_len), (center - line_len, center + line_len)],
+            fill=icon_color_rgba, width=3
+        )
+
+        # 粘贴到主画布
+        canvas.paste(btn_canvas, (x - 4, y - 4), btn_canvas)
+
+    def _get_font(self, size: int, bold: bool = False) -> ImageFont.FreeTypeFont:
+        """获取字体"""
+        cache_key = (size, bold)
+        if cache_key in self.font_cache:
+            return self.font_cache[cache_key]
+
+        font_paths = [
+            'C:/Windows/Fonts/msyh.ttc',
+            'C:/Windows/Fonts/simhei.ttf',
+            '/System/Library/Fonts/PingFang.ttc',
+            '/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf',
+        ]
+
+        if self.fonts_dir:
+            font_dir = Path(self.fonts_dir)
+            for f in font_dir.glob('*.ttf'):
+                font_paths.insert(0, str(f))
+            for f in font_dir.glob('*.ttc'):
+                font_paths.insert(0, str(f))
+
+        for path in font_paths:
+            if Path(path).exists():
+                try:
+                    font = ImageFont.truetype(path, size)
+                    self.font_cache[cache_key] = font
+                    return font
+                except:
+                    continue
+
+        font = ImageFont.load_default()
+        self.font_cache[cache_key] = font
+        return font
+
+    def _wrap_text(self, text: str, max_width: int, font: ImageFont.FreeTypeFont) -> List[str]:
+        """文本自动换行"""
+        lines = []
+        current_line = ""
+
+        # 创建临时 draw 对象用于测量
+        temp_img = Image.new('RGBA', (1, 1))
+        temp_draw = ImageDraw.Draw(temp_img)
+
+        for char in text:
+            test_line = current_line + char
+            bbox = temp_draw.textbbox((0, 0), test_line, font=font)
+            if bbox[2] - bbox[0] <= max_width:
+                current_line = test_line
+            else:
+                if current_line:
+                    lines.append(current_line)
+                current_line = char
+
+        if current_line:
+            lines.append(current_line)
+
+        return lines
+
+    def _parse_color(self, color: str) -> Tuple[int, int, int, int]:
+        """解析颜色字符串"""
+        if color.startswith('#'):
+            color = color[1:]
+            if len(color) == 3:
+                color = ''.join(c * 2 for c in color)
+            if len(color) == 6:
+                r = int(color[0:2], 16)
+                g = int(color[2:4], 16)
+                b = int(color[4:6], 16)
+                return (r, g, b, 255)
+            elif len(color) == 8:
+                r = int(color[0:2], 16)
+                g = int(color[2:4], 16)
+                b = int(color[4:6], 16)
+                a = int(color[6:8], 16)
+                return (r, g, b, a)
+        return (0, 0, 0, 255)
+
+    # ==================== 方案二：AI 图像直接生成 ====================
+    def generate_dialog_ai(
+        self,
+        content: Dict[str, Any],
+        width: int = 600,
+        height: int = 400,
+        screenshot_path: str = None,
+        app_style: str = 'wechat'
+    ) -> Optional[Image.Image]:
+        """
+        【已废弃】使用 DashScope 云端 API 生成弹窗
+        此函数已被移除，请使用 generate_dialog_ai_from_meta() 调用本地服务
+        
+        Args:
+            ... (参数同上)
+        
+        Returns:
+            None - 此函数不再提供任何功能
+        """
+        print("  ⚠️ DashScope 云端 API 已禁用，请使用 generate_dialog_ai_from_meta() + 本地服务")
+        return None
+
+    def _blur_text_regions(
+        self,
+        img: 'Image.Image',
+        brand_keywords: list,
+    ) -> 'Image.Image':
+        """
+        模糊参考图中的文字区域，防止品牌文字泄漏到生成结果。
+
+        策略：对整张参考图施加中等强度高斯模糊。
+        - 模糊后文字不可读，但色彩、形状、布局结构保留
+        - DashScope 风格迁移仍能提取配色方案和视觉风格
+        - 彻底杜绝模型从参考图"抄"文字的可能
+
+        Args:
+            img: 裁剪后的参考图 PIL Image
+            brand_keywords: 品牌关键词列表（用于日志）
+
+        Returns:
+            模糊处理后的 PIL Image
+        """
+        from PIL import ImageFilter
+
+        # 根据图片尺寸自适应模糊半径
+        # 目标：文字不可辨认，但大色块和布局结构清晰
+        min_dim = min(img.size)
+        blur_radius = max(8, min_dim // 40)  # 典型值: 800px → 20, 400px → 10
+
+        blurred = img.filter(ImageFilter.GaussianBlur(radius=blur_radius))
+        print(f"  ✓ 参考图文字模糊处理: radius={blur_radius}, 过滤品牌={brand_keywords[:3]}...")
+        return blurred
+
+    def _crop_reference_to_dialog(
+        self,
+        reference_path: str,
+        meta_features: Dict[str, Any],
+    ) -> str:
+        """
+        将参考图裁剪到弹窗区域，避免整张截图（含APP背景）污染风格迁移。
+
+        优先使用 meta_features 中的 dialog_bounds_px（精确像素坐标）；
+        若不存在，则根据 dialog_size_ratio + dialog_position 估算裁剪区域。
+
+        返回裁剪后的临时图片路径。如果无法裁剪（没有位置信息），返回原路径。
+        """
+        if not reference_path or not Path(reference_path).exists():
+            return reference_path
+
+        bounds_px = meta_features.get('dialog_bounds_px')
+        size_ratio = meta_features.get('dialog_size_ratio')
+        # 兼容 MetaLoader 展开后的字段名
+        if not size_ratio and 'dialog_width_ratio' in meta_features:
+            size_ratio = {
+                'width': meta_features['dialog_width_ratio'],
+                'height': meta_features['dialog_height_ratio'],
+            }
+        dialog_position = meta_features.get('dialog_position', 'center')
+
+        try:
+            ref_img = Image.open(reference_path)
+            img_w, img_h = ref_img.size
+
+            if bounds_px:
+                # 精确像素坐标裁剪
+                x = bounds_px['x']
+                y = bounds_px['y']
+                w = bounds_px['width']
+                h = bounds_px['height']
+                # 添加少量 padding 以保留弹窗边缘效果（圆角、阴影）
+                pad = int(min(w, h) * 0.05)
+                crop_box = (
+                    max(0, x - pad),
+                    max(0, y - pad),
+                    min(img_w, x + w + pad),
+                    min(img_h, y + h + pad),
+                )
+                print(f"  ✓ 参考图裁剪 (bounds_px): ({crop_box[0]},{crop_box[1]})→({crop_box[2]},{crop_box[3]})")
+
+            elif size_ratio:
+                # 根据比例 + 位置估算
+                if isinstance(size_ratio, dict) and 'width' in size_ratio:
+                    ratio_w = size_ratio['width']
+                    ratio_h = size_ratio['height']
+                else:
+                    # 多层弹窗等复杂结构，无法精确估算
+                    print(f"  ℹ 参考图裁剪跳过: dialog_size_ratio 格式不支持")
+                    return reference_path
+
+                crop_w = int(img_w * ratio_w)
+                crop_h = int(img_h * ratio_h)
+
+                # 根据 dialog_position 估算中心点
+                if 'bottom' in dialog_position:
+                    cx, cy = img_w // 2, img_h - crop_h // 2
+                elif 'top' in dialog_position:
+                    cx, cy = img_w // 2, crop_h // 2
+                else:
+                    cx, cy = img_w // 2, img_h // 2
+
+                pad = int(min(crop_w, crop_h) * 0.05)
+                crop_box = (
+                    max(0, cx - crop_w // 2 - pad),
+                    max(0, cy - crop_h // 2 - pad),
+                    min(img_w, cx + crop_w // 2 + pad),
+                    min(img_h, cy + crop_h // 2 + pad),
+                )
+                print(f"  ✓ 参考图裁剪 (size_ratio): ({crop_box[0]},{crop_box[1]})→({crop_box[2]},{crop_box[3]})")
+            else:
+                print(f"  ℹ 参考图裁剪跳过: 无 bounds_px 或 size_ratio")
+                return reference_path
+
+            cropped = ref_img.crop(crop_box)
+
+            # 模糊参考图中的文字区域，防止品牌文字被风格迁移模型复制
+            source_brand_kws = meta_features.get('source_brand_keywords', [])
+            if source_brand_kws:
+                cropped = self._blur_text_regions(cropped, source_brand_kws)
+
+            # 保存到临时文件
+            import tempfile
+            tmp_dir = Path(tempfile.gettempdir()) / "dialog_ref_crops"
+            tmp_dir.mkdir(exist_ok=True)
+            crop_filename = f"crop_{Path(reference_path).stem}.png"
+            crop_path = str(tmp_dir / crop_filename)
+            cropped.save(crop_path, format='PNG')
+            return crop_path
+
+        except Exception as e:
+            print(f"  ⚠ 参考图裁剪失败: {e}，使用原图")
+            return reference_path
+
+    def generate_dialog_ai_from_meta(
+        self,
+        meta_semantic: str,
+        meta_features: Dict[str, Any],
+        reference_path: str,
+        width: int = 600,
+        height: int = 400,
+        target_content: Dict[str, str] = None
+    ) -> Optional[Image.Image]:
+        """
+        基于meta.json语义描述使用AI生成弹窗（增强版本）
+
+        这是meta.json驱动生成的核心方法，与generate_dialog_ai的区别：
+        - 使用meta.json提供的精确语义描述，而非VLM自动生成的内容
+        - 结合参考图片的视觉风格
+        - 生成质量更高、更一致
+
+        Args:
+            meta_semantic: MetaLoader.extract_semantic_prompt() 或 extract_visual_style_prompt() 的输出
+            meta_features: MetaLoader.extract_visual_features_dict()的输出
+            reference_path: 参考图片路径
+            width: 目标宽度
+            height: 目标高度
+            target_content: VLM根据目标截图生成的语义内容（可选），格式：
+                {
+                    'title': '标题',
+                    'message': '消息内容',
+                    'button_text': '按钮文字',
+                    'subtitle': '副标题（可选）'
+                }
+                如果提供，将使用这些文字而非meta中的文字
+
+        Returns:
+            生成的弹窗图像
+        """
+        # 裁剪参考图到弹窗区域，避免整张截图污染风格迁移
+        cropped_ref_path = self._crop_reference_to_dialog(reference_path, meta_features)
+
+        # 使用meta信息构建prompt（传入裁剪后的参考图路径）
+        prompt = self._build_ai_prompt_from_meta(meta_semantic, meta_features, cropped_ref_path, target_content)
+
+        print(f"  正在使用 Meta-driven AI 生成弹窗 (目标尺寸: {width}x{height})...")
+        print(f"  ✓ 参考图: {reference_path}")
+        if cropped_ref_path != reference_path:
+            print(f"  ✓ 裁剪后参考图: {cropped_ref_path}")
+        print(f"  ✓ APP风格: {meta_features.get('app_style', '通用')}")
+        print(f"  ✓ 主色调: {meta_features.get('primary_color', 'N/A')}")
+        if target_content:
+            print(f"  ✓ 语义内容: {target_content.get('title', 'N/A')} - {target_content.get('message', '')[:30]}...")
+
+        gen_size = f"{width}*{height}"
+
+        try:
+            # 构建 dynamic negative_prompt
+            source_brand_kws = meta_features.get('source_brand_keywords', [])
+            if not source_brand_kws:
+                _app_style_neg = meta_features.get('app_style', '')
+                if _app_style_neg and _app_style_neg != '通用':
+                    source_brand_kws = [_app_style_neg]
+            brand_neg_parts = ', '.join(f'{kw} logo, {kw} text' for kw in source_brand_kws) if source_brand_kws else ''
+            brand_neg_parts_with_logo = ', '.join(f'{kw} logo, {kw} text' for kw in source_brand_kws) if source_brand_kws else ''
+            dynamic_negative = (
+                "低分辨率，低画质，肢体畸形，手指畸形，画面过饱和，蜡像感，人脸无细节，过度光滑，画面具有 AI 感。"
+                "构图混乱。文字模糊，扭曲。"
+                "白色背景，灰色背景，渐变背景，彩色背景，white background, gray background, colored background, gradient background, "
+                f"{brand_neg_parts}, {brand_neg_parts_with_logo}, "
+                "brand logo, brand text, brand name, reference image text, watermark, close button, X button, X icon, 关闭按钮"
+            )
+
+            # ====== 打印构建的完整 Prompt ======
+            print(f"\n{'='*60}")
+            print(f"📝 本地服务弹窗生成 - 完整 Prompt:")
+            print(f"{'='*60}")
+            print(f"  Prompt 长度：{len(prompt)} 字符")
+            print(f"  Prompt:\n{prompt}")
+            print(f"  参考图路径：{cropped_ref_path}")
+            print(f"  裁剪后参考图存在：{Path(cropped_ref_path).exists() if cropped_ref_path else 'N/A'}")
+            print(f"  Negative Prompt:\n{dynamic_negative}")
+            print(f"  目标尺寸：{width}x{height}")
+            print(f"{'='*60}\n")
+            # ====== 打印结束 ======
+
+            # 直接使用本地服务
+            print(f"  ℹ 使用本地服务生成弹窗...")
+            image = generate_image_local(
+                prompt=prompt,
+                size=gen_size,
+                negative_prompt=dynamic_negative
+            )
+
+            if image:
+                gen_width, gen_height = image.size
+
+                # 后处理：调整到精确的目标尺寸
+                if (gen_width, gen_height) != (width, height):
+                    print(f"  ℹ 后处理: {gen_width}x{gen_height} → {width}x{height}")
+                    image = image.resize((width, height), Image.Resampling.LANCZOS)
+
+                # 后处理：移除背景（包括灰色边框）
+                # 根据弹窗背景色自适应调整 tolerance
+                bg_str = meta_features.get('background', '')
+                if any(kw in bg_str for kw in ('#FF', '红', 'red', '粉', 'pink', '渐变')):
+                    bg_tolerance = 50  # 深色/彩色背景弹窗使用较低容差，避免吃掉内容边缘
+                    print(f"  ℹ 彩色背景弹窗，使用较低背景移除容差: {bg_tolerance}")
+                else:
+                    bg_tolerance = 70
+                image = self._remove_background(image, tolerance=bg_tolerance)
+
+                # 后处理：擦除 AI 自行画的关闭按钮
+                # AI 经常无视 "Do not draw close button" 指令，在角落画 X
+                # 必须在裁切之前擦除，否则裁切后角落位置会变化
+                image = self._erase_ai_close_button(image)
+
+                # 后处理：多层弹窗清理
+                # AI 生成时可能在目标弹窗之外额外生成多余的弹窗层
+                # 对于横幅类型（宽高比 > 2:1），检测并去除多余层
+                dialog_position = meta_features.get('dialog_position', 'center')
+                if dialog_position in ('bottom-floating', 'bottom-fixed', 'bottom-center-floating'):
+                    image = self._remove_extra_layers(image, expected_aspect_ratio=width/height)
+
+                # 后处理：裁切到实际内容区域并 resize 到目标尺寸
+                image = self._crop_to_content_and_resize(image, width, height)
+
+                # 注意：关闭按钮不在此处绘制
+                # 对于 bottom-center 等位置，关闭按钮应该在弹窗卡片外部
+                # 因此在 run_pipeline.py 的最终合成阶段绘制关闭按钮
+                # 这样可以正确计算关闭按钮在屏幕上的位置
+
+                print(f"  ✓ Meta-driven AI 弹窗生成成功: {width}x{height}")
+                return image
+            else:
+                raise Exception("图像生成返回空结果")
+
+        except Exception as e:
+            print(f"  ⚠ Meta-driven AI 生成失败: {e}")
+            raise
+
+    def generate_content_for_target_page(
+        self,
+        screenshot_path: str,
+        instruction: str,
+        anomaly_type: str = 'promotional_dialog',
+        app_style: str = None,
+        meta_buttons: list = None
+    ) -> Dict[str, str]:
+        """
+        使用 VLM 根据目标截图生成语义相关的弹窗内容
+
+        这是分离"视觉风格"和"文字内容"的关键方法：
+        - 视觉风格从 meta.json 获取（extract_visual_style_prompt）
+        - 文字内容由本方法根据目标截图生成
+
+        Args:
+            screenshot_path: 目标截图路径
+            instruction: 用户指令（如"模拟广告弹窗"）
+            anomaly_type: 异常类型（从meta.json获取，用于约束生成的弹窗类型）
+            app_style: APP风格（可选，用于风格一致性）
+            meta_buttons: meta.json中定义的按钮列表（可选，如["不允许", "允许"]）
+
+        Returns:
+            {
+                'title': '弹窗标题',
+                'message': '弹窗正文内容',
+                'button_text': '主按钮文字',
+                'buttons': ['按钮1', '按钮2'],  # 多按钮时返回
+                'subtitle': '副标题（可选）'
+            }
+        """
+        # 下拉菜单类型：尝试从 instruction 中提取菜单项
+        if anomaly_type == 'context_menu_dropdown':
+            print("  ✓ 下拉菜单类型：尝试从 instruction 提取菜单项")
+            menu_items = self._extract_menu_items_from_instruction(instruction)
+            if menu_items:
+                print(f"    从 instruction 提取到菜单项: {menu_items}")
+                return {
+                    'title': '',
+                    'message': '',
+                    'button_text': '',
+                    'subtitle': '',
+                    'brand_name': '',
+                    'menu_items': menu_items,  # instruction 中提取的菜单项
+                    '_is_dropdown': True
+                }
+            else:
+                print("    未能从 instruction 提取菜单项，将使用 meta.json 默认值")
+                return {
+                    'title': '',
+                    'message': '',
+                    'button_text': '',
+                    'subtitle': '',
+                    'brand_name': '',
+                    '_is_dropdown': True
+                }
+
+        if not self.api_key:
+            print("  ⚠ 未配置 VLM API Key，使用默认文案")
+            return self._get_default_content_for_type(anomaly_type)
+
+        # 编码图片
+        try:
+            with open(screenshot_path, 'rb') as f:
+                image_base64 = base64.b64encode(f.read()).decode('utf-8')
+        except Exception as e:
+            print(f"  ⚠ 读取截图失败: {e}")
+            return self._get_default_content_for_type(anomaly_type)
+
+        # 异常类型的中文描述
+        anomaly_type_desc = {
+            'promotional_dialog': '促销/优惠弹窗（如优惠券、折扣活动）',
+            'reward_badge_dialog': '奖励/勋章弹窗（如积分奖励、成就解锁）',
+            'permission_dialog': '权限请求弹窗（如通知权限、位置权限）',
+            'tutorial_guide': '引导教程弹窗（如功能介绍、新手引导）',
+            'context_menu_dropdown': '下拉菜单/选项弹窗',
+            'tooltip_bubble': '提示气泡/引导提示',
+            'floating_tip_banner': '浮动横幅提示',
+            'coupon_popup': '优惠券弹窗',
+            'vip_prompt': 'VIP会员推广弹窗'
+        }.get(anomaly_type, '通用弹窗')
+
+        # 确定按钮数量要求
+        button_count = len(meta_buttons) if meta_buttons else 1
+        if button_count > 1:
+            buttons_format_hint = f"""按钮数量要求: {button_count} 个按钮
+参考按钮模式: {', '.join(meta_buttons)}（根据目标APP场景生成对应的按钮文字）"""
+            buttons_json_field = f'"buttons": ["按钮1文字", "按钮2文字", ...]  // 必须恰好 {button_count} 个按钮'
+        else:
+            buttons_format_hint = "按钮数量要求: 1 个主按钮"
+            buttons_json_field = '"button_text": "主按钮文字（2-6个字）"'
+
+        prompt = f"""分析这个App页面截图，生成一个与页面内容**语义相关**的弹窗文案。
+
+## 任务要求
+1. 仔细分析截图中的APP类型、页面内容、业务场景
+2. 生成的弹窗内容必须与该页面的业务场景相关
+3. 文案要真实自然，像该APP真正会显示的弹窗
+4. **重要**：识别截图中的APP品牌名称（如"携程"、"12306"、"美团"等）
+
+## 弹窗类型约束
+- 弹窗类型: {anomaly_type_desc}
+- 用户指令: {instruction}
+- {buttons_format_hint}
+- 重要：品牌信息必须从截图中识别，不要猜测或使用其他品牌
+
+## 示例
+- 如果是机票/火车票页面 + 促销弹窗 → 生成"春运特惠券"、"机票立减50元"等内容
+- 如果是电商页面 + 奖励弹窗 → 生成"恭喜获得购物金"、"新人专享礼包"等内容
+- 如果是社交页面 + 权限弹窗 → 生成"开启消息通知"、"允许访问通讯录"等内容
+- 如果是权限请求弹窗 + 多按钮 → 生成"不允许"和"允许"等对应按钮
+
+## 输出格式
+请以JSON格式返回弹窗文案，必须与截图中的APP业务相关：
+```json
+{{{{
+    "title": "弹窗标题（简短，2-8个字）",
+    "message": "弹窗正文（描述性内容，10-30个字）",
+    {buttons_json_field},
+    "subtitle": "副标题或补充说明（可选，5-15个字）",
+    "brand_name": "APP品牌名称（如携程、12306、美团，用于Logo显示）"
+}}}}
+```
+
+只返回JSON，不要其他内容。"""
+
+        headers = {
+            'Content-Type': 'application/json',
+            'Authorization': f'Bearer {self.api_key}'
+        }
+
+        payload = {
+            'model': self.vlm_model,
+            'messages': [
+                {
+                    'role': 'user',
+                    'content': [
+                        {
+                            'type': 'image_url',
+                            'image_url': {'url': f'data:image/png;base64,{image_base64}'}
+                        },
+                        {'type': 'text', 'text': prompt}
+                    ]
+                }
+            ],
+            'temperature': 0.5,
+            'max_tokens': 500
+        }
+
+        try:
+            response = requests.post(self.vlm_api_url, headers=headers, json=payload, timeout=60)
+            response.raise_for_status()
+
+            content = response.json()['choices'][0]['message']['content']
+
+            # 提取 JSON
+            json_match = re.search(r'\{[\s\S]*\}', content)
+            if json_match:
+                result = json.loads(json_match.group(0))
+                # 确保必要字段存在
+                if 'title' not in result:
+                    result['title'] = '提示'
+                if 'message' not in result:
+                    result['message'] = ''
+                # 多按钮支持：统一为 buttons 列表
+                if 'buttons' in result and isinstance(result['buttons'], list):
+                    # VLM 返回了 buttons 数组
+                    if not result['buttons']:
+                        result['buttons'] = ['确定']
+                    result['button_text'] = result['buttons'][-1]  # 主按钮取最后一个
+                elif 'button_text' in result:
+                    # 单按钮场景，兼容旧格式
+                    if meta_buttons and len(meta_buttons) > 1:
+                        # meta 要求多按钮但 VLM 只返回了单按钮，补齐
+                        result['buttons'] = meta_buttons
+                        result['button_text'] = result['button_text']
+                    else:
+                        result['buttons'] = [result['button_text']]
+                else:
+                    result['button_text'] = '确定'
+                    result['buttons'] = ['确定']
+                if 'brand_name' not in result:
+                    result['brand_name'] = ''
+                return result
+
+            raise ValueError("无法解析 VLM 返回的内容")
+
+        except Exception as e:
+            print(f"  ⚠ VLM 内容生成失败: {e}")
+            return self._get_default_content_for_type(anomaly_type)
+
+    def _get_default_content_for_type(self, anomaly_type: str) -> Dict[str, str]:
+        """根据异常类型返回默认文案"""
+        defaults = {
+            'promotional_dialog': {
+                'title': '专属福利',
+                'message': '限时优惠活动，立即领取专属优惠券',
+                'button_text': '立即领取',
+                'subtitle': '仅限今日',
+                'brand_name': ''
+            },
+            'reward_badge_dialog': {
+                'title': '恭喜获得奖励',
+                'message': '您已获得专属奖励，快来查看',
+                'button_text': '立即查看',
+                'subtitle': '',
+                'brand_name': ''
+            },
+            'permission_dialog': {
+                'title': '开启通知权限',
+                'message': '开启后可及时接收重要消息提醒',
+                'button_text': '允许',
+                'buttons': ['不允许', '允许'],
+                'subtitle': '',
+                'brand_name': ''
+            },
+            'tutorial_guide': {
+                'title': '功能介绍',
+                'message': '了解更多实用功能，提升使用体验',
+                'button_text': '下一步',
+                'subtitle': '',
+                'brand_name': ''
+            },
+            'coupon_popup': {
+                'title': '优惠券已到账',
+                'message': '您有一张优惠券待使用',
+                'button_text': '立即使用',
+                'subtitle': '限时有效',
+                'brand_name': ''
+            },
+            'context_menu_dropdown': {
+                'title': '选择',
+                'message': '',
+                'button_text': '',
+                'subtitle': '',
+                'brand_name': '',
+                'menu_items': ['选项一', '选项二'],
+                'selected_item': '选项一'
+            },
+            'tooltip_bubble': {
+                'title': '',
+                'message': '点击这里了解更多',
+                'button_text': '',
+                'subtitle': '',
+                'brand_name': ''
+            },
+            'floating_tip_banner': {
+                'title': '',
+                'message': '温馨提示',
+                'button_text': '我知道了',
+                'subtitle': '',
+                'brand_name': ''
+            }
+        }
+        return defaults.get(anomaly_type, {
+            'title': '提示',
+            'message': '请确认操作',
+            'button_text': '确定',
+            'subtitle': '',
+            'brand_name': ''
+        })
+
+    def _extract_menu_items_from_instruction(self, instruction: str) -> List[str]:
+        """
+        从 instruction 中提取下拉菜单项
+
+        示例：
+        - "内容列表包含最新、最热两个选项" → ["最新", "最热"]
+        - "选项包括选项A、选项B" → ["选项A", "选项B"]
+        - "显示排序菜单：按时间、按热度" → ["按时间", "按热度"]
+
+        Args:
+            instruction: 用户指令
+
+        Returns:
+            提取到的菜单项列表，如果提取失败返回空列表
+        """
+        import re
+
+        # 常见的菜单项分隔模式
+        patterns = [
+            # "包含X、Y两个选项" 或 "包含X、Y选项"
+            r'包含\s*([^，,]+[、,，][^，,两个选项]+?)(?:两个|三个|多个)?选项',
+            # "选项包括X、Y" 或 "选项有X、Y"
+            r'选项(?:包括|有|为|是)\s*[:：]?\s*([^，。]+)',
+            # "内容列表包含X、Y"
+            r'内容(?:列表)?(?:包含|有|为|是)\s*[:：]?\s*([^，。]+?)(?:两个|三个|选项|$)',
+            # "X、Y两个选项" (直接提取)
+            r'([^，。包含有为是]+[、,，][^，。]+?)(?:两个|三个)?选项',
+            # "菜单：X、Y" 或 "菜单项：X、Y"
+            r'菜单(?:项)?[:：]\s*([^，。]+)',
+        ]
+
+        for pattern in patterns:
+            match = re.search(pattern, instruction)
+            if match:
+                items_str = match.group(1).strip()
+                # 分割菜单项（支持中文顿号、逗号）
+                items = re.split(r'[、,，]', items_str)
+                items = [item.strip() for item in items if item.strip()]
+                if len(items) >= 2:  # 至少需要2个选项才算有效
+                    return items
+
+        # 尝试更宽松的提取：查找引号内的内容
+        quoted_items = re.findall(r'[""「」『』]([^""「」『』]+)[""「」『』]', instruction)
+        if len(quoted_items) >= 2:
+            return quoted_items
+
+        return []
+
+    def _remove_background(self, image: Image.Image, tolerance: int = 30) -> Image.Image:
+        """
+        移除 AI 生成图像的背景，使用从边缘扩散的洪水填充算法
+
+        只移除与边缘背景色相连的像素，避免误删弹窗内部的相似颜色像素。
+
+        Args:
+            image: 输入图像（RGBA）
+            tolerance: 颜色容差，越大则移除更多相似颜色的像素
+
+        Returns:
+            处理后的透明背景图像
+        """
+        if image.mode != 'RGBA':
+            image = image.convert('RGBA')
+
+        width, height = image.size
+        pixels = image.load()
+
+        # 直接使用纯黑色作为背景色（AI 生成时已要求纯黑背景）
+        bg_color = (0, 0, 0)
+
+        # 使用洪水填充从边缘开始标记背景像素
+        # 创建访问标记数组
+        to_remove = set()
+        visited = set()
+
+        def is_background_color(x: int, y: int) -> bool:
+            """检查像素是否接近背景色"""
+            r, g, b, a = pixels[x, y]
+            diff = abs(r - bg_color[0]) + abs(g - bg_color[1]) + abs(b - bg_color[2])
+            return diff <= tolerance * 3
+
+        def flood_fill_from_edges():
+            """从图像边缘开始洪水填充，标记所有连通的背景像素"""
+            from collections import deque
+            # 使用 deque 替代 list：popleft 是 O(1)，而 list.pop(0) 是 O(n)
+            queue = deque()
+
+            # 上边缘和下边缘
+            for x in range(width):
+                if is_background_color(x, 0):
+                    queue.append((x, 0))
+                if is_background_color(x, height - 1):
+                    queue.append((x, height - 1))
+
+            # 左边缘和右边缘
+            for y in range(height):
+                if is_background_color(0, y):
+                    queue.append((0, y))
+                if is_background_color(width - 1, y):
+                    queue.append((width - 1, y))
+
+            # BFS 洪水填充
+            while queue:
+                x, y = queue.popleft()
+
+                if (x, y) in visited:
+                    continue
+
+                if x < 0 or x >= width or y < 0 or y >= height:
+                    continue
+
+                if not is_background_color(x, y):
+                    continue
+
+                visited.add((x, y))
+                to_remove.add((x, y))
+
+                # 添加相邻的4个像素（4连通）
+                queue.append((x + 1, y))
+                queue.append((x - 1, y))
+                queue.append((x, y + 1))
+                queue.append((x, y - 1))
+
+        # 执行洪水填充
+        flood_fill_from_edges()
+
+        # 找出保留的像素（非背景像素）
+        retained_pixels = set()
+        for y in range(height):
+            for x in range(width):
+                if (x, y) not in to_remove:
+                    retained_pixels.add((x, y))
+
+        # 孤岛过滤：只保留与主要内容区域相连的像素
+        # 找到最大的连通区域（弹窗主体），移除孤立的小区域
+        main_content = self._find_largest_connected_region(retained_pixels, width, height)
+
+        # 创建结果图像
+        result = Image.new('RGBA', (width, height), (0, 0, 0, 0))
+        result_pixels = result.load()
+
+        # 复制像素，只保留主要内容区域
+        for y in range(height):
+            for x in range(width):
+                if (x, y) in main_content:
+                    result_pixels[x, y] = pixels[x, y]
+                else:
+                    result_pixels[x, y] = (0, 0, 0, 0)
+
+        # 边缘修复：将不透明像素的颜色渗透到半透明边缘，
+        # 替换残留的黑色背景色，保留自然抗锯齿过渡
+        result = self._fix_edge_fringe(result, noise_threshold=10)
+
+        removed_percent = (1 - len(main_content) / (width * height)) * 100
+        isolated_removed = len(retained_pixels) - len(main_content)
+        print(f"  ✓ 背景移除完成: 移除了 {removed_percent:.1f}% 的像素（含 {isolated_removed} 个孤立像素）")
+
+        return result
+
+    def _crop_to_content_and_resize(
+        self,
+        image: Image.Image,
+        target_width: int,
+        target_height: int
+    ) -> Image.Image:
+        """
+        裁切透明边距并 resize 到目标尺寸
+
+        AI 生成的弹窗在背景移除后，实际内容可能不铺满画布。
+        此方法：
+        1. 找到最大连通内容区域的边界框（忽略孤立小区域，如 AI 自行画的关闭按钮）
+        2. 裁切到该边界框
+        3. resize 到目标尺寸
+
+        Args:
+            image: RGBA 图像（已去除背景）
+            target_width: 目标宽度
+            target_height: 目标高度
+
+        Returns:
+            调整后的图像
+        """
+        if image.mode != 'RGBA':
+            image = image.convert('RGBA')
+
+        # 通过 alpha 通道找到内容边界框
+        full_bbox = image.getbbox()
+        if not full_bbox:
+            return image  # 完全透明，无操作
+
+        canvas_width, canvas_height = image.size
+
+        # 尝试找到最大连通内容块，忽略孤立的小区域（如 AI 画的关闭按钮）
+        bbox = self._find_main_content_bbox(image, full_bbox)
+
+        content_width = bbox[2] - bbox[0]
+        content_height = bbox[3] - bbox[1]
+
+        fill_ratio = (content_width * content_height) / (canvas_width * canvas_height)
+
+        if fill_ratio > 0.85:
+            # 内容已经铺满大部分画布，只需 resize
+            if (canvas_width, canvas_height) != (target_width, target_height):
+                image = image.resize((target_width, target_height), Image.Resampling.LANCZOS)
+                # LANCZOS 缩放后轻量噪声清理（极低 alpha 插值残留）
+                r, g, b, a = image.split()
+                a = a.point(lambda x: 0 if x < 10 else x)
+                image = Image.merge('RGBA', (r, g, b, a))
+            return image
+
+        # 裁切到内容边界框
+        cropped = image.crop(bbox)
+        print(f"  ℹ 内容区域: {content_width}x{content_height} (填充率: {fill_ratio:.1%})")
+
+        # resize 到目标尺寸
+        resized = cropped.resize((target_width, target_height), Image.Resampling.LANCZOS)
+        print(f"  ℹ 已 resize 到目标尺寸: {target_width}x{target_height}")
+
+        # LANCZOS 缩放后轻量噪声清理（颜色已由插值正确计算，只需去除极低 alpha 残留）
+        r, g, b, a = resized.split()
+        a = a.point(lambda x: 0 if x < 10 else x)
+        resized = Image.merge('RGBA', (r, g, b, a))
+
+        return resized
+
+    @staticmethod
+    def _find_main_content_bbox(image: Image.Image, full_bbox: tuple) -> tuple:
+        """
+        在已去背景的 RGBA 图像中，找到最大连通内容区域的 bbox。
+
+        通过行扫描检测垂直间隙，将内容分割为多个区块，
+        保留面积最大的区块。这样可以过滤掉 AI 额外画的孤立关闭按钮等小区域。
+
+        Args:
+            image: RGBA 图像
+            full_bbox: image.getbbox() 的结果
+
+        Returns:
+            最大内容区域的 bbox (left, upper, right, lower)
+        """
+        width = image.size[0]
+        alpha = image.split()[3]
+
+        left, top, right, bottom = full_bbox
+        content_width = right - left
+
+        # 如果内容区域很小，直接返回
+        if content_width < 10 or (bottom - top) < 10:
+            return full_bbox
+
+        # 按行扫描，统计每行的非透明像素数
+        # 间隙阈值：非透明像素占内容宽度不到 3% 的行视为"空行"
+        gap_threshold = content_width * 0.03
+        row_has_content = []
+
+        for y in range(top, bottom):
+            count = 0
+            for x in range(left, right):
+                if alpha.getpixel((x, y)) > 10:
+                    count += 1
+            row_has_content.append(count > gap_threshold)
+
+        # 找到连续有内容的行区间（区块）
+        blocks = []  # [(start_y, end_y), ...]
+        in_block = False
+        block_start = 0
+        gap_count = 0
+        max_gap_tolerance = 5  # 允许区块内最多 5 行间隙（抗噪声）
+
+        for i, has_content in enumerate(row_has_content):
+            y = top + i
+            if has_content:
+                if not in_block:
+                    block_start = y
+                    in_block = True
+                gap_count = 0
+                block_end = y + 1
+            else:
+                if in_block:
+                    gap_count += 1
+                    if gap_count > max_gap_tolerance:
+                        # 间隙过大，结束当前区块
+                        blocks.append((block_start, block_end))
+                        in_block = False
+                        gap_count = 0
+
+        if in_block:
+            blocks.append((block_start, block_end))
+
+        if len(blocks) <= 1:
+            # 只有一个区块或没有区块，返回原始 bbox
+            return full_bbox
+
+        # 多个区块：找面积最大的
+        best_block = None
+        best_area = 0
+        for (by_start, by_end) in blocks:
+            # 计算该区块在水平方向的实际内容范围
+            block_left, block_right = width, 0
+            for y in range(by_start, by_end):
+                for x in range(left, right):
+                    if alpha.getpixel((x, y)) > 10:
+                        block_left = min(block_left, x)
+                        block_right = max(block_right, x + 1)
+                        break
+                for x in range(right - 1, left - 1, -1):
+                    if alpha.getpixel((x, y)) > 10:
+                        block_right = max(block_right, x + 1)
+                        break
+
+            area = (block_right - block_left) * (by_end - by_start)
+            if area > best_area:
+                best_area = area
+                best_block = (block_left, by_start, block_right, by_end)
+
+        if best_block:
+            # 只有当最大区块明显大于其他区块时才过滤
+            full_area = (right - left) * (bottom - top)
+            if best_area > full_area * 0.5:
+                print(f"  ℹ 检测到 {len(blocks)} 个内容区块，保留最大区块 (占比 {best_area/full_area:.0%})")
+                return best_block
+
+        return full_bbox
+
+    def _remove_extra_layers(
+        self,
+        image: Image.Image,
+        expected_aspect_ratio: float
+    ) -> Image.Image:
+        """
+        检测并移除 AI 生成图像中多余的弹窗层。
+
+        AI 生成横幅类弹窗时，有时会在目标横幅之外额外生成一个更大的弹窗/卡片层。
+        本方法通过行扫描检测内容区域中的垂直间隙（透明行带），
+        如果存在间隙则将图像拆分为多个区域，只保留宽高比最接近预期的那个区域。
+
+        Args:
+            image: RGBA 图像（已去除背景）
+            expected_aspect_ratio: 预期宽高比（width/height），横幅通常 > 2
+
+        Returns:
+            清理后的图像
+        """
+        if image.mode != 'RGBA':
+            image = image.convert('RGBA')
+
+        width, height = image.size
+
+        # 找出内容边界框
+        bbox = image.getbbox()
+        if not bbox:
+            return image
+
+        # 扫描每一行的非透明像素数量
+        alpha_data = image.split()[3]  # alpha channel
+        row_pixel_counts = []
+        for y in range(bbox[1], bbox[3]):
+            count = 0
+            for x in range(bbox[0], bbox[2]):
+                if alpha_data.getpixel((x, y)) > 10:
+                    count += 1
+            row_pixel_counts.append((y, count))
+
+        if not row_pixel_counts:
+            return image
+
+        # 计算内容宽度（用于判断"几乎空"的行）
+        content_width = bbox[2] - bbox[0]
+        # 阈值：低于内容宽度 5% 的行视为间隙行
+        gap_threshold = content_width * 0.05
+
+        # 找到连续的内容条带（被间隙行分隔的区域）
+        strips = []  # [(y_start, y_end), ...]
+        in_content = False
+        strip_start = 0
+
+        for y, count in row_pixel_counts:
+            if count > gap_threshold:
+                if not in_content:
+                    strip_start = y
+                    in_content = True
+            else:
+                if in_content:
+                    strips.append((strip_start, y))
+                    in_content = False
+
+        if in_content:
+            strips.append((strip_start, row_pixel_counts[-1][0] + 1))
+
+        # 只有一个条带，无需清理
+        if len(strips) <= 1:
+            return image
+
+        print(f"  ℹ 检测到 {len(strips)} 个内容条带，疑似多层弹窗")
+
+        # 找出宽高比最接近预期的条带
+        best_strip = None
+        best_score = float('inf')
+
+        for y_start, y_end in strips:
+            strip_height = y_end - y_start
+            if strip_height < 10:
+                continue
+            strip_ratio = content_width / strip_height
+            score = abs(strip_ratio - expected_aspect_ratio)
+            if score < best_score:
+                best_score = score
+                best_strip = (y_start, y_end)
+
+        if not best_strip:
+            return image
+
+        y_start, y_end = best_strip
+        print(f"  ✓ 保留最佳条带: y=[{y_start}, {y_end}], "
+              f"高度={y_end - y_start}px, 宽高比={content_width / (y_end - y_start):.1f}")
+
+        # 清除最佳条带之外的像素
+        result = Image.new('RGBA', (width, height), (0, 0, 0, 0))
+        # 只复制最佳条带区域
+        strip_region = image.crop((0, y_start, width, y_end))
+        result.paste(strip_region, (0, y_start))
+
+        return result
+
+    @staticmethod
+    def _erase_ai_close_button(image: Image.Image) -> Image.Image:
+        """
+        检测并擦除 AI 自行绘制的关闭按钮（X 图标）
+
+        AI 文生图模型经常无视 "Do not draw any close button" 的否定指令，
+        在弹窗的角落（通常是右上角）自行画一个 X 按钮。
+        由于 X 按钮与弹窗卡片相连，_find_largest_connected_region 无法过滤。
+
+        策略：扫描内容区域的 4 个角落，检测是否存在只占据角落的小型内容块。
+        判断标准：角落区域内有内容，但这些内容行的宽度远小于弹窗主体宽度。
+
+        Args:
+            image: 已去背景的 RGBA 图像
+
+        Returns:
+            处理后的图像（角落 X 按钮已被擦除为透明）
+        """
+        if image.mode != 'RGBA':
+            image = image.convert('RGBA')
+
+        bbox = image.getbbox()
+        if not bbox:
+            return image
+
+        left, top, right, bottom = bbox
+        content_width = right - left
+        content_height = bottom - top
+
+        # 弹窗太小不处理
+        if content_width < 50 or content_height < 50:
+            return image
+
+        alpha = image.split()[3]
+        result = image.copy()
+        result_pixels = result.load()
+
+        # 角落扫描区域大小：内容尺寸的 12%
+        corner_h = max(20, int(content_height * 0.12))
+        corner_w = max(20, int(content_width * 0.12))
+
+        # 主体宽度参考：在内容区域中间 1/3 高度范围内，找到典型的内容行宽度
+        mid_start = top + content_height // 3
+        mid_end = top + content_height * 2 // 3
+        mid_widths = []
+        for y in range(mid_start, mid_end, max(1, (mid_end - mid_start) // 10)):
+            row_left, row_right = right, left
+            for x in range(left, right):
+                if alpha.getpixel((x, y)) > 10:
+                    row_left = min(row_left, x)
+                    row_right = max(row_right, x + 1)
+                    break
+            for x in range(right - 1, left - 1, -1):
+                if alpha.getpixel((x, y)) > 10:
+                    row_right = max(row_right, x + 1)
+                    break
+            if row_right > row_left:
+                mid_widths.append(row_right - row_left)
+
+        if not mid_widths:
+            return image
+
+        typical_width = sorted(mid_widths)[len(mid_widths) // 2]  # 中位数
+        # 角落内容行的宽度阈值：如果一行内容宽度不到主体的 30%，认为是角落小元素
+        width_threshold = typical_width * 0.30
+
+        def scan_and_erase_corner(cy_start, cy_end, cx_start, cx_end, corner_name):
+            """扫描指定角落区域，如果发现小型孤立内容则擦除"""
+            corner_pixels = []
+            for y in range(cy_start, cy_end):
+                for x in range(cx_start, cx_end):
+                    if alpha.getpixel((x, y)) > 10:
+                        corner_pixels.append((x, y))
+
+            if not corner_pixels:
+                return 0  # 角落无内容
+
+            # 关键检查：角落内容是否触及内边界（与主体相连）
+            # 如果触及，说明是卡片圆角的一部分，绝对不能擦除
+            # 内边界定义：对于 top-right 角落，内边界是左侧(cx_start)和底部(cy_end-1)
+            # 检查边界方向上 3 像素的容差范围
+            inner_margin = 3
+
+            # 判断是哪个角落，确定内边界方向
+            is_top = (cy_start <= top + corner_h)
+            is_right = (cx_end >= right - 1)
+            is_left = (cx_start <= left + 1)
