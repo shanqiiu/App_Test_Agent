@@ -1,0 +1,762 @@
+
+            touches_inner_boundary = False
+            for (px, py) in corner_pixels:
+                # 水平内边界：top-right/bottom-right 的左侧，top-left/bottom-left 的右侧
+                if is_right and px <= cx_start + inner_margin:
+                    touches_inner_boundary = True
+                    break
+                if is_left and px >= cx_end - 1 - inner_margin:
+                    touches_inner_boundary = True
+                    break
+                # 垂直内边界：top-* 的底部，bottom-* 的顶部
+                if is_top and py >= cy_end - 1 - inner_margin:
+                    touches_inner_boundary = True
+                    break
+                if not is_top and py <= cy_start + inner_margin:
+                    touches_inner_boundary = True
+                    break
+
+            if touches_inner_boundary:
+                return 0  # 内容触及内边界，是卡片主体的一部分
+
+            # 检查角落内容的水平范围
+            px_left = min(p[0] for p in corner_pixels)
+            px_right = max(p[0] for p in corner_pixels) + 1
+            corner_content_width = px_right - px_left
+
+            # 检查角落内容是否远小于主体宽度
+            if corner_content_width > width_threshold:
+                return 0  # 角落内容宽度较大，可能是正常内容（标题栏等），不擦除
+
+            # 检查像素密度：X 按钮是细线条，密度低；卡片填充区域密度高
+            corner_area = (cx_end - cx_start) * (cy_end - cy_start)
+            pixel_density = len(corner_pixels) / corner_area if corner_area > 0 else 0
+            if pixel_density > 0.4:
+                return 0  # 密度过高，更像是卡片的实心区域，不是 X 线条
+
+            # 确认是小型角落元素，擦除
+            erased = 0
+            for (x, y) in corner_pixels:
+                result_pixels[x, y] = (0, 0, 0, 0)
+                erased += 1
+
+            if erased > 0:
+                print(f"  ℹ 擦除 {corner_name} 角落疑似 AI 关闭按钮: {erased} 像素 "
+                      f"({corner_content_width}px 宽, 密度 {pixel_density:.1%})")
+            return erased
+
+        total_erased = 0
+
+        # 扫描右上角（最常见的 X 按钮位置）
+        total_erased += scan_and_erase_corner(
+            top, top + corner_h,
+            right - corner_w, right,
+            "右上"
+        )
+
+        # 扫描左上角
+        total_erased += scan_and_erase_corner(
+            top, top + corner_h,
+            left, left + corner_w,
+            "左上"
+        )
+
+        # 扫描右下角（罕见但可能）
+        total_erased += scan_and_erase_corner(
+            bottom - corner_h, bottom,
+            right - corner_w, right,
+            "右下"
+        )
+
+        # 扫描左下角（罕见但可能）
+        total_erased += scan_and_erase_corner(
+            bottom - corner_h, bottom,
+            left, left + corner_w,
+            "左下"
+        )
+
+        if total_erased > 0:
+            print(f"  ✓ AI 关闭按钮擦除完成: 共 {total_erased} 像素")
+
+        return result
+
+    def _find_largest_connected_region(
+        self,
+        pixels_set: set,
+        width: int,
+        height: int
+    ) -> set:
+        """
+        找到最大的连通区域（8连通）
+
+        Args:
+            pixels_set: 需要分析的像素坐标集合
+            width: 图像宽度
+            height: 图像高度
+
+        Returns:
+            最大连通区域的像素坐标集合
+        """
+        if not pixels_set:
+            return set()
+
+        visited = set()
+        largest_region = set()
+
+        def bfs_find_region(start_x: int, start_y: int) -> set:
+            """BFS 查找与起点相连的所有像素（8连通）"""
+            region = set()
+            queue = [(start_x, start_y)]
+
+            while queue:
+                x, y = queue.pop(0)
+
+                if (x, y) in visited:
+                    continue
+                if (x, y) not in pixels_set:
+                    continue
+
+                visited.add((x, y))
+                region.add((x, y))
+
+                # 8连通：检查周围8个像素
+                for dx in [-1, 0, 1]:
+                    for dy in [-1, 0, 1]:
+                        if dx == 0 and dy == 0:
+                            continue
+                        nx, ny = x + dx, y + dy
+                        if 0 <= nx < width and 0 <= ny < height:
+                            if (nx, ny) not in visited and (nx, ny) in pixels_set:
+                                queue.append((nx, ny))
+
+            return region
+
+        # 遍历所有像素，找到所有连通区域
+        for (x, y) in pixels_set:
+            if (x, y) not in visited:
+                region = bfs_find_region(x, y)
+                if len(region) > len(largest_region):
+                    largest_region = region
+
+        return largest_region
+
+    def _smooth_edges_safe(self, image: Image.Image, blur_radius: float = 0.5) -> Image.Image:
+        """
+        安全的边缘平滑处理 - 只平滑边缘，不影响已经完全透明的区域
+
+        问题：普通的 _smooth_edges 会把 alpha=0 的像素变成 alpha>0，
+        导致透明背景区域在合成时显示出 RGB 值（灰色）。
+
+        解决：只在原本有内容（alpha>0）的区域附近进行平滑，
+        完全透明的区域保持 alpha=0。
+
+        Args:
+            image: RGBA 图像
+            blur_radius: 模糊半径
+
+        Returns:
+            边缘平滑后的图像
+        """
+        if image.mode != 'RGBA':
+            return image
+
+        r, g, b, alpha = image.split()
+
+        # 对 alpha 通道进行模糊
+        alpha_blurred = alpha.filter(ImageFilter.GaussianBlur(radius=blur_radius))
+
+        # 关键：使用原始 alpha 作为遮罩
+        # 原本完全透明的像素（alpha=0）保持透明，不使用模糊后的值
+        alpha_result = ImageChops.darker(alpha, alpha_blurred)
+
+        result = Image.merge('RGBA', (r, g, b, alpha_result))
+
+        return result
+
+    def _threshold_alpha(self, image: Image.Image, threshold: int = 128) -> Image.Image:
+        """
+        对 alpha 通道进行阈值处理，消除半透明边缘
+
+        将 alpha 值低于阈值的像素设为完全透明，高于阈值的设为完全不透明。
+        这样可以避免合成时半透明像素与底图混合产生黑边。
+
+        Args:
+            image: RGBA 图像
+            threshold: alpha 阈值 (0-255)，低于此值的像素变为透明
+
+        Returns:
+            处理后的图像
+        """
+        if image.mode != 'RGBA':
+            return image
+
+        # 提取各通道
+        r, g, b, alpha = image.split()
+
+        # 对 alpha 通道进行阈值处理：低于阈值变0，高于阈值变255
+        alpha_threshold = alpha.point(lambda x: 255 if x >= threshold else 0)
+
+        # 重新合并通道
+        result = Image.merge('RGBA', (r, g, b, alpha_threshold))
+
+        return result
+
+    def _fix_edge_fringe(self, image: Image.Image, noise_threshold: int = 10) -> Image.Image:
+        """
+        修复去背景后边缘的黑色色晕，同时保留自然的抗锯齿过渡
+
+        问题：AI 生成图像的黑色背景移除后，边缘半透明像素的 RGB 仍偏黑，
+        与深色遮罩合成时产生灰色条纹。旧方案用 alpha 阈值硬切为 0/255，
+        消除了色晕但也破坏了抗锯齿，导致锯齿状毛刺。
+
+        新方案：将不透明区域的颜色向外"渗透"到半透明边缘像素的 RGB 通道，
+        替换残留的黑色背景色。保留 alpha 通道的自然过渡，实现平滑边缘。
+
+        Args:
+            image: RGBA 图像（已去除背景）
+            noise_threshold: alpha 低于此值的像素视为噪声，直接清零
+
+        Returns:
+            边缘修复后的图像
+        """
+        if image.mode != 'RGBA':
+            return image
+
+        r, g, b, alpha = image.split()
+
+        # 1. 去除极低 alpha 噪声（洪水填充残留的微弱像素）
+        alpha = alpha.point(lambda x: 0 if x < noise_threshold else x)
+
+        # 2. 创建不透明像素遮罩（alpha >= 240 视为不透明）
+        opaque_mask = alpha.point(lambda x: 255 if x >= 240 else 0)
+
+        # 3. 颜色渗透：通过多次"模糊+恢复"迭代，
+        #    让不透明像素的颜色逐渐扩散到半透明边缘区域
+        def bleed_channel(channel, iterations=3, blur_radius=2):
+            """将不透明区域的颜色渗透到透明边缘"""
+            result = channel.copy()
+            for _ in range(iterations):
+                # 模糊扩散颜色
+                blurred = result.filter(ImageFilter.GaussianBlur(radius=blur_radius))
+                # 不透明区域保持原色，其他区域使用模糊后的颜色
+                result = Image.composite(channel, blurred, opaque_mask)
+            return result
+
+        r_fixed = bleed_channel(r)
+        g_fixed = bleed_channel(g)
+        b_fixed = bleed_channel(b)
+
+        return Image.merge('RGBA', (r_fixed, g_fixed, b_fixed, alpha))
+
+    def _build_ai_prompt(
+        self,
+        title: str,
+        message: str,
+        style: str,
+        buttons: List[str],
+        is_ad: bool,
+        app_style: str
+    ) -> str:
+        """构建 AI 图像生成的提示词"""
+        # 如果有参考风格，使用参考风格的提示词
+        if self.style_applier:
+            return self.style_applier.get_ai_prompt(title, message)
+
+        style_desc = {
+            'error': 'red accent color, error/warning theme',
+            'warning': 'orange/yellow accent color, caution theme',
+            'info': 'blue accent color, informational theme',
+            'success': 'green accent color, success/confirmation theme'
+        }.get(style, 'blue accent color')
+
+        buttons_desc = ' and '.join([f'"{b}" button' for b in buttons])
+
+        # 要求纯黑色背景，便于后续处理时移除
+        black_bg = """CRITICAL BACKGROUND REQUIREMENT:
+- The background MUST be pure solid BLACK (#000000, RGB 0,0,0)
+- Only render the dialog card itself with its white rounded rectangle
+- The area OUTSIDE the dialog card must be 100% pure black - no gradients, no other colors
+- This black background will be removed in post-processing
+- DO NOT use any other background color - ONLY pure black"""
+
+        if is_ad:
+            prompt = f"""A mobile app promotional popup dialog in {app_style} style:
+- Clean white rounded rectangle card with subtle drop shadow
+- Colorful header banner at top
+- Title: "{title}" in bold
+- Message: "{message}"
+- {buttons_desc} at bottom
+- Small close (X) button in top-right corner
+- Modern minimalist design like WeChat/iOS
+- High resolution, crisp Chinese text
+- {style_desc}
+
+{black_bg}"""
+        else:
+            prompt = f"""A mobile app alert dialog popup in {app_style} style:
+- Clean white rounded rectangle card with subtle drop shadow
+- Icon matching the alert type on left side
+- Title: "{title}" in bold, {style_desc}
+- Message: "{message}" in gray
+- {buttons_desc} at bottom
+- Modern minimalist flat design like WeChat or iOS alert
+- High resolution, crisp Chinese text rendering
+- Professional mobile app quality
+
+{black_bg}"""
+
+        return prompt
+
+    @staticmethod
+    def _parse_background_to_english(raw: str) -> str:
+        """
+        将 meta.json 的 background 字段（中文+颜色代码混合文本）转为纯英文描述。
+
+        避免中文描述和裸颜色代码被文生图模型当作要渲染的文字。
+
+        示例：
+            "外层白色圆角卡片，内容区红色珊瑚渐变 #FF1744 → #FF6B35" → "white card outer, red-coral gradient (#FF1744 to #FF6B35) inner"
+            "米白色渐变 #FAF6F0" → "cream gradient (#FAF6F0)"
+            "#FFFFFF" → "#FFFFFF"
+        """
+        if not raw or raw.strip().startswith('#') and len(raw.strip()) <= 30 and '，' not in raw:
+            # 纯色值或简短英文，直接返回
+            return raw
+
+        # 提取所有 hex 颜色值
+        colors = re.findall(r'#[0-9A-Fa-f]{6}', raw)
+
+        # 中文颜色词 → 英文映射
+        color_map = {
+            '白色': 'white', '米白': 'cream', '黑色': 'black',
+            '红色': 'red', '珊瑚': 'coral', '橙色': 'orange',
+            '粉色': 'pink', '粉红': 'pink', '蓝色': 'blue',
+            '绿色': 'green', '金色': 'gold', '金棕': 'golden-brown',
+            '灰色': 'gray', '紫色': 'purple', '黄色': 'yellow',
+        }
+
+        # 检测是否有渐变
+        has_gradient = '渐变' in raw
+
+        # 构建英文描述
+        parts = []
+
+        # 检测外层/内层结构
+        if '外层' in raw or '外框' in raw:
+            outer_color = 'white'
+            for cn, en in color_map.items():
+                if cn in raw.split('，')[0] if '，' in raw else raw[:10]:
+                    outer_color = en
+                    break
+            parts.append(f'{outer_color} outer frame')
+
+        # 处理颜色
+        if has_gradient and len(colors) >= 2:
+            parts.append(f'gradient ({colors[0]} to {colors[1]})')
+        elif has_gradient and len(colors) == 1:
+            parts.append(f'gradient ({colors[0]})')
+        elif colors:
+            parts.append(' '.join(colors))
+
+        # 添加颜色描述词
+        for cn, en in color_map.items():
+            if cn in raw and en not in ' '.join(parts):
+                # 避免重复添加已在 outer frame 中出现的
+                if not any(en in p for p in parts):
+                    parts.append(en)
+                break
+
+        if parts:
+            return ', '.join(parts)
+
+        # 回退：如果解析失败，返回提取到的颜色值
+        if colors:
+            return ' to '.join(colors) if has_gradient else ' '.join(colors)
+
+        return 'white'
+
+    def _build_ai_prompt_from_meta(
+        self,
+        meta_semantic: str,
+        meta_features: Dict[str, Any],
+        reference_path: str = None,
+        target_content: Dict[str, str] = None
+    ) -> str:
+        """
+        基于meta.json的语义描述构建AI生成prompt（核心增强）
+
+        改进版：支持分离视觉风格和文字内容
+        - meta_semantic: 视觉风格描述（来自 extract_visual_style_prompt）
+        - meta_features: 视觉特征字典（颜色、位置、样式等）
+        - reference_path: 参考图片路径（提供视觉风格参考）
+        - target_content: VLM根据目标截图生成的语义内容（标题、消息、按钮文字）
+
+        生成的prompt结合：
+        1. 纯视觉风格（来自meta.json的视觉特征）
+        2. 语义相关的文字内容（来自VLM分析目标截图）
+        3. 参考图片作为风格锚定
+
+        Args:
+            meta_semantic: MetaLoader.extract_visual_style_prompt()的输出（或旧版extract_semantic_prompt）
+            meta_features: MetaLoader.extract_visual_features_dict()的输出
+            reference_path: 参考图片路径
+            target_content: VLM生成的语义内容，格式 {'title', 'message', 'button_text', 'subtitle'}
+
+        Returns:
+            优化的AI生成prompt
+        """
+        # 提取关键视觉参数
+        app_style = meta_features.get('app_style', '通用')
+        design_language = meta_features.get('design_language', '')
+        primary_color = meta_features.get('primary_color', '#1890FF')
+        background = self._parse_background_to_english(meta_features.get('background', '#FFFFFF'))
+        dialog_position = meta_features.get('dialog_position', 'center')
+        corner_style = meta_features.get('corner_radius', 'large')
+
+        # 提取按钮和关闭按钮信息
+        close_button_pos = meta_features.get('close_button_position', 'none')
+        close_button_style = meta_features.get('close_button_style', 'default')
+
+        # 提取遮罩层信息
+        overlay_enabled = meta_features.get('overlay_enabled', True)
+        overlay_opacity = meta_features.get('overlay_opacity', 0.7)
+
+        # 特殊视觉元素（过滤文字相关内容和品牌相关元素）
+        special_elements = meta_features.get('special_elements', [])
+        # 过滤掉文字内容和参考图品牌相关的元素
+        visual_elements = []
+        # 文字内容关键词（固定列表）
+        text_filter_keywords = [
+            '文字', '显示', '标题', '内容', '数字', '天', '元', '折',
+        ]
+        # 动态品牌关键词：从 meta_features 的 source_brand_keywords 获取
+        source_brand_keywords = meta_features.get('source_brand_keywords', [])
+        if not source_brand_keywords:
+            # 向后兼容：从 app_style 推导
+            _app_style = meta_features.get('app_style', '')
+            if _app_style and _app_style != '通用':
+                source_brand_keywords = [_app_style]
+        filter_keywords = text_filter_keywords + source_brand_keywords
+        for elem in special_elements:
+            # 检查是否包含任何过滤关键词（不区分大小写）
+            has_filter_keyword = any(kw.lower() in elem.lower() for kw in filter_keywords)
+            if not has_filter_keyword:
+                visual_elements.append(elem)
+        special_elements_desc = ', '.join(visual_elements) if visual_elements else '无'
+
+        # 检查是否是下拉菜单类型
+        anomaly_type = meta_features.get('anomaly_type', '')
+        is_dropdown_menu = anomaly_type == 'context_menu_dropdown'
+
+        # 获取下拉菜单专用字段（样式从 meta_features 获取）
+        list_style = meta_features.get('list_style', 'radio_list')
+        selected_indicator = meta_features.get('selected_indicator', 'checkmark')
+
+        # 获取 menu_items：优先使用 instruction 提取的，否则使用 meta.json 的
+        if target_content and target_content.get('menu_items'):
+            # instruction 中提取到了菜单项
+            menu_items = target_content.get('menu_items')
+            selected_item = menu_items[0] if menu_items else ''
+            content_source = f"instruction-derived menu: {menu_items}"
+        else:
+            # 使用 meta.json 中的默认菜单项
+            menu_items = meta_features.get('menu_items', [])
+            selected_item = meta_features.get('selected_item', menu_items[0] if menu_items else '')
+            content_source = f"meta.json menu: {menu_items}"
+
+        # 确定文字内容来源
+        if is_dropdown_menu and menu_items:
+            # 下拉菜单：使用上面确定的 menu_items
+            title_text = target_content.get('title', '') if target_content else ''
+            message_text = ''
+            button_text = ''
+            buttons = []
+            subtitle_text = ''
+            brand_name = target_content.get('brand_name', '') if target_content else ''
+        elif target_content:
+            # 使用 VLM 生成的语义相关内容
+            title_text = target_content.get('title', '提示')
+            message_text = target_content.get('message', '')
+            button_text = target_content.get('button_text', '确定')
+            buttons = target_content.get('buttons', [button_text])
+            subtitle_text = target_content.get('subtitle', '')
+            brand_name = target_content.get('brand_name', '')
+            content_source = "VLM generated (semantic-aware)"
+        else:
+            # 回退到 meta_features 中的文字（向后兼容）
+            title_text = meta_features.get('title_text', meta_features.get('main_button_text', '确定'))
+            message_text = meta_features.get('anomaly_description', '')
+            button_text = meta_features.get('main_button_text', '确定')
+            buttons = meta_features.get('buttons', [button_text])
+            subtitle_text = meta_features.get('subtitle_text', '')
+            brand_name = ''
+            content_source = "meta.json (fallback)"
+
+        # 构建按钮描述文本
+        if len(buttons) > 1:
+            buttons_desc = ' and '.join([f'"{b}"' for b in buttons])
+            buttons_prompt_part = f' Buttons at bottom (side by side): {buttons_desc}.'
+        elif buttons:
+            buttons_prompt_part = f' Button text: "{buttons[0]}".'
+        elif button_text:
+            buttons_prompt_part = f' Button text: "{button_text}".'
+        else:
+            buttons_prompt_part = ''
+
+        # 构建关闭按钮描述（保留原始灰色样式）
+        if close_button_pos != 'none':
+            close_button_desc = f"""### Close Button (CRITICAL - must be visible)
+- Position: {close_button_pos}
+- Style: {close_button_style}
+- IMPORTANT: The close button should use a LIGHT GRAY circular background (like the reference image)
+- The close button must be INSIDE the dialog area or directly attached to it
+- DO NOT place the close button floating in the black background area
+- Make sure the close button is clearly visible and properly rendered"""
+        else:
+            close_button_desc = "### Close Button\n- No close button"
+
+        # 构建 Logo/Badge 文字描述
+        if brand_name:
+            logo_text_desc = f"""### Logo/Badge Text (CRITICAL)
+- If there is a logo, badge or medal in the design, the text inside it should be: "{brand_name}"
+- DO NOT use the reference image's brand text
+- The logo should display the TARGET APP's brand: "{brand_name}" """
+        else:
+            # 动态构建禁止品牌示例
+            brand_examples = ', '.join(f'"{kw}"' for kw in source_brand_keywords[:3]) if source_brand_keywords else '"any brand from the reference"'
+            logo_text_desc = f"""### Logo/Badge Text
+- If there is a logo or badge, leave it without specific brand text or use generic decorative text
+- NEVER copy brand text from the reference image (e.g. {brand_examples})
+- Replace any brand badge with a generic achievement icon or the target app's content"""
+
+        # 构建精确的prompt
+        # 注意：app_style 来自参考图的meta.json，可能包含参考图的品牌（如"华为花粉俱乐部"）
+        # 只有当 VLM 从目标截图识别出 brand_name 时才使用品牌信息
+        # 绝不回退到 app_style，避免参考图品牌泄漏到生成结果
+        display_brand = brand_name if brand_name else ''
+
+        # 版式形状描述映射
+        layout_shape_map = {
+            'bottom-fixed': 'a horizontal banner/strip fixed to the bottom edge, wide and short like a coupon bar',
+            'bottom-floating': 'a wide, short rounded banner floating near the bottom',
+            'bottom-center-floating': 'a small tooltip/bubble near the bottom center',
+            'center': 'a centered card dialog',
+            'bottom-left-inline': 'a small compact dropdown menu card',
+            'multi-layer': 'multiple overlapping layers',
+        }
+        layout_desc = layout_shape_map.get(dialog_position, 'a centered card dialog')
+
+        # 关闭按钮：不写入 prompt，由 run_pipeline.py 在最终合成阶段用 PIL 精确绘制
+        # 避免 AI 画一个 + pipeline 再画一个导致重复
+        # 使用正面指令替代否定指令——AI 文生图模型对 "Do not" 否定句效果很差
+        close_desc = 'The dialog has clean edges with NO X button, NO close icon, and NO circular button in any corner. All four corners of the dialog card must show only the background color or content — leave corners completely empty and undecorated.'
+
+        # 参考图风格指令：当有参考图直接传入时，使用更精确的描述
+        # reference_path 在调用时传入，这里通过成员方法的参数获取
+        if reference_path and Path(reference_path).exists():
+            # 构建禁止复制的品牌列表（从 source_brand_keywords 动态获取）
+            if source_brand_keywords:
+                banned_brands = ', '.join(source_brand_keywords)
+            else:
+                banned_brands = 'any brand name from the reference image'
+            style_ref_desc = (
+                'Use the input image (Image 1) ONLY as a visual STYLE reference — '
+                'match its color scheme, layout proportions, rounded corner style, button shape, and overall design language. '
+                'CRITICAL: Do NOT copy any text, logo, brand name, or badge content from the reference image. '
+                f'Specifically, NEVER include these words: {banned_brands}. '
+                'If the reference has a medal, badge, or logo with brand text inside, '
+                'replace that text with the title/brand specified above. '
+                'Generate a completely NEW dialog using ONLY the text content specified above.'
+            )
+        else:
+            style_ref_desc = 'Match the visual style of a modern mobile app dialog.'
+
+        # 根据弹窗类型构建不同的简洁 prompt
+        # 文生图模型需要简短的自然语言描述，不能用长结构化文档
+        if is_dropdown_menu and menu_items:
+            menu_items_str = ', '.join([f'"{item}"' for item in menu_items])
+            prompt = f"""A mobile app dropdown menu on pure black background. The menu is a small white card with these items: {menu_items_str}. The item "{selected_item}" has a checkmark. Style: {list_style}, clean minimal design. {close_desc} The area outside the menu must be pure black #000000. {style_ref_desc}"""
+        elif dialog_position in ('bottom-floating', 'bottom-fixed', 'bottom-center-floating'):
+            # 底部横幅/浮层类型 — 强调只生成单一横幅，不要额外弹窗元素
+            subtitle_part = f' Subtitle: "{subtitle_text}".' if subtitle_text else ''
+            brand_part = f' The banner belongs to "{display_brand}" app.' if display_brand else ''
+            elements_part = f' Include visual elements: {special_elements_desc}.' if special_elements_desc != '无' else ''
+
+            prompt = f"""A single mobile app notification banner on pure black background. This is {layout_desc}. IMPORTANT: Generate ONLY ONE banner element, do not add any other popup, dialog, card or UI element. The banner has {corner_style} rounded corners with {background} background and {primary_color} as primary color. Title: "{title_text}". Message: "{message_text}".{buttons_prompt_part}{subtitle_part}{brand_part}{elements_part} {close_desc} The banner must fill at least 90% of the canvas width and be vertically centered on the canvas. The rest of the canvas must be pure black #000000 with absolutely no other elements, shadows, or gradients. Do not draw any overlay, dark mask, or additional popup layers. All text is in Chinese, crisp and readable. {style_ref_desc}"""
+        else:
+            # 标准弹窗 — 简洁的自然语言描述
+            subtitle_part = f' Subtitle: "{subtitle_text}".' if subtitle_text else ''
+            brand_part = f' The dialog belongs to "{display_brand}" app.' if display_brand else ''
+            elements_part = f' Include visual elements: {special_elements_desc}.' if special_elements_desc != '无' else ''
+
+            prompt = f"""A mobile app popup dialog card on pure black background. This is {layout_desc}. IMPORTANT: Generate ONLY ONE dialog element, do not add any other popup or UI element. The dialog card has {corner_style} rounded corners with {background} background and {primary_color} as primary color. Title: "{title_text}". Message: "{message_text}".{buttons_prompt_part}{subtitle_part}{brand_part}{elements_part} {close_desc} The dialog must fill at least 90% of the canvas width. The area outside the dialog must be pure black #000000 with no shadows or gradients. Do not draw any overlay or dark mask. All text is in Chinese, crisp and readable. {style_ref_desc}"""
+
+        return prompt
+
+    # ==================== 统一接口 ====================
+    def get_dialog_bounds_from_reference(
+        self,
+        screen_width: int,
+        screen_height: int
+    ) -> Optional[Dict[str, int]]:
+        """
+        根据参考风格获取弹窗的位置和尺寸
+
+        Args:
+            screen_width: 目标屏幕宽度
+            screen_height: 目标屏幕高度
+
+        Returns:
+            弹窗坐标字典 {'x', 'y', 'width', 'height'}，如果没有参考风格则返回 None
+        """
+        if self.style_applier:
+            return self.style_applier.get_bounds_for_screen(screen_width, screen_height)
+        return None
+
+    def generate(
+        self,
+        ui_json: dict,
+        instruction: str,
+        screenshot_path: str,
+        width: int = 600,
+        height: int = 400,
+        mode: str = 'pil',
+        screen_width: int = 1080,
+        screen_height: int = 1920
+    ) -> Tuple[Image.Image, Dict[str, Any]]:
+        """
+        统一的弹窗生成接口
+
+        Args:
+            ui_json: UI 结构
+            instruction: 异常指令
+            screenshot_path: 截图路径
+            width: 弹窗宽度（如果有参考风格会被覆盖）
+            height: 弹窗高度（如果有参考风格会被覆盖）
+            mode: 渲染模式 ('pil' 或 'ai')
+            screen_width: 目标屏幕宽度
+            screen_height: 目标屏幕高度
+
+        Returns:
+            (弹窗图像, 内容配置)
+        """
+        # 如果有参考风格，使用参考风格的尺寸
+        if self.style_applier:
+            bounds = self.style_applier.get_bounds_for_screen(screen_width, screen_height)
+            width = bounds['width']
+            height = bounds['height']
+            print(f"  ✓ 使用参考风格尺寸: {width}x{height}")
+
+        # 生成语义内容
+        content = self.generate_semantic_content(ui_json, instruction, screenshot_path)
+        msg_preview = content.get('message', '')[:30]
+        print(f"  ✓ 语义内容: {content.get('title')} - {msg_preview}...")
+
+        # 根据模式生成弹窗
+        if mode == 'ai':
+            # AI 模式：坚持使用 AI 生成，不回退到 PIL
+            dialog = self.generate_dialog_ai(content, width, height, screenshot_path)
+        else:
+            dialog = self.generate_dialog_pil(content, width, height, screen_width, screen_height)
+
+        return dialog, content
+
+    # ==================== GT 风格提取（原 style_transfer.py 能力） ====================
+
+    def extract_gt_style(self, sample_path: str, style_type: str = "dialog") -> dict:
+        """
+        从 GT 样本提取视觉风格特征（替代已删除的 StyleTransferPipeline）
+
+        Args:
+            sample_path: GT 样本图片路径
+            style_type: 风格类型，"dialog" 或 "loading"
+
+        Returns:
+            风格特征字典
+        """
+        cache_key = f"{style_type}_{sample_path}"
+        if not hasattr(self, '_style_cache'):
+            self._style_cache = {}
+        if cache_key in self._style_cache:
+            return self._style_cache[cache_key]
+
+        try:
+            with open(sample_path, 'rb') as f:
+                image_base64 = base64.b64encode(f.read()).decode('utf-8')
+
+            if style_type == "dialog":
+                prompt = """分析这个弹窗/提示界面的视觉设计特征，用于风格迁移到新场景。
+
+## 分析维度
+
+### 1. 布局特征
+- position: 弹窗位置 (center/top/bottom/full)
+- width_ratio: 弹窗宽度占屏幕比例 (0.0-1.0)
+- height_ratio: 弹窗高度占屏幕比例 (0.0-1.0)
+- padding: 内边距估计值(px)
+
+### 2. 配色方案
+- background: 弹窗背景色
+- primary: 主色调（按钮、标题）
+- secondary: 辅助色
+- text: 主文字颜色
+- button: 主按钮颜色
+
+### 3. 设计风格
+- corner_radius: none/small/medium/large/circular
+- shadow: none/subtle/prominent
+- border: none/thin/thick
+- style: card（卡片）/fullscreen（全屏）/modal（模态）/toast（轻提示）
+
+### 4. 元素特征
+- has_close_button: 是否有关闭按钮
+- close_position: 关闭按钮位置 (top-right/top-right-outside/top-left/bottom)
+- has_image: 是否有图片
+- has_buttons: 是否有操作按钮
+- button_count: 按钮数量
+
+返回纯JSON格式结果。"""
+                default = {
+                    "layout": {"position": "center", "width_ratio": 0.8, "height_ratio": 0.5, "padding": 20},
+                    "colors": {"background": "#FFFFFF", "primary": "#1890FF", "secondary": "#999999",
+                               "text": "#333333", "button": "#1890FF"},
+                    "design": {"corner_radius": "medium", "shadow": "subtle", "border": "none", "style": "card"},
+                    "elements": {"has_close_button": True, "close_position": "top-right",
+                                 "has_image": False, "has_buttons": True, "button_count": 1}
+                }
+            else:  # loading
+                prompt = """分析这个加载/白屏/错误页面的视觉特征，用于风格迁移。
+
+分析维度：加载类型(white_screen/loading_spinner/skeleton/error_page/partial_loading)、
+配色(background/spinner/text)、元素列表、提示文案。
+
+返回纯JSON格式结果。"""
+                default = {
+                    "type": "white_screen",
+                    "colors": {"background": "#FFFFFF", "spinner": "#1890FF", "text": "#999999"},
+                    "elements": [],
+                    "message": ""
+                }
+
+            headers = {'Content-Type': 'application/json', 'Authorization': f'Bearer {self.api_key}'}
+            payload = {
+                'model': self.vlm_model,
+                'messages': [{'role': 'user', 'content': [
+                    {'type': 'image_url', 'image_url': {'url': f'data:image/png;base64,{image_base64}'}},
+                    {'type': 'text', 'text': prompt}
+                ]}],
+                'temperature': 0.3,
+                'max_tokens': 600
+            }
+            response = requests.post(self.vlm_api_url, headers=headers, json=payload, timeout=60)
+            response.raise_for_status()
+            content_str = response.json()['choices'][0]['message']['content']
+            import re as _re
+            json_match = _re.search(r'\{[\s\S]*\}', content_str)
+            result = json.loads(json_match.group(0)) if json_match else default
+            self._style_cache[cache_key] = result
+            return result
+
+        except Exception as e:
+            print(f"  ⚠ GT 风格提取失败 ({style_type}): {e}")
+            return default
