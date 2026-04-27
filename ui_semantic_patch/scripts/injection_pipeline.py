@@ -29,10 +29,21 @@ import json
 import argparse
 from pathlib import Path
 
+# 设置 UTF-8 编码输出（Windows 兼容）
+if sys.platform == 'win32':
+    import io
+    sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8')
+    sys.stderr = io.TextIOWrapper(sys.stderr.buffer, encoding='utf-8')
+
+# 确保能导入 app 模块（将项目根目录加入 Python 路径）
+_project_root = Path(__file__).resolve().parents[1]
+if str(_project_root) not in sys.path:
+    sys.path.insert(0, str(_project_root))
+
 # 自动加载项目根目录的 .env 文件
 try:
     from dotenv import load_dotenv
-    env_path = Path(__file__).resolve().parents[3] / '.env'
+    env_path = Path(__file__).resolve().parents[2] / '.env'
     if env_path.exists():
         load_dotenv(env_path)
 except ImportError:
@@ -42,8 +53,7 @@ from typing import List, Optional
 # 确保能导入本地模块
 sys.path.insert(0, str(Path(__file__).parent))
 
-from injection import SequenceAnalyzer, AnomalyRecommender, SequenceRewriter
-from injection.mock_provider import MockConfig, MockSequenceRewriter
+from app.injection import SequenceAnalyzer, AnomalyRecommender, SequenceRewriter, QualityVerifier
 
 
 def load_task(input_dir: Path) -> dict:
@@ -169,6 +179,12 @@ def main():
     # 非交互式模式（自动确认）
     python injection_pipeline.py --input-dir examples/injection_demo --output-dir output/injected --no-interactive
 
+    # 禁用 VLM 质量验证
+    python injection_pipeline.py --input-dir examples/injection_demo --output-dir output/injected --no-verification
+
+    # 自定义质量阈值和重试次数
+    python injection_pipeline.py --input-dir examples/injection_demo --output-dir output/injected --quality-threshold 7.0 --verification-retries 3
+
     # 指定任务描述
     python injection_pipeline.py --input-dir ./screenshots --output-dir ./output --task "在携程预订酒店"
         """
@@ -240,6 +256,26 @@ def main():
         type=int,
         default=2,
         help="最少分析步数后才考虑注入（默认 2）"
+    )
+
+    parser.add_argument(
+        "--no-verification",
+        action="store_true",
+        help="跳过 VLM 质量验证（默认启用验证）"
+    )
+
+    parser.add_argument(
+        "--verification-retries",
+        type=int,
+        default=2,
+        help="质量验证不通过时的最大重试次数（默认 2）"
+    )
+
+    parser.add_argument(
+        "--quality-threshold",
+        type=float,
+        default=6.0,
+        help="质量阈值，quality_score >= threshold 才算通过（默认 6.0）"
     )
 
     args = parser.parse_args()
@@ -358,6 +394,10 @@ def main():
     # 执行序列改写
     print("\n执行序列改写...")
 
+    # ===== VLM 质量验证配置 =====
+    max_verification_retries = args.verification_retries if hasattr(args, 'verification_retries') else 2
+    quality_threshold = args.quality_threshold if hasattr(args, 'quality_threshold') else 6.0
+
     try:
         rewrite_result = rewriter.rewrite(
             original_screenshots=screenshots,
@@ -367,17 +407,73 @@ def main():
             decision_log=result
         )
 
-        if rewrite_result["success"]:
-            print("\n" + "="*60)
-            print("✅ 异常注入完成!")
-            print("="*60)
-            print(f"\n输出目录: {rewrite_result['output_path']}")
-            print(f"原始序列: {rewrite_result['original_length']} 步")
-            print(f"改写序列: {rewrite_result['modified_length']} 步")
-            print(f"异常截图: {len(rewrite_result['anomaly_images'])} 张")
-        else:
+        if not rewrite_result["success"]:
             print("\n❌ 序列改写失败")
             sys.exit(1)
+
+        print(f"\n原始序列: {rewrite_result['original_length']} 步")
+        print(f"改写序列: {rewrite_result['modified_length']} 步")
+        print(f"异常截图: {len(rewrite_result['anomaly_images'])} 张")
+
+        # ===== VLM 质量验证 =====
+        if not args.no_verification:
+            print("\n" + "="*60)
+            print("🔍 VLM 质量验证")
+            print("="*60)
+
+            try:
+                verifier = QualityVerifier(
+                    quality_threshold=quality_threshold,
+                    max_retries=max_verification_retries
+                )
+
+                base_screenshot = screenshots[injection_point]
+                verification_result = verifier.verify(
+                    base_screenshot=base_screenshot,
+                    generated_images=rewrite_result["anomaly_images"],
+                    anomaly_type=anomaly_type,
+                    instruction=instruction
+                )
+
+                # 打印验证结果
+                print(f"\n验证结果:")
+                print(f"  通过: {'✓' if verification_result['passed'] else '✗'}")
+                print(f"  质量得分: {verification_result['quality_score']:.1f}/10")
+                print(f"  异常存在: {'✓' if verification_result['dimensions'].get('anomaly_present') else '✗'}")
+                print(f"  语义一致: {'✓' if verification_result['dimensions'].get('semantic_match') else '✗'}")
+                print(f"  视觉质量: {verification_result['dimensions'].get('visual_quality', 0):.1f}")
+                print(f"  自然度: {verification_result['dimensions'].get('naturalness', 0):.1f}")
+                print(f"  尝试次数: {verification_result['attempts']}")
+                if verification_result.get('issues'):
+                    print(f"  问题: {'; '.join(verification_result['issues'])}")
+
+                # 保存验证结果到元数据
+                rewrite_result["metadata"]["verification"] = {
+                    "passed": verification_result["passed"],
+                    "quality_score": verification_result["quality_score"],
+                    "dimensions": verification_result["dimensions"],
+                    "issues": verification_result["issues"],
+                    "attempts": verification_result["attempts"],
+                    "reasoning": verification_result["reasoning"]
+                }
+
+                # 验证未通过时记录警告
+                if not verification_result["passed"]:
+                    print(f"\n⚠ 警告: 质量验证未通过 (score={verification_result['quality_score']:.1f})")
+                    print(f"  将继续使用当前结果（可配置重试次数或降级策略）")
+
+            except Exception as e:
+                print(f"\n⚠ VLM 质量验证失败: {e}")
+                print(f"  将继续使用当前结果")
+                import traceback
+                traceback.print_exc()
+        else:
+            print("\nℹ 跳过 VLM 质量验证")
+
+        print("\n" + "="*60)
+        print("✅ 异常注入完成!")
+        print("="*60)
+        print(f"\n输出目录: {rewrite_result['output_path']}")
 
     except Exception as e:
         print(f"\n❌ 序列改写失败: {e}")

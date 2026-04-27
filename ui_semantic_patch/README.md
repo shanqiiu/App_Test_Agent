@@ -33,6 +33,23 @@ pip install -r requirements.txt               # 核心依赖
 pip install -r third_party/OmniParser/requirements.txt  # OmniParser（需 GPU 推荐）
 ```
 
+推荐在 `.env` 中显式配置图像生成后端：
+
+```env
+# 图像生成后端：dashscope / local / auto
+IMAGE_GEN_BACKEND=dashscope
+
+# DashScope 模型
+DASHSCOPE_IMAGE_GEN_MODEL=qwen-image-max
+DASHSCOPE_IMAGE_EDIT_MODEL=qwen-image-edit-max
+
+# 本地服务（后续切换环境时可直接启用）
+LOCAL_IMAGE_API_URL=
+LOCAL_IMAGE_API_STEPS=9
+LOCAL_IMAGE_API_TIMEOUT=120
+LOCAL_IMAGE_API_SEED=
+```
+
 ### 异常模式示例
 
 ```bash
@@ -98,22 +115,18 @@ python run_pipeline.py \
   --output ./output/demo
 ```
 
-### 指定图像生成模型
+### 切换图像生成后端
 
 ```bash
-# 纯文生图模式 (qwen-image-max)
-python run_pipeline.py \
-  --screenshot ../data/原图/app首页类-开屏广告弹窗/携程旅行01.jpg \
-  --instruction "生成广告弹窗" \
-  --gt-category "弹窗覆盖原UI" --gt-sample "弹出广告.jpg" \
-  --image-model gen
+# 1. 使用 DashScope（适合本地开发机）
+IMAGE_GEN_BACKEND=dashscope
 
-# 图像编辑模式 (qwen-image-edit-max)
-python run_pipeline.py \
-  --screenshot ../data/原图/app首页类-开屏广告弹窗/携程旅行01.jpg \
-  --instruction "生成广告弹窗" \
-  --gt-category "弹窗覆盖原UI" --gt-sample "弹出广告.jpg" \
-  --image-model edit
+# 2. 使用本地文生图服务（适合部署在服务器）
+IMAGE_GEN_BACKEND=local
+LOCAL_IMAGE_API_URL=http://10.85.177.2:8042/generate
+
+# 3. 自动模式：优先本地服务，未配置 LOCAL_IMAGE_API_URL 时回退到 DashScope
+IMAGE_GEN_BACKEND=auto
 ```
 
 ### 注入决策流水线
@@ -197,7 +210,7 @@ bash launch.sh list         # 列出异常类别
 | **工具库**   | `utils/common.py`                      | 图片编码、JSON 提取                  |
 |           | `utils/meta_loader.py`                 | GT 元数据加载                      |
 |           | `utils/component_position_resolver.py` | 组件定位                          |
-|           | `utils/semantic_dialog_generator.py`   | 弹窗生成器（支持 gen/edit 模型选择）       |
+|           | `utils/semantic_dialog_generator.py`   | 弹窗生成器（支持 DashScope / 本地服务切换） |
 |           | `utils/history_manager.py`             | 注入历史记录管理                      |
 
 
@@ -288,7 +301,6 @@ ui_semantic_patch/
 | `--anomaly-mode`    | `dialog` / `area_loading` / `content_duplicate` / `text_overlay` / `modify_text` / `modify_text_ai` / `modify_text_ocr` / `modify_text_e2e` | `dialog`   |
 | `--gt-category`     | GT 模板类别                                                                                                                                     | -          |
 | `--gt-sample`       | GT 模板样本                                                                                                                                     | -          |
-| `--image-model`     | 图像生成模型: `auto` / `gen` / `edit`                                                                                                             | `auto`     |
 | `--reference, -r`   | 参考弹窗图片                                                                                                                                      | -          |
 | `--reference-icon`  | 参考加载图标                                                                                                                                      | -          |
 | `--edit-plan`       | 文本编辑模式使用预设 Edit Plan JSON                                                                                                                   | -          |
@@ -344,7 +356,7 @@ ui_semantic_patch/
 - GT 模板驱动、批量生成、一键启动
 - 架构重构：analysis / renderers / generators / injection 子包
 - 注入决策流水线（含 Mock 模式）
-- 图像生成模型选择（gen / edit / auto）
+- 图像生成后端切换（DashScope / 本地服务 / 自动回退）
 - 测试指令批量生成
 
 ### Phase 3 - 待实施
@@ -374,14 +386,21 @@ ui_semantic_patch/
 | 重复检测  | OCR 和 YOLO 重复 | VLM 去重            |
 
 
-### 图像生成模型选择
+### 图像生成后端选择
 
 
-| 模式     | 模型                  | 适用场景             |
-| ------ | ------------------- | ---------------- |
-| `gen`  | qwen-image-max      | 全新弹窗生成，无需参考图     |
-| `edit` | qwen-image-edit-max | 基于参考图编辑，保留原图风格   |
-| `auto` | 自动判断                | 根据是否有参考图自动选择最优方案 |
+| 后端 | 配置 | 适用场景 |
+| ---- | ---- | ---- |
+| `dashscope` | `IMAGE_GEN_BACKEND=dashscope` | 本地开发环境、本地机器无法访问服务器文生图服务时 |
+| `local` | `IMAGE_GEN_BACKEND=local` + `LOCAL_IMAGE_API_URL=...` | 服务器环境，已部署本地文生图服务 |
+| `auto` | `IMAGE_GEN_BACKEND=auto` | 优先本地服务，未配置本地地址时自动回退到 DashScope |
+
+补充说明：
+
+- DashScope 纯文生图模型由 `DASHSCOPE_IMAGE_GEN_MODEL` 控制，默认 `qwen-image-max`
+- DashScope 图像编辑模型由 `DASHSCOPE_IMAGE_EDIT_MODEL` 控制，默认 `qwen-image-edit-max`
+- `modify_text_ai` / `modify_text_e2e` 这类带参考图的编辑路径会优先使用编辑模型
+- `dialog` 主路径会统一读取 `IMAGE_GEN_BACKEND`，不再通过 `--image-model` 切换
 
 
 ---
@@ -398,5 +417,5 @@ ui_semantic_patch/
 
 ---
 
-**最后更新**: 2026-03-26
+**最后更新**: 2026-04-27
 **文档同步**: 简版与详版命令以仓库根目录 [Claude.md](../../Claude.md) 交叉对齐。

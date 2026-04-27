@@ -13,37 +13,122 @@ run_pipeline.py - UI 异常场景生成流水线
 import argparse
 import json
 import os
+import sys
 import time
 from pathlib import Path
 from datetime import datetime
 from typing import Optional, List
 
+# 设置UTF-8编码输出（Windows兼容）
+if sys.platform == 'win32':
+    import io
+    sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8')
+
+# 确保能导入 app 模块（将项目根目录加入 Python 路径）
+_project_root = Path(__file__).resolve().parents[1]
+if str(_project_root) not in sys.path:
+    sys.path.insert(0, str(_project_root))
+
+# ====== 禁用 HuggingFace 网络访问（必须在使用 transformers 前设置）======
+os.environ['HF_HUB_OFFLINE'] = '1'
+os.environ['TRANSFORMERS_OFFLINE'] = '1'
+os.environ['HF_DATASETS_OFFLINE'] = '1'
+# 不设置 HF_TOKEN_PATH 避免权限错误，让 Transformers 自动处理
+# os.environ['HF_TOKEN_PATH'] = ''  # 已注释，避免权限问题
+print("✅ 已启用离线模式：模型将完全从本地加载")
+# ====== 禁用网络访问结束 ======
+
 # 自动加载项目根目录的 .env 文件
 try:
     from dotenv import load_dotenv
     # 查找项目根目录的 .env
-    env_path = Path(__file__).resolve().parents[3] / '.env'
+    env_path = Path(__file__).resolve().parents[2] / '.env'
     if env_path.exists():
         load_dotenv(env_path)
-        print(f"  ✓ 已加载环境配置: {env_path}")
+        print(f"  ✓ 已加载环境配置：{env_path}")
 except ImportError:
     pass  # python-dotenv 未安装，使用系统环境变量
 
 # 从环境变量读取配置（必需）
 VLM_API_KEY = os.environ.get('VLM_API_KEY')
 VLM_API_URL = os.environ.get('VLM_API_URL', 'https://api.openai-next.com/v1/chat/completions')
-VLM_MODEL = os.environ.get('VLM_MODEL', 'gpt-4o')
-STRUCTURE_MODEL = os.environ.get('STRUCTURE_MODEL', 'qwen-vl-max')
+VLM_MODEL = os.environ.get('VLM_MODEL', 'qwen35-35b-vl')
+STRUCTURE_MODEL = os.environ.get('STRUCTURE_MODEL', 'qwen35-35b-vl')
+print(STRUCTURE_MODEL)
+from app.stages.visualize import visualize_components
+from app.core.schemas import (
+    Stage2Output,
+    Stage1Output,
+    validate_stage2_output,
+    validate_stage1_output,
+)
+from app.renderers.text_overlay import EditOp
 
-from analysis.visualize import visualize_components
 
 
-# ==================== 辅助函数 ====================
+# ==================== Schema验证辅助函数 ====================
+
+def _validate_stage2_with_fallback(ui_json: dict) -> tuple[Stage2Output | dict, bool]:
+    """
+    验证Stage 2输出数据，尝试Schema验证，失败时回退到原始dict
+
+    Returns:
+        (验证后的数据, 是否使用Schema验证成功)
+    """
+    try:
+        # 尝试使用新Schema验证
+        stage2 = validate_stage2_output(ui_json)
+        return stage2, True
+    except Exception as e:
+        # Schema验证失败，记录警告但继续使用旧数据
+        import logging
+        logger = logging.getLogger(__name__)
+        logger.warning(f"Stage2 Schema验证失败，使用原始数据: {e}")
+        # 回退到旧格式
+        return ui_json, False
+
+
+def _validate_stage1_with_fallback(omni_result: dict) -> tuple[Stage1Output | dict, bool]:
+    """
+    验证Stage 1输出数据
+
+    Returns:
+        (验证后的数据, 是否使用Schema验证成功)
+    """
+    try:
+        stage1 = validate_stage1_output(omni_result)
+        return stage1, True
+    except Exception as e:
+        import logging
+        logger = logging.getLogger(__name__)
+        logger.warning(f"Stage1 Schema验证失败，使用原始数据: {e}")
+        return omni_result, False
+
+
+def _get_groups_from_data(data: Stage2Output | dict) -> list:
+    """从数据中获取groups列表，兼容新旧格式"""
+    if isinstance(data, Stage2Output):
+        return data.groups
+    return data.get('groups', [])
+
+
+# ==================== 已迁移到 app/ 的辅助函数 ====================
+# _parse_anomaly_type → area_loading.py
+# _find_component_by_id → component_position_resolver.py
+# _smart_select_component → area_loading.py
+# _load_edit_plan → text_overlay.py
+# ensure_meta_for_reference → app/generators/meta.py
+# _parse_anomaly_type → area_loading.py 内部实现
+# _find_component_by_id → component_position_resolver.py
+# _smart_select_component → app/renderers/area_loading.py
+# _load_edit_plan → app/renderers/text_overlay.py 内部实现
+
+
+# ==================== 保留的简短辅助函数（无等价实现） ====================
 
 def _parse_anomaly_type(instruction: str) -> str:
     """根据指令文本解析异常类型"""
     instruction_lower = instruction.lower()
-
     if '超时' in instruction_lower or 'timeout' in instruction_lower:
         return 'timeout'
     elif '网络' in instruction_lower or 'network' in instruction_lower:
@@ -54,20 +139,15 @@ def _parse_anomaly_type(instruction: str) -> str:
         return 'image_broken'
     elif '暂无' in instruction_lower or 'empty' in instruction_lower:
         return 'empty_data'
-    else:
-        return 'timeout'  # 默认
+    return 'timeout'
 
 
 def _find_component_by_id(ui_json: dict, target_id: str) -> Optional[dict]:
     """根据 ID 或 index 查找组件"""
     components = ui_json.get('components', [])
-
-    # 先按 ID 查找
     for comp in components:
         if str(comp.get('id', '')) == target_id:
             return comp
-
-    # 再按 index 查找
     try:
         target_index = int(target_id)
         for comp in components:
@@ -75,7 +155,6 @@ def _find_component_by_id(ui_json: dict, target_id: str) -> Optional[dict]:
                 return comp
     except ValueError:
         pass
-
     return None
 
 
@@ -83,34 +162,20 @@ def _smart_select_component(ui_json: dict, instruction: str) -> Optional[dict]:
     """根据指令智能推荐目标组件"""
     components = ui_json.get('components', [])
     instruction_lower = instruction.lower()
-
-    # 根据指令关键词匹配组件类型
     type_keywords = {
         'list': ['列表', 'list', 'listview', 'recycler'],
         'image': ['图片', 'image', 'picture', 'photo'],
         'video': ['视频', 'video', 'player'],
         'feed': ['动态', 'feed', 'timeline']
     }
-
-    # 优先级排序
-    priority_types = ['list', 'feed', 'image', 'video']
-
-    for ptype in priority_types:
-        keywords = type_keywords.get(ptype, [])
-        for keyword in keywords:
+    for ptype in ['list', 'feed', 'image', 'video']:
+        for keyword in type_keywords.get(ptype, []):
             if keyword in instruction_lower:
-                # 找到匹配类型，返回最大的该类型组件
                 for comp in reversed(components):
                     comp_class = comp.get('class', '').lower()
-                    if any(k in comp_class for k in keywords):
+                    if any(k in comp_class for k in type_keywords.get(ptype, [])):
                         return comp
-
-    # 如果没找到，返回最大的组件（通常是主要内容区）
-    largest_comp = max(
-        components,
-        key=lambda c: c.get('bounds', {}).get('width', 0) * c.get('bounds', {}).get('height', 0),
-        default=None
-    )
+    largest_comp = max(components, key=lambda c: c.get('bounds', {}).get('width', 0) * c.get('bounds', {}).get('height', 0), default=None)
     return largest_comp
 
 
@@ -118,25 +183,20 @@ def _load_edit_plan(plan_path: Optional[str]) -> Optional[List['EditOp']]:
     """加载用户提供的文本编辑计划 JSON"""
     if not plan_path:
         return None
-
     path = Path(plan_path).expanduser()
     if not path.is_absolute():
         path = Path.cwd() / path
-
     if not path.exists():
         print(f"  ⚠ edit_plan 文件不存在: {path}")
         return None
-
     try:
         raw_data = json.loads(path.read_text(encoding='utf-8'))
     except Exception as e:
         print(f"  ⚠ 读取 edit_plan 失败: {e}")
         return None
-
     if not isinstance(raw_data, list):
         print(f"  ⚠ edit_plan JSON 需为数组: {path}")
         return None
-
     edit_ops: List[EditOp] = []
     for idx, item in enumerate(raw_data, 1):
         if not isinstance(item, dict):
@@ -146,18 +206,17 @@ def _load_edit_plan(plan_path: Optional[str]) -> Optional[List['EditOp']]:
             edit_ops.append(EditOp(**item))
         except TypeError as e:
             print(f"  ⚠ edit_plan 第 {idx} 项字段不完整: {e}")
-
     if not edit_ops:
         print(f"  ⚠ edit_plan 未解析到有效操作: {path}")
         return None
-
     print(f"  ✓ 已加载 edit_plan ({len(edit_ops)} 个操作): {path}")
     return edit_ops
 
+
 # OmniParser 融合模块
 try:
-    from analysis.omni_vlm_fusion import omni_vlm_fusion
-    from analysis.omni_extractor import omni_to_ui_json
+    from app.stages.omni_vlm_fusion import omni_vlm_fusion
+    from app.stages.omni_extractor import omni_to_ui_json
     OMNIPARSER_AVAILABLE = True
 except ImportError as e:
     print(f"[WARN] OmniParser 导入失败: {e}")
@@ -228,7 +287,7 @@ def ensure_meta_for_reference(
     print(f"  类别: {gt_category} ({category_id})")
     print(f"{'='*60}")
 
-    from generate_meta import generate_meta_for_directory
+    from app.generators.meta import generate_meta_for_directory
 
     result = generate_meta_for_directory(
         target_dir=str(ref_dir),
@@ -261,7 +320,7 @@ def run_pipeline(
     fonts_dir: str = None,
     gt_dir: str = None,
     vlm_api_url: str = 'https://api.openai-next.com/v1/chat/completions',
-    vlm_model: str = 'qwen-vl-max',
+    vlm_model: str = 'demo',
     reference_path: str = None,
     reference_icon_path: str = None,
     omni_device: str = None,
@@ -298,7 +357,7 @@ def run_pipeline(
         target_component: 目标组件ID（仅area_loading模式使用）
         gt_category: GT模板类别（如"弹窗覆盖原UI"），启用meta驱动生成
         gt_sample: GT模板样本名（如"弹出广告.jpg"），与gt_category配合使用
-        image_model: 图像生成模型选择 ('gen'=本地纯文生图, 'edit'=图像编辑, None=自动选择)
+        image_model: 图像生成模型选择 ('gen'=纯文生图, 'edit'=图像编辑, None=自动选择)
         edit_plan_path: 文本覆盖模式下的自定义 edit_plan JSON（跳过 VLM 规划）
         e2e_full_image: modify_text_e2e 模式下是否强制整图编辑（默认 False=粗裁剪区域编辑）
 
@@ -306,9 +365,9 @@ def run_pipeline(
         包含所有输出路径的字典
 
     Note:
-        - dialog 模式：使用 semantic_ai 渲染模式（gen=本地文生图，edit=DashScope 图像编辑）
+        - dialog 模式：使用 semantic_ai 渲染模式（DashScope AI 图像生成）
         - area_loading 模式：在指定区域中心覆盖加载图标
-        - 图像编辑 API Key 从环境变量 DASHSCOPE_API_KEY 获取
+        - AI 图像生成 API Key 从环境变量 DASHSCOPE_API_KEY 获取
         - 当指定 gt_category 和 gt_sample 时，启用 meta.json 驱动的精准语义生成
     """
     timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
@@ -407,6 +466,14 @@ def run_pipeline(
             print(f"  ✓ 可视化图片: {stage1_vis_path}")
 
         print(f"  ✓ 检测到 {omni_raw_result['componentCount']} 个组件")
+
+        # ===== Schema验证层（可选，失败时回退到原始dict）=====
+        omni_result_validated, schema_used = _validate_stage1_with_fallback(omni_raw_result)
+        if schema_used:
+            print(f"  ✓ Stage 1 Schema验证通过 (检测到 {omni_result_validated.total_count} 个组件)")
+        else:
+            print(f"  ⚠ Stage 1 使用旧格式数据")
+
         print(f"  ✓ 保存至: {stage1_path}")
 
         stage1_elapsed = time.time() - stage1_start
@@ -430,6 +497,13 @@ def run_pipeline(
             omni_components=omni_raw_result['components'],
             output_dir=str(output_dir)
         )
+
+        # ===== Schema验证层（可选，失败时回退到原始dict）=====
+        ui_json_validated, schema_used = _validate_stage2_with_fallback(ui_json)
+        if schema_used:
+            print(f"  ✓ Stage 2 Schema验证通过 (v{ui_json_validated.vlm_model})")
+        else:
+            print(f"  ⚠ Stage 2 使用旧格式数据")
 
         # 保存 Stage 2 结果
         stage2_path = output_dir / f"{screenshot_name}_stage2_filtered_{timestamp}.json"
@@ -501,11 +575,11 @@ def run_pipeline(
     print(f"  异常指令: {instruction}")
 
     try:
-        from renderers.base import RenderResult
-        from renderers.area_loading import AreaLoadingRenderer
-        from renderers.content_duplicate import ContentDuplicateRenderer
-        from renderers.text_overlay import TextOverlayRenderer, EditOp
-        from renderers.patch import PatchRenderer
+        from app.renderers.base import RenderResult
+        from app.renderers.area_loading import AreaLoadingRenderer
+        from app.renderers.content_duplicate import ContentDuplicateRenderer
+        from app.renderers.text_overlay import TextOverlayRenderer
+        from app.renderers.patch import PatchRenderer
         from PIL import Image
 
         RENDERER_MAP = {
@@ -570,7 +644,7 @@ def run_pipeline(
         elif anomaly_mode == 'content_duplicate':
             meta_features_cd = {}
             if gt_category and gt_sample and gt_dir:
-                from utils.meta_loader import MetaLoader
+                from app.utils.meta_loader import MetaLoader
                 meta_loader_cd = MetaLoader(gt_dir)
                 meta_features_cd = meta_loader_cd.extract_visual_features_dict(gt_category, gt_sample) or {}
             extra_kwargs['meta_features'] = meta_features_cd
@@ -783,9 +857,8 @@ Auto-Meta 模式示例（推荐！无需预先生成 meta.json）:
                         help='GT模板类别，如"弹窗覆盖原UI"（启用meta驱动精准生成）')
     parser.add_argument('--gt-sample',
                         help='GT模板样本名，如"弹出广告.jpg"（与--gt-category配合使用）')
-    parser.add_argument('--image-model', choices=['auto', 'edit', 'gen'],
-                        default='auto',
-                        help='图像生成模型: auto=自动选择(默认), gen=本地纯文生图, edit=图像编辑(qwen-image-edit-max)')
+# --image-model 参数已废弃 - 现在全部使用本地服务
+#     parser.add_argument('--image-model', choices=['auto', 'edit', 'gen'],
     parser.add_argument('--edit-plan',
                         help='文本覆盖/modify_text 模式使用的 Edit Plan JSON（跳过 VLM 规划）')
     parser.add_argument('--e2e-full-image', action='store_true',
@@ -795,7 +868,15 @@ Auto-Meta 模式示例（推荐！无需预先生成 meta.json）:
 
     # 如果指定了 gt-category 和 gt-sample 但没有指定 gt-dir，自动使用默认路径
     if args.gt_category and args.gt_sample and not args.gt_dir:
-        default_gt_dir = Path(__file__).parent.parent / 'data' / 'Agent执行遇到的典型异常UI类型' / 'analysis' / 'gt_templates'
+        # 使用 config.py 中的配置
+        try:
+            from app.core.config import get_config
+            config = get_config()
+            default_gt_dir = config.GT_TEMPLATES_DIR
+        except Exception:
+            # 降级：使用硬编码路径（兼容旧数据结构）
+            default_gt_dir = Path(__file__).parent.parent.parent / 'data' / 'gt-category'
+        
         if default_gt_dir.exists():
             args.gt_dir = str(default_gt_dir)
             print(f"  ✓ 自动使用默认 GT 目录: {args.gt_dir}")
@@ -833,7 +914,8 @@ Auto-Meta 模式示例（推荐！无需预先生成 meta.json）:
         target_component=args.target_component,
         gt_category=args.gt_category,
         gt_sample=args.gt_sample,
-        image_model=args.image_model if args.image_model != 'auto' else None,
+        # image_model 已废弃 - 现在全部使用本地服务
+        # image_model=args.image_model if args.image_model != 'auto' else None,
         edit_plan_path=args.edit_plan,
         e2e_full_image=args.e2e_full_image,
     )

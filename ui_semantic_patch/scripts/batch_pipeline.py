@@ -38,6 +38,11 @@ from pathlib import Path
 from datetime import datetime
 from typing import List, Dict, Optional
 
+# 确保能导入 app 模块（将项目根目录加入 Python 路径）
+_project_root = Path(__file__).resolve().parents[1]
+if str(_project_root) not in sys.path:
+    sys.path.insert(0, str(_project_root))
+
 # 自动加载项目根目录的 .env 文件
 try:
     from dotenv import load_dotenv
@@ -123,7 +128,7 @@ def get_instruction(sample_meta: Dict, gt_category: str) -> str:
 
 def list_all_categories(gt_dir: Path):
     """列出所有可用的异常类别和样本"""
-    from utils.meta_loader import MetaLoader
+    from app.utils.meta_loader import MetaLoader
     loader = MetaLoader(str(gt_dir))
 
     categories = loader.list_categories()
@@ -183,7 +188,7 @@ def run_batch(
         no_visualize: 禁用可视化
         dry_run: 只打印计划，不实际执行
     """
-    from utils.meta_loader import MetaLoader
+    from app.utils.meta_loader import MetaLoader
     from run_pipeline import run_pipeline
 
     gt_dir = gt_dir or str(DEFAULT_GT_DIR)

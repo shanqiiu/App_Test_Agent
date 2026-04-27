@@ -1,5 +1,0 @@
-{
-    "_comment": "Mock 配置文件 — 用于内网环境下跳过图像生成，VLM 分析正常调用",
-
-    "anomaly_images_dir": null
-}

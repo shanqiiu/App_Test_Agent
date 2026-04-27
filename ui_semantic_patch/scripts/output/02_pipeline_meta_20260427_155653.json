@@ -1,0 +1,24 @@
+{
+  "timestamp": "20260427_155653",
+  "screenshot": "../../data/原图/app首页类-开屏广告弹窗/02.jpg",
+  "instruction": "生成优惠广告弹窗",
+  "outputs": {
+    "stage1_omni_raw": "output\\02_stage1_omni_raw_20260427_155653.json",
+    "stage1_annotated": "output\\02_stage1_annotated_20260427_155653.png",
+    "stage2_filtered": "output\\02_stage2_filtered_20260427_155653.json",
+    "stage2_annotated": "output\\02_stage2_annotated_20260427_155653.png",
+    "final_image": "output\\final_20260427_155737.png",
+    "meta_driven": true
+  },
+  "timing": {
+    "stage1": 34.2,
+    "stage2": 9.72,
+    "stage3": 0.22
+  },
+  "stage2_status": "success",
+  "render_metadata": {
+    "gt_category": "弹窗覆盖原UI",
+    "gt_sample": "弹出广告.jpg",
+    "meta_driven": true
+  }
+}

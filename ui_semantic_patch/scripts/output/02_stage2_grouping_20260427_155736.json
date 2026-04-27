@@ -1,0 +1,87 @@
+{
+  "groups": [
+    {
+      "name": "顶部状态栏",
+      "indices": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8
+      ],
+      "class": "StatusBar",
+      "text": "时间、应用图标、网络状态"
+    },
+    {
+      "name": "搜索栏",
+      "indices": [
+        9
+      ],
+      "class": "SearchBar",
+      "text": "目的地/酒店/景点/机票"
+    },
+    {
+      "name": "功能分类图标",
+      "indices": [
+        10,
+        11,
+        12,
+        13,
+        14,
+        15,
+        16,
+        17,
+        18,
+        19,
+        20,
+        21,
+        22,
+        23,
+        24
+      ],
+      "class": "FunctionIcons",
+      "text": "酒店、机票、火车票等出行服务"
+    },
+    {
+      "name": "推荐内容卡片",
+      "indices": [
+        25,
+        26,
+        27,
+        28,
+        29,
+        30,
+        31,
+        32
+      ],
+      "class": "RecommendationCards",
+      "text": "口碑榜、旅行热点、特价专区等推荐内容"
+    },
+    {
+      "name": "底部导航栏",
+      "indices": [
+        33,
+        34,
+        35,
+        36,
+        37
+      ],
+      "class": "BottomNavigationBar",
+      "text": "首页、视频、消息、行程、我的"
+    },
+    {
+      "name": "页面底部装饰",
+      "indices": [
+        38,
+        39,
+        40
+      ],
+      "class": "FooterDecoration",
+      "text": "灰色条纹"
+    }
+  ]
+}

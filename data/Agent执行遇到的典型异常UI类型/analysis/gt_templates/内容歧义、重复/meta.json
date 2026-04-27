@@ -1,0 +1,51 @@
+{
+  "category": "content_duplicate",
+  "description": "内容歧义/重复 - UI元素重复显示导致操作歧义",
+  "count": 1,
+  "samples": {
+    "部分信息重复.jpg": {
+      "anomaly_type": "ui_duplicate_display",
+      "anomaly_description": "在页面中部的'选集'区域和底部浮层中，均出现了相同的剧集选择列表（'玉茗茶骨'的36集全），导致内容重复。原始的选集列表位于页面中部，而底部浮层中再次完整展示了相同的内容，造成用户视觉混淆。",
+      "duplicate_mode": "expanded_view",
+      "visual_features": {
+        "app_style": "芒果TV",
+        "primary_color": "#FFD700",
+        "background": "#121212",
+        "duplicate_element": "选集",
+        "original_position": "page-inline",
+        "duplicate_position": "bottom-sheet",
+        "duplicate_expansion": {
+          "original_layout": "horizontal",
+          "expanded_layout": "grid",
+          "original_count": 6,
+          "expanded_count": 18,
+          "grid_columns": 6
+        },
+        "overlay_enabled": true,
+        "overlay_opacity": 0.5,
+        "close_button_position": "top-right",
+        "close_button_style": "circle_with_x"
+      },
+      "generation_template": {
+        "instruction": "将底部浮层中的选集列表替换为仅展示当前播放剧集的快捷跳转功能，避免与主界面重复显示。",
+        "patch_operations": [
+          {
+            "type": "add",
+            "component": "BottomSheet",
+            "position": "bottom",
+            "content": "duplicate_of_existing_list",
+            "overlay": true,
+            "close_button": true
+          }
+        ],
+        "key_points": [
+          "避免在底部弹窗中重复展示已存在于主界面的完整选集列表",
+          "底部浮层应提供更简洁的导航或快速操作功能",
+          "保持UI层级清晰，减少信息冗余",
+          "优化用户体验，防止用户误操作"
+        ]
+      }
+    }
+  },
+  "usage": "--anomaly-mode content_duplicate --gt-category \"内容歧义、重复\" --gt-sample \"<sample>.jpg\""
+}
