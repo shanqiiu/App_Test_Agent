@@ -89,3 +89,6 @@ ui_semantic_patch/third_party/OmniParser/weights/icon_caption_florence/model.saf
 
 # Data 目录（仅本地保存，不提交，不被 pull 覆盖）
 data/
+
+# 流水线输出目录
+ui_semantic_patch/scripts/outputs/
