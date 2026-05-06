@@ -86,3 +86,6 @@ prototypes/img2text2html2img/scripts/output_images/
 
 # OmniParser local large model (keep local only)
 ui_semantic_patch/third_party/OmniParser/weights/icon_caption_florence/model.safetensors
+
+# Data 目录（仅本地保存，不提交，不被 pull 覆盖）
+data/
