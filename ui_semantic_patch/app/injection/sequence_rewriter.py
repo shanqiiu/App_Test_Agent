@@ -153,12 +153,15 @@ class SequenceRewriter:
 
         # Step 3: 将异常截图插入到序列中
         # 策略区分：
-        #   - dialog（弹窗类）: 关闭弹窗后恢复到注入点原图，故需插入两步（异常+恢复）
+        #   - 可关闭类异常（dialog/area_loading/content_duplicate）:
+        #     异常可被关闭/解除，注入后恢复到原界面
         #     序列: N(原图) → N+1(异常) → N+2(恢复=复制N) → N+3(原图N+1)
-        #   - 其他模式（文字编辑等永久修改）: 只插入异常，继续执行下一步
+        #   - 永久修改类异常（text_overlay/modify_text 等）:
+        #     修改是永久的，不恢复原图，直接继续
         #     序列: N(原图) → N+1(异常) → N+2(原图N+1)
-        is_dialog = anomaly_type in ('dialog',)
-        shift = 2 if is_dialog else 1  # 腾出的位置数
+        dismissible_modes = {'dialog', 'area_loading', 'content_duplicate'}
+        is_dismissible = anomaly_type in dismissible_modes
+        shift = 2 if is_dismissible else 1  # 腾出的位置数
         anomaly_sequence_paths = []
         insert_start = injection_point + 1
 
@@ -181,8 +184,8 @@ class SequenceRewriter:
         anomaly_sequence_paths.append(anomaly_dst)
         print(f"  异常: {anomaly_img.name} → {anomaly_dst.name}")
 
-        # 3c. dialog 模式：插入注入点原图副本（关闭弹窗恢复界面）
-        if is_dialog:
+        # 3c. 可关闭类异常：插入注入点原图副本（恢复界面）
+        if is_dismissible:
             base_src = original_screenshots[injection_point]
             restore_dst = sequence_dir / f"step_{insert_start + 1:02d}{base_src.suffix}"
             shutil.copy2(base_src, restore_dst)
