@@ -154,13 +154,13 @@ class SequenceRewriter:
         # Step 3: 将异常截图插入到序列中
         # 序列逻辑：
         #   step_N              - 弹窗前的正常操作（N = injection_point）
-        #   step_N+1.jpg        - 弹窗出现前的界面（原图，保留）
-        #   step_N+2_anomaly    - 弹窗出现（异常图，插入）
-        #   step_N+3.jpg        - 关闭弹窗后继续操作（原图 N+2 平移至此）
+        #   step_N+1_anomaly    - 弹窗出现（异常图，插入）
+        #   step_N+2.jpg        - 关闭弹窗后恢复到原界面（原图 N+1 平移至此）
+        #   step_N+3.jpg        - 继续操作（原图 N+2 平移至此）
         anomaly_sequence_paths = []
-        insert_idx = injection_point + 2  # 异常图插入位置
+        insert_idx = injection_point + 1  # 异常图插入位置（紧接注入点）
 
-        # 3a. 将 injection_point+2 之后的所有原图步号 +1（倒序遍历避免覆盖）
+        # 3a. 将 injection_point+1 之后的所有原图步号 +1（倒序遍历避免覆盖）
         for i in range(len(original_screenshots) - 1, insert_idx - 1, -1):
             src_name = f"step_{i:02d}"
             dst_name = f"step_{i + 1:02d}"
