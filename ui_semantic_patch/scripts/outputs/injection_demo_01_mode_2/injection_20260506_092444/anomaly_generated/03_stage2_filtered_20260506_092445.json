@@ -1,0 +1,392 @@
+{
+  "metadata": {
+    "source": "03.jpg",
+    "extractionMethod": "OmniParser+VLM_Grouping_v3",
+    "models": {
+      "detection": "OmniParser (YOLO + PaddleOCR + Florence2)",
+      "semantic_grouping": "qwen-vl-max"
+    },
+    "timestamp": "2026-05-06T09:25:43.212772",
+    "resolution": {
+      "width": 1224,
+      "height": 2776
+    },
+    "processing": {
+      "omni_raw_count": 80,
+      "final_count": 9,
+      "merge_log": [
+        {
+          "action": "group_merge",
+          "name": "顶部状态栏",
+          "from": [
+            0,
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7
+          ],
+          "to_class": "StatusBar",
+          "reason": "8 个检测框合并为 顶部状态栏"
+        },
+        {
+          "action": "group_merge",
+          "name": "城市选择栏",
+          "from": [
+            8,
+            9,
+            10,
+            11
+          ],
+          "to_class": "CitySelector",
+          "reason": "4 个检测框合并为 城市选择栏"
+        },
+        {
+          "action": "group_merge",
+          "name": "日期选择栏",
+          "from": [
+            12,
+            13,
+            14,
+            15,
+            16,
+            17,
+            18
+          ],
+          "to_class": "DateSelector",
+          "reason": "7 个检测框合并为 日期选择栏"
+        },
+        {
+          "action": "group_merge",
+          "name": "出行方式切换",
+          "from": [
+            19,
+            20
+          ],
+          "to_class": "TravelModeToggle",
+          "reason": "2 个检测框合并为 出行方式切换"
+        },
+        {
+          "action": "group_merge",
+          "name": "筛选条件",
+          "from": [
+            21,
+            22,
+            23,
+            24
+          ],
+          "to_class": "FilterOptions",
+          "reason": "4 个检测框合并为 筛选条件"
+        },
+        {
+          "action": "group_merge",
+          "name": "出发站选择",
+          "from": [
+            25,
+            26,
+            27,
+            28
+          ],
+          "to_class": "DepartureStation",
+          "reason": "4 个检测框合并为 出发站选择"
+        },
+        {
+          "action": "group_merge",
+          "name": "到达站选择",
+          "from": [
+            29,
+            30
+          ],
+          "to_class": "ArrivalStation",
+          "reason": "2 个检测框合并为 到达站选择"
+        },
+        {
+          "action": "group_merge",
+          "name": "最近购买记录",
+          "from": [
+            31,
+            32,
+            33,
+            34,
+            35,
+            36
+          ],
+          "to_class": "RecentPurchases",
+          "reason": "6 个检测框合并为 最近购买记录"
+        },
+        {
+          "action": "group_merge",
+          "name": "列车信息列表",
+          "from": [
+            37,
+            38,
+            39,
+            40,
+            41,
+            42,
+            43,
+            44,
+            45,
+            46,
+            47,
+            48,
+            49,
+            50,
+            51,
+            52,
+            53,
+            54,
+            55,
+            56,
+            57,
+            58,
+            59,
+            60,
+            61,
+            62,
+            63,
+            64,
+            65,
+            66,
+            67,
+            68,
+            69,
+            70,
+            71,
+            72,
+            73,
+            74,
+            75,
+            76,
+            77,
+            78,
+            79
+          ],
+          "to_class": "TrainList",
+          "reason": "43 个检测框合并为 列车信息列表"
+        }
+      ]
+    }
+  },
+  "components": [
+    {
+      "index": 0,
+      "class": "StatusBar",
+      "bounds": {
+        "x": 18,
+        "y": 42,
+        "width": 1172,
+        "height": 95
+      },
+      "text": "时间、电量、网络状态",
+      "clickable": true,
+      "source_indices": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7
+      ],
+      "note": "语义分组合并: 顶部状态栏"
+    },
+    {
+      "index": 1,
+      "class": "CitySelector",
+      "bounds": {
+        "x": 0,
+        "y": 180,
+        "width": 801,
+        "height": 111
+      },
+      "text": "北京 <> 长春",
+      "clickable": true,
+      "source_indices": [
+        8,
+        9,
+        10,
+        11
+      ],
+      "note": "语义分组合并: 城市选择栏"
+    },
+    {
+      "index": 2,
+      "class": "DateSelector",
+      "bounds": {
+        "x": 26,
+        "y": 305,
+        "width": 1187,
+        "height": 165
+      },
+      "text": "03.20至03.25",
+      "clickable": true,
+      "source_indices": [
+        12,
+        13,
+        14,
+        15,
+        16,
+        17,
+        18
+      ],
+      "note": "语义分组合并: 日期选择栏"
+    },
+    {
+      "index": 3,
+      "class": "TravelModeToggle",
+      "bounds": {
+        "x": 275,
+        "y": 494,
+        "width": 344,
+        "height": 217
+      },
+      "text": "直达、中转",
+      "clickable": true,
+      "source_indices": [
+        19,
+        20
+      ],
+      "note": "语义分组合并: 出行方式切换"
+    },
+    {
+      "index": 4,
+      "class": "FilterOptions",
+      "bounds": {
+        "x": 212,
+        "y": 534,
+        "width": 850,
+        "height": 328
+      },
+      "text": "只看高铁/动车、只看普通车、只看有票、筛选",
+      "clickable": true,
+      "source_indices": [
+        21,
+        22,
+        23,
+        24
+      ],
+      "note": "语义分组合并: 筛选条件"
+    },
+    {
+      "index": 5,
+      "class": "DepartureStation",
+      "bounds": {
+        "x": 33,
+        "y": 756,
+        "width": 1173,
+        "height": 106
+      },
+      "text": "北京丰台、北京朝阳、北京西、北京",
+      "clickable": true,
+      "source_indices": [
+        25,
+        26,
+        27,
+        28
+      ],
+      "note": "语义分组合并: 出发站选择"
+    },
+    {
+      "index": 6,
+      "class": "ArrivalStation",
+      "bounds": {
+        "x": 0,
+        "y": 877,
+        "width": 754,
+        "height": 271
+      },
+      "text": "长春、长春西",
+      "clickable": true,
+      "source_indices": [
+        29,
+        30
+      ],
+      "note": "语义分组合并: 到达站选择"
+    },
+    {
+      "index": 7,
+      "class": "RecentPurchases",
+      "bounds": {
+        "x": 103,
+        "y": 884,
+        "width": 1073,
+        "height": 505
+      },
+      "text": "G3507、G129",
+      "clickable": true,
+      "source_indices": [
+        31,
+        32,
+        33,
+        34,
+        35,
+        36
+      ],
+      "note": "语义分组合并: 最近购买记录"
+    },
+    {
+      "index": 8,
+      "class": "TrainList",
+      "bounds": {
+        "x": 32,
+        "y": 1196,
+        "width": 1157,
+        "height": 1495
+      },
+      "text": "Z112、Z156、G3533、G101",
+      "clickable": true,
+      "source_indices": [
+        37,
+        38,
+        39,
+        40,
+        41,
+        42,
+        43,
+        44,
+        45,
+        46,
+        47,
+        48,
+        49,
+        50,
+        51,
+        52,
+        53,
+        54,
+        55,
+        56,
+        57,
+        58,
+        59,
+        60,
+        61,
+        62,
+        63,
+        64,
+        65,
+        66,
+        67,
+        68,
+        69,
+        70,
+        71,
+        72,
+        73,
+        74,
+        75,
+        76,
+        77,
+        78,
+        79
+      ],
+      "note": "语义分组合并: 列车信息列表"
+    }
+  ],
+  "componentCount": 9,
+  "_stage2_status": "success"
+}
