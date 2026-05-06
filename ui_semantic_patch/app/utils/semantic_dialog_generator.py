@@ -43,16 +43,18 @@ def _get_image_backend() -> str:
 
 
 def _resolve_dashscope_models(force_model: Optional[str], has_ref: bool) -> Tuple[str, bool]:
-    """根据配置和输入条件解析 DashScope 模型。"""
+    """根据配置和输入条件解析 DashScope 模型。
+    
+    当前统一使用文生图模型 (gen_model)，参考图以 style reference 方式传入 prompt。
+    """
     gen_model = os.getenv("DASHSCOPE_IMAGE_GEN_MODEL", "qwen-image-max").strip() or "qwen-image-max"
-    edit_model = os.getenv("DASHSCOPE_IMAGE_EDIT_MODEL", "qwen-image-edit-max").strip() or "qwen-image-edit-max"
 
     if force_model == 'gen':
         return gen_model, False
     if force_model == 'edit':
-        return (edit_model, True) if has_ref else (gen_model, False)
-    if has_ref:
-        return edit_model, True
+        # 强制 edit 时仍使用 gen_model（参考图通过 prompt 描述，而非 edit API）
+        return gen_model, False
+    # 统一走文生图，参考图作为 style reference 通过 prompt 控制
     return gen_model, False
 
 
