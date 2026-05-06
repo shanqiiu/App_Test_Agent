@@ -2463,20 +2463,18 @@ class SemanticDialogGenerator:
     @staticmethod
     def _erase_ai_close_button(image: Image.Image) -> Image.Image:
         """
-        检测并擦除 AI 自行绘制的关闭按钮（X 图标）
+        检测并填充 AI 自行绘制的关闭按钮（X 图标）。
 
-        AI 文生图模型经常无视 "Do not draw any close button" 的否定指令，
-        在弹窗的角落（通常是右上角）自行画一个 X 按钮。
-
-        策略（双层检测）：
-        第 1 层：扫描 4 个角落，检测小型孤立内容块（保留原有逻辑，调高灵敏度）
-        第 2 层：专门对右上角进行 X 形状模式检测（两对角线交叉扫描）
+        AI 文生图模型经常在弹窗右上角画 X 按钮。
+        策略：在卡片右上角区域检测 X 形状模式，
+        确认后用弹窗卡片的背景色填充（而非挖空为透明），
+        保持弹窗的完整矩形结构。
 
         Args:
             image: 已去背景的 RGBA 图像
 
         Returns:
-            处理后的图像（角落 X 按钮已被擦除为透明）
+            处理后的图像（X 按钮已被背景色覆盖）
         """
         if image.mode != 'RGBA':
             image = image.convert('RGBA')
@@ -2493,164 +2491,109 @@ class SemanticDialogGenerator:
             return image
 
         alpha = image.split()[3]
-        result = image.copy()
-        pixels = result.load()
-        total_erased = 0
+        pixels = image.load()
+        total_fixed = 0
 
-        # ==================== 第 1 层：角落孤立内容检测 ====================
-        corner_h = max(20, int(content_height * 0.15))   # 从 12% 提高到 15%
-        corner_w = max(20, int(content_width * 0.15))
-
-        # 主体宽度参考
-        mid_start = top + content_height // 3
-        mid_end = top + content_height * 2 // 3
-        mid_widths = []
-        for y in range(mid_start, mid_end, max(1, (mid_end - mid_start) // 10)):
-            row_left, row_right = right, left
-            for x in range(left, right):
-                if alpha.getpixel((x, y)) > 10:
-                    row_left = min(row_left, x)
-                    row_right = max(row_right, x + 1)
-                    break
-            for x in range(right - 1, left - 1, -1):
-                if alpha.getpixel((x, y)) > 10:
-                    row_right = max(row_right, x + 1)
-                    break
-            if row_right > row_left:
-                mid_widths.append(row_right - row_left)
-
-        typical_width = sorted(mid_widths)[len(mid_widths) // 2] if mid_widths else content_width
-        # 放宽宽度阈值从 30% 到 40%
-        width_threshold = typical_width * 0.40
-
-        def has_x_pattern(cy_start, cy_end, cx_start, cx_end) -> bool:
+        def _x_score(rgba_img) -> float:
             """
-            在指定区域检测 X 形状模式。
-            沿两条对角线扫描，统计交叉点的像素密度。
-            X 按钮的特征：两条对角线方向都有较高的像素密度，且中心区域密度更高。
+            计算 RGBA 图像的 X 形状得分。
+            沿两条对角线采样，返回两条线填充率的较小值。
             """
-            dia1_count = 0  # 左上→右下对角线
-            dia2_count = 0  # 右上→左下对角线
-            h = cy_end - cy_start
-            w = cx_end - cx_start
-            if h < 4 or w < 4:
-                return False
-
-            # 沿两条对角线采样
-            steps = min(h, w)
+            w, h = rgba_img.size
+            if w < 4 or h < 4:
+                return 0.0
+            a = rgba_img.split()[3]
+            steps = min(w, h)
+            d1 = d2 = 0
             for i in range(steps):
-                # 左上→右下
-                x1 = cx_start + int(i * w / steps)
-                y1 = cy_start + int(i * h / steps)
-                if 0 <= x1 < result.width and 0 <= y1 < result.height:
-                    if alpha.getpixel((x1, y1)) > 10:
-                        dia1_count += 1
+                x1 = int(i * w / steps)
+                y1 = int(i * h / steps)
+                if a.getpixel((x1, y1)) > 10:
+                    d1 += 1
+                x2 = w - 1 - int(i * w / steps)
+                if a.getpixel((x2, y1)) > 10:
+                    d2 += 1
+            return min(d1, d2) / max(steps, 1)
 
-                # 右上→左下
-                x2 = cx_end - 1 - int(i * w / steps)
-                y2 = cy_start + int(i * h / steps)
-                if 0 <= x2 < result.width and 0 <= y2 < result.height:
-                    if alpha.getpixel((x2, y2)) > 10:
-                        dia2_count += 1
+        def _fill_color_near(x, y) -> tuple:
+            """
+            从 (x,y) 附近采样弹窗背景色。
+            取 9×9 区域中 α>10 的像素的 RGB 中位数。
+            """
+            samples = []
+            for dy in range(-6, 7):
+                for dx in range(-6, 7):
+                    sx = max(0, min(image.width - 1, x + dx))
+                    sy = max(0, min(image.height - 1, y + dy))
+                    pr, pg, pb, pa = pixels[sx, sy]
+                    if pa > 10:
+                        b = (pr + pg + pb) // 3
+                        if 30 < b < 250:
+                            samples.append((pr, pg, pb))
+            if not samples:
+                return (255, 255, 255, 255)
+            samples.sort(key=lambda c: c[0] * 0.299 + c[1] * 0.587 + c[2] * 0.114)
+            m = samples[len(samples) // 2]
+            return (m[0], m[1], m[2], 255)
 
-            # 两条对角线都有较高填充率 → X 形状
-            fill_rate_1 = dia1_count / steps if steps > 0 else 0
-            fill_rate_2 = dia2_count / steps if steps > 0 else 0
-            return fill_rate_1 > 0.25 and fill_rate_2 > 0.25
+        def _fill_region(region_x1, region_y1, region_x2, region_y2, fill_c):
+            """将指定矩形区域内的非透明像素全部填充为指定颜色"""
+            nonlocal total_fixed
+            count = 0
+            for y in range(region_y1, region_y2):
+                for x in range(region_x1, region_x2):
+                    if 0 <= x < image.width and 0 <= y < image.height:
+                        if pixels[x, y][3] > 10:
+                            pixels[x, y] = fill_c
+                            count += 1
+            total_fixed += count
+            return count
 
-        def scan_and_erase_corner(cy_start, cy_end, cx_start, cx_end, corner_name,
-                                  aggressive=False):
-            """扫描指定角落区域，如果发现疑似关闭按钮则擦除"""
-            corner_pixels = []
-            for y in range(cy_start, cy_end):
-                for x in range(cx_start, cx_end):
-                    if alpha.getpixel((x, y)) > 10:
-                        corner_pixels.append((x, y))
-
-            if not corner_pixels:
-                return 0
-
-            # 内边界检测（aggressive 模式放宽容差）
-            inner_margin = 5 if aggressive else 3
-            is_top = (cy_start <= top + corner_h)
-            is_right = (cx_end >= right - 1)
-            is_left = (cx_start <= left + 1)
-
-            touches_inner_boundary = False
-            for (px, py) in corner_pixels:
-                if is_right and px <= cx_start + inner_margin:
-                    touches_inner_boundary = True
-                    break
-                if is_left and px >= cx_end - 1 - inner_margin:
-                    touches_inner_boundary = True
-                    break
-                if is_top and py >= cy_end - 1 - inner_margin:
-                    touches_inner_boundary = True
-                    break
-                if not is_top and py <= cy_start + inner_margin:
-                    touches_inner_boundary = True
-                    break
-
-            if touches_inner_boundary:
-                return 0
-
-            # 检查角落内容宽度
-            px_left = min(p[0] for p in corner_pixels)
-            px_right = max(p[0] for p in corner_pixels) + 1
-            corner_content_width = px_right - px_left
-
-            w_thresh = width_threshold * (1.5 if aggressive else 1.0)
-            if corner_content_width > w_thresh:
-                return 0
-
-            # 密度检测（aggressive 模式更宽松）
-            corner_area = (cx_end - cx_start) * (cy_end - cy_start)
-            pixel_density = len(corner_pixels) / corner_area if corner_area > 0 else 0
-            density_threshold = 0.6 if aggressive else 0.4
-            if pixel_density > density_threshold:
-                # 密度过高也可能是卡片区域，但检查是否有 X 形状模式
-                if not aggressive or not has_x_pattern(cy_start, cy_end, cx_start, cx_end):
-                    return 0
-
-            # 擦除
-            erased = 0
-            for (x, y) in corner_pixels:
-                pixels[x, y] = (0, 0, 0, 0)
-                erased += 1
-
-            if erased > 0:
-                print(f"  ℹ 擦除 {corner_name} 角落疑似 AI 关闭按钮: {erased} 像素 "
-                      f"({corner_content_width}px 宽, 密度 {pixel_density:.1%})")
-            return erased
-
-        # --- 第 1 层：标准 4 角扫描 ---
-        corners = [
-            (top, top + corner_h, right - corner_w, right, "右上", False),
-            (top, top + corner_h, left, left + corner_w, "左上", False),
-            (bottom - corner_h, bottom, right - corner_w, right, "右下", False),
-            (bottom - corner_h, bottom, left, left + corner_w, "左下", False),
+        # ===== 直接在右上角区域检测 X 形状 =====
+        # 在内容左上角、右上角划定 40×40 检测窗口，直接计算 X 得分
+        window = 40
+        windows_info = [
+            (right - window, top, "右上角"),
         ]
-        for cy_s, cy_e, cx_s, cx_e, name, aggr in corners:
-            total_erased += scan_and_erase_corner(cy_s, cy_e, cx_s, cx_e, name, aggr)
 
-        # ==================== 第 2 层：右上角 X 形状深度检测 ====================
-        # 如果标准模式没有擦除任何内容，使用 aggressive 模式专门扫描右上角
-        # 使用更大的扫描区域（20%），更高的密度阈值，X 形状辅助判断
-        if total_erased < 5:
-            x_corner_h = max(24, int(content_height * 0.20))
-            x_corner_w = max(24, int(content_width * 0.20))
-            pre_erased = total_erased
-            total_erased += scan_and_erase_corner(
-                top, top + x_corner_h,
-                right - x_corner_w, right,
-                "右上(深度)", aggressive=True,
-            )
-            if total_erased > pre_erased:
-                print(f"  ✓ 第 2 层深度检测触发: 额外擦除 {total_erased - pre_erased} 像素")
+        for wx, wy, wname in windows_info:
+            wx1 = max(left, wx)
+            wy1 = max(top, wy)
+            wx2 = min(right, wx1 + window)
+            wy2 = min(bottom, wy1 + window)
 
-        if total_erased > 0:
-            print(f"  ✓ AI 关闭按钮擦除完成: 共 {total_erased} 像素")
-        return result
+            if wx2 - wx1 < 10 or wy2 - wy1 < 10:
+                continue
+
+            region = image.crop((wx1, wy1, wx2, wy2))
+            score = _x_score(region)
+
+            if score >= 0.20:
+                fill_c = _fill_color_near(wx1 + 4, wy1 + 4)
+                filled = _fill_region(wx1, wy1, wx2, wy2, fill_c)
+                if filled > 0:
+                    print(f"  ℹ {wname}: X 得分 {score:.0%}, 填充 {filled} 像素 "
+                          f"为 ({fill_c[0]},{fill_c[1]},{fill_c[2]})")
+
+        # 也检查左上角
+        if total_fixed < 5:
+            wx1 = max(left, left)
+            wy1 = max(top, top)
+            wx2 = min(right, left + window)
+            wy2 = min(bottom, top + window)
+            if wx2 - wx1 >= 10 and wy2 - wy1 >= 10:
+                region = image.crop((wx1, wy1, wx2, wy2))
+                score = _x_score(region)
+                if score >= 0.20:
+                    fill_c = _fill_color_near(wx1 + 4, wy1 + 4)
+                    filled = _fill_region(wx1, wy1, wx2, wy2, fill_c)
+                    if filled > 0:
+                        print(f"  左上角: X 得分 {score:.0%}, 填充 {filled} 像素 "
+                              f"为 ({fill_c[0]},{fill_c[1]},{fill_c[2]})")
+
+        if total_fixed > 0:
+            print(f"  ✓ AI 关闭按钮修复完成: 共 {total_fixed} 像素被背景色填充")
+        return image
 
     def _find_largest_connected_region(
         self,
