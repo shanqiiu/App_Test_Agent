@@ -1737,6 +1737,7 @@ class SemanticDialogGenerator:
                 # 后处理：擦除 AI 自行画的关闭按钮
                 # AI 经常无视 "Do not draw close button" 指令，在角落画 X
                 # 必须在裁切之前擦除，否则裁切后角落位置会变化
+                print(f"  🔍 启动 AI 关闭按钮强制擦除检测...")
                 image = self._erase_ai_close_button(image)
 
                 # 后处理：多层弹窗清理

@@ -1,0 +1,21 @@
+{
+  "query": "进入(铁路12306)购买从{origin}到{destination}的火车票，出发时间为{departure_date} {departure_time}",
+  "app_name": "铁路12306",
+  "fault_mode": "弹窗广告遮挡查询按钮",
+  "fault_mode_key": "mode_1",
+  "mapping": {
+    "query": "进入(铁路12306)购买从{origin}到{destination}的火车票，出发时间为{departure_date} {departure_time}",
+    "query_id": "demo-01-query-001",
+    "app_name": "铁路12306",
+    "example_dir": "injection_demo_01",
+    "fault_mode": "弹窗广告遮挡查询按钮",
+    "fault_mode_key": "mode_1",
+    "injection_config": {
+      "anomaly_mode": "dialog",
+      "gt_category": "dialog",
+      "gt_sample": "12306-首页-系统提示弹窗.jpg",
+      "reference_path": "data/gt-category/dialog/12306-首页-系统提示弹窗.jpg",
+      "instruction": "在首页生成广告弹窗遮挡查询功能"
+    }
+  }
+}

@@ -1,74 +1,63 @@
 """
-增量式语义分析器
+增量式语义分析器（规则引擎版本）
 
-借鉴 UI-Venus 的上下文理解机制，实现操作序列的增量式分析，
-决策在何处注入何种异常。
+核心变更：将 VLM 从开放决策降级为封闭分类。
+- 旧方案：VLM 自由决策（注入否？注入什么？在哪注入？）→ 不稳定
+- 新方案：VLM 分类页面类型 + 规则引擎做确定性匹配 → 稳定
+
+流程：
+  逐帧遍历截图 →
+    1. PageClassifier 分类页面类型（VLM 封闭式分类）
+    2. RuleEngine 匹配规则（page_type → anomaly_mode）
+    3. TimingValidator 时序验证
+    4. 输出 injection_point + anomaly_config
 """
 
 import os
 import sys
-import re
-import time
-import requests
 from pathlib import Path
-from typing import List, Dict, Optional, Tuple
+from typing import List, Dict, Optional
 
-from app.utils.common import encode_image, get_mime_type
 from app.utils.history_manager import HistoryManager, StepRecord
-from .anomaly_recommender import AnomalyRecommender
-from .prompts import build_injection_prompt
+from .page_classifier import PageClassifier
+from .rule_engine import RuleEngine
 
 
 class SequenceAnalyzer:
     """
-    增量式语义分析器
+    增量式语义分析器（规则引擎版）
 
-    借鉴 UI-Venus 的设计：
-    - 逐步分析截图序列，累积上下文
-    - 每步决策是否注入异常
-    - 一旦决策 INJECT 则停止分析
+    职责：
+    - 逐帧分析截图序列
+    - 使用 PageClassifier 对每张截图做页面类型分类
+    - 使用 RuleEngine 匹配异常注入规则
+    - 一旦匹配成功则停止分析
+    - 无匹配时输出 fallback 配置
     """
 
     def __init__(
         self,
-        recommender: AnomalyRecommender,
-        task_description: str,
-        api_key: str = None,
-        api_url: str = None,
-        model: str = None,
-        max_history_steps: int = 10,
-        temperature: float = 0.0,
-        min_steps_before_inject: int = 2
+        rule_engine: RuleEngine,
+        page_classifier: PageClassifier,
+        task_description: str = "",
+        min_steps_before_inject: int = 2,
+        max_history_steps: int = 10
     ):
         """
         初始化语义分析器
 
         Args:
-            recommender: 异常推荐器实例
-            task_description: 任务描述（如"在携程预订酒店"）
-            api_key: VLM API 密钥，默认从环境变量读取
-            api_url: VLM API URL，默认从环境变量读取
-            model: VLM 模型名称，默认从环境变量读取
-            max_history_steps: 最大历史步数
-            temperature: VLM 生成温度（0 表示确定性输出）
+            rule_engine: 规则引擎实例
+            page_classifier: 页面分类器实例
+            task_description: 任务描述（用于日志）
             min_steps_before_inject: 最少分析多少步后才考虑注入
+            max_history_steps: 最大历史步数
         """
-        self.recommender = recommender
+        self.rule_engine = rule_engine
+        self.classifier = page_classifier
         self.task_description = task_description
-        self.history_manager = HistoryManager(max_history_steps)
-        self.temperature = temperature
         self.min_steps_before_inject = min_steps_before_inject
-
-        # VLM 配置
-        self.api_key = api_key or os.getenv('VLM_API_KEY')
-        self.api_url = api_url or os.getenv('VLM_API_URL', 'https://api.openai.com/v1/chat/completions')
-        self.model = model or os.getenv('VLM_MODEL', 'gpt-4o')
-
-        if not self.api_key:
-            raise ValueError("VLM_API_KEY 环境变量未设置")
-
-        # 获取异常类型描述
-        self.gt_categories_description = recommender.get_categories_description()
+        self.history_manager = HistoryManager(max_history_steps)
 
     def analyze_step(
         self,
@@ -87,56 +76,82 @@ class SequenceAnalyzer:
         Returns:
             {
                 "decision": "INJECT" or "SKIP",
-                "anomaly_type": str or None,
+                "anomaly_mode": str or None,
                 "instruction": str or None,
-                "think": str,
-                "conclusion": str
+                "page_type": str,
+                "matched_rule_id": str or None,
+                "think": str
             }
         """
         screenshot_path = Path(screenshot_path)
         if not screenshot_path.exists():
             raise FileNotFoundError(f"截图不存在: {screenshot_path}")
 
-        # 构建提示词
-        previous_steps = self.history_manager.build_history_text()
-        prompt = build_injection_prompt(
-            task_description=self.task_description,
-            gt_categories_description=self.gt_categories_description,
-            previous_steps=previous_steps,
-            step_index=step_index,
-            total_steps=total_steps
+        # ===== 前置约束：前 N 步不允许注入 =====
+        if step_index < self.min_steps_before_inject:
+            result = {
+                "decision": "SKIP",
+                "anomaly_mode": None,
+                "instruction": None,
+                "gt_category": None,
+                "gt_sample": None,
+                "page_type": "",
+                "matched_rule_id": None,
+                "think": f"前 {self.min_steps_before_inject} 步强制跳过"
+            }
+            self._record_step(screenshot_path, step_index, result)
+            return result
+
+        # ===== Step 1: VLM 页面分类 =====
+        page_info = self.classifier.classify(str(screenshot_path))
+        page_type = page_info.get("page_type", "J")
+        page_type_name = page_info.get("page_type_name", "未知")
+        key_elements = page_info.get("key_elements", [])
+        user_waiting = page_info.get("user_waiting", False)
+
+        # ===== Step 2: 规则匹配 =====
+        matched = self.rule_engine.match(
+            page_type=page_type,
+            page_type_name=page_type_name,
+            key_elements=key_elements,
+            user_waiting=user_waiting
         )
 
-        # 调用 VLM
-        response = self._call_vlm(screenshot_path, prompt)
+        best_rule = self.rule_engine.select_best(matched)
 
-        # 解析响应
-        result = self._parse_vlm_response(response)
+        if best_rule:
+            config = self.rule_engine.get_anomaly_config(best_rule)
+            result = {
+                "decision": "INJECT",
+                "anomaly_mode": config["anomaly_mode"],
+                "instruction": config["instruction"],
+                "gt_category": config["gt_category"],
+                "gt_sample": config["gt_sample"],
+                "fault_mode": config["fault_mode"],
+                "page_type": page_type_name,
+                "matched_rule_id": config["matched_rule_id"],
+                "think": f"页面类型={page_type_name}, "
+                         f"等待={user_waiting}, "
+                         f"匹配规则={config['matched_rule_id']}"
+            }
+        else:
+            result = {
+                "decision": "SKIP",
+                "anomaly_mode": None,
+                "instruction": None,
+                "gt_category": None,
+                "gt_sample": None,
+                "page_type": page_type_name,
+                "matched_rule_id": None,
+                "think": f"页面类型={page_type_name}, 无匹配规则"
+            }
 
-        # 强制规则：前 N 步不允许注入
-        if step_index < self.min_steps_before_inject and result["decision"] == "INJECT":
-            print(f"  ⚠ Step {step_index}: 前 {self.min_steps_before_inject} 步强制 SKIP")
-            result["decision"] = "SKIP"
-            result["anomaly_type"] = None
-            result["instruction"] = None
-
-        # 记录到历史
-        record = StepRecord(
-            step_index=step_index,
-            screenshot_path=str(screenshot_path),
-            think=result["think"],
-            decision=result["decision"],
-            anomaly_type=result.get("anomaly_type"),
-            instruction=result.get("instruction"),
-            conclusion=result["conclusion"]
-        )
-        self.history_manager.add_record(record)
-
+        self._record_step(screenshot_path, step_index, result)
         return result
 
     def run(self, screenshots: List[Path]) -> Dict:
         """
-        增量式分析整个截图序列
+        分析整个截图序列，找到注入点
 
         Args:
             screenshots: 截图路径列表（按时间顺序）
@@ -145,8 +160,13 @@ class SequenceAnalyzer:
             {
                 "success": True/False,
                 "injection_point": int or None,
-                "anomaly_type": str or None,
+                "anomaly_mode": str or None,
                 "instruction": str or None,
+                "gt_category": str or None,
+                "gt_sample": str or None,
+                "fault_mode": str or None,
+                "page_type": str or None,
+                "matched_rule_id": str or None,
                 "reasoning": str,
                 "history": List[dict]
             }
@@ -155,8 +175,9 @@ class SequenceAnalyzer:
         total_steps = len(screenshots)
 
         print(f"\n{'='*60}")
-        print(f"开始增量式序列分析")
-        print(f"任务: {self.task_description}")
+        print(f"开始语义分析（规则引擎版）")
+        if self.task_description:
+            print(f"任务: {self.task_description}")
         print(f"序列长度: {total_steps} 步")
         print(f"{'='*60}\n")
 
@@ -165,165 +186,74 @@ class SequenceAnalyzer:
 
             result = self.analyze_step(screenshot, i, total_steps)
 
-            print(f"  Think: {result['think'][:100]}..." if len(result['think']) > 100 else f"  Think: {result['think']}")
-            print(f"  Decision: {result['decision']}")
-            if result["decision"] == "INJECT":
-                print(f"  Anomaly: {result['anomaly_type']}")
-                print(f"  Instruction: {result['instruction']}")
+            print(f"  页面类型: {result.get('page_type', '?')}")
+            print(f"  决策: {result['decision']}")
 
-            # 检查是否决策注入
+            if result.get("matched_rule_id"):
+                print(f"  匹配规则: {result['matched_rule_id']}")
+
             if result["decision"] == "INJECT":
+                print(f"  异常模式: {result['anomaly_mode']}")
+                print(f"  生成指令: {result['instruction']}")
+
                 print(f"\n{'='*60}")
                 print(f"✓ 找到注入点: Step {i}")
-                print(f"  异常类型: {result['anomaly_type']}")
-                print(f"  生成指令: {result['instruction']}")
+                print(f"  页面类型: {result['page_type']}")
+                print(f"  异常模式: {result['anomaly_mode']}")
+                print(f"  匹配规则: {result['matched_rule_id']}")
                 print(f"{'='*60}\n")
 
                 return {
                     "success": True,
                     "injection_point": i,
-                    "anomaly_type": result["anomaly_type"],
+                    "anomaly_mode": result["anomaly_mode"],
                     "instruction": result["instruction"],
-                    "reasoning": result["think"],
+                    "gt_category": result.get("gt_category", ""),
+                    "gt_sample": result.get("gt_sample", ""),
+                    "fault_mode": result.get("fault_mode", ""),
+                    "page_type": result.get("page_type", ""),
+                    "matched_rule_id": result.get("matched_rule_id", ""),
+                    "reasoning": result.get("think", ""),
                     "history": [r.to_dict() for r in self.history_manager.records]
                 }
 
-        # 遍历完成但未找到注入点
+        # 遍历完成未找到注入点 → 使用 fallback
+        fallback = self.rule_engine.get_fallback_config()
+        fallback_point = len(screenshots) // 2
+
         print(f"\n{'='*60}")
-        print(f"⚠ 未找到合适的注入点")
+        print(f"⚠ 未找到匹配规则，使用 fallback")
+        print(f"  注入点: Step {fallback_point} (中间位置)")
+        print(f"  异常模式: {fallback.get('anomaly_mode', 'dialog')}")
+        print(f"  指令: {fallback.get('instruction', '')}")
         print(f"{'='*60}\n")
 
         return {
-            "success": False,
-            "injection_point": None,
-            "anomaly_type": None,
-            "instruction": None,
-            "reasoning": "遍历完整个序列，未找到语义合适的注入点",
+            "success": True,
+            "injection_point": fallback_point,
+            "anomaly_mode": fallback.get("anomaly_mode", "dialog"),
+            "instruction": fallback.get("instruction", ""),
+            "gt_category": fallback.get("gt_category", ""),
+            "gt_sample": fallback.get("gt_sample", ""),
+            "fault_mode": fallback.get("fault_mode", "通用异常"),
+            "page_type": "fallback",
+            "matched_rule_id": "fallback",
+            "reasoning": "遍历完整个序列，无规则匹配，使用 fallback 配置",
             "history": [r.to_dict() for r in self.history_manager.records]
         }
 
-    def _call_vlm(self, image_path: Path, prompt: str, max_retries: int = 3) -> str:
-        """
-        调用 VLM API
-
-        Args:
-            image_path: 图片路径
-            prompt: 提示词
-            max_retries: 最大重试次数
-
-        Returns:
-            VLM 响应文本
-        """
-        headers = {
-            'Content-Type': 'application/json',
-            'Authorization': f'Bearer {self.api_key}'
-        }
-
-        # 编码图片
-        image_base64 = encode_image(str(image_path))
-        mime_type = get_mime_type(str(image_path))
-
-        # 构建请求
-        payload = {
-            "model": self.model,
-            "messages": [
-                {
-                    "role": "user",
-                    "content": [
-                        {
-                            "type": "image_url",
-                            "image_url": {
-                                "url": f"data:{mime_type};base64,{image_base64}"
-                            }
-                        },
-                        {
-                            "type": "text",
-                            "text": prompt
-                        }
-                    ]
-                }
-            ],
-            "temperature": self.temperature,
-            "max_tokens": 1024
-        }
-
-        base_wait = 5
-        last_error = None
-
-        for attempt in range(max_retries):
-            try:
-                if attempt > 0:
-                    wait_time = min(base_wait * (2 ** (attempt - 1)), 60)
-                    print(f"  ⏳ 等待 {wait_time}s 后重试 ({attempt + 1}/{max_retries})...")
-                    time.sleep(wait_time)
-
-                response = requests.post(
-                    self.api_url,
-                    headers=headers,
-                    json=payload,
-                    timeout=180
-                )
-
-                if response.status_code == 429:
-                    print(f"  ⚠ API 限流 (429)，准备重试...")
-                    last_error = "API 限流 (429)"
-                    continue
-                elif response.status_code >= 500:
-                    print(f"  ⚠ 服务器错误 ({response.status_code})，准备重试...")
-                    last_error = f"服务器错误 ({response.status_code})"
-                    continue
-
-                response.raise_for_status()
-                result = response.json()
-                return result['choices'][0]['message']['content']
-
-            except requests.exceptions.RequestException as e:
-                print(f"  ⚠ API 请求失败: {e}")
-                last_error = str(e)
-                if attempt == max_retries - 1:
-                    raise
-
-        raise Exception(f"VLM 调用失败，已重试 {max_retries} 次。最后错误: {last_error}")
-
-    def _parse_vlm_response(self, response: str) -> Dict:
-        """
-        解析 VLM 响应
-
-        借鉴 UI-Venus 的 extract_tag_content() 方法
-
-        Args:
-            response: VLM 原始响应
-
-        Returns:
-            解析后的字典
-        """
-        def extract_tag(tag_name: str, text: str) -> str:
-            """提取 XML 标签内容"""
-            pattern = rf"<{tag_name}>(.*?)</{tag_name}>"
-            match = re.search(pattern, text, re.DOTALL)
-            return match.group(1).strip() if match else ""
-
-        think = extract_tag("think", response)
-        decision = extract_tag("decision", response).upper()
-        anomaly_type = extract_tag("anomaly_type", response)
-        instruction = extract_tag("instruction", response)
-        conclusion = extract_tag("conclusion", response)
-
-        # 规范化 decision
-        if decision not in ["INJECT", "SKIP"]:
-            # 尝试从文本中推断
-            if "INJECT" in response.upper():
-                decision = "INJECT"
-            else:
-                decision = "SKIP"
-
-        return {
-            "decision": decision,
-            "anomaly_type": anomaly_type if decision == "INJECT" else None,
-            "instruction": instruction if decision == "INJECT" else None,
-            "think": think or response[:200],  # 如果解析失败，取前200字符
-            "conclusion": conclusion or ""
-        }
+    def _record_step(self, screenshot_path: Path, step_index: int, result: Dict):
+        """记录分析步骤到历史"""
+        record = StepRecord(
+            step_index=step_index,
+            screenshot_path=str(screenshot_path),
+            think=result.get("think", ""),
+            decision=result["decision"],
+            anomaly_type=result.get("anomaly_mode"),
+            instruction=result.get("instruction"),
+            conclusion=result.get("page_type", "")
+        )
+        self.history_manager.add_record(record)
 
     def reset(self) -> None:
         """重置分析器状态"""

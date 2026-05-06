@@ -1,0 +1,25 @@
+{
+  "timestamp": "20260430_174931",
+  "screenshot": "D:\\workspace\\projects\\activate\\App_Test_Agent\\data\\examples\\injection_demo_01\\screenshots\\03.jpg",
+  "instruction": "将查询结果修改为「未找到相关结果」状态",
+  "outputs": {
+    "stage1_omni_raw": "D:\\workspace\\projects\\activate\\App_Test_Agent\\ui_semantic_patch\\scripts\\outputs\\injection_demo_01_mode_2\\injection_20260430_174930\\anomaly_generated\\03_stage1_omni_raw_20260430_174931.json",
+    "stage1_annotated": "D:\\workspace\\projects\\activate\\App_Test_Agent\\ui_semantic_patch\\scripts\\outputs\\injection_demo_01_mode_2\\injection_20260430_174930\\anomaly_generated\\03_stage1_annotated_20260430_174931.png",
+    "stage2_filtered": "D:\\workspace\\projects\\activate\\App_Test_Agent\\ui_semantic_patch\\scripts\\outputs\\injection_demo_01_mode_2\\injection_20260430_174930\\anomaly_generated\\03_stage2_filtered_20260430_174931.json",
+    "stage2_annotated": "D:\\workspace\\projects\\activate\\App_Test_Agent\\ui_semantic_patch\\scripts\\outputs\\injection_demo_01_mode_2\\injection_20260430_174930\\anomaly_generated\\03_stage2_annotated_20260430_174931.png",
+    "final_image": "D:\\workspace\\projects\\activate\\App_Test_Agent\\ui_semantic_patch\\scripts\\outputs\\injection_demo_01_mode_2\\injection_20260430_174930\\anomaly_generated\\final_20260430_175053.png",
+    "meta_driven": false
+  },
+  "timing": {
+    "stage1": 27.54,
+    "stage2": 29.87,
+    "stage3": 25.68
+  },
+  "stage2_status": "success",
+  "render_metadata": {
+    "edit_count": 1,
+    "diff_path": "D:\\workspace\\projects\\activate\\App_Test_Agent\\ui_semantic_patch\\scripts\\outputs\\injection_demo_01_mode_2\\injection_20260430_174930\\anomaly_generated\\diff_20260430_175053.png",
+    "edit_plan_path": "D:\\workspace\\projects\\activate\\App_Test_Agent\\ui_semantic_patch\\scripts\\outputs\\injection_demo_01_mode_2\\injection_20260430_174930\\anomaly_generated\\edit_plan_20260430_175053.json",
+    "debug_component_crops_dir": "D:\\workspace\\projects\\activate\\App_Test_Agent\\ui_semantic_patch\\scripts\\outputs\\injection_demo_01_mode_2\\injection_20260430_174930\\anomaly_generated\\debug_component_crops_20260430_175028"
+  }
+}

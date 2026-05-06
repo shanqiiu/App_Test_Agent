@@ -137,7 +137,7 @@ class PatchRenderer(BaseRenderer):
         reference_path = kwargs.get('reference_path')
         # image_model = kwargs.get('image_model')  # 已废弃
 
-        result_img, warnings, render_info = self._render_dialog_meta_driven(
+        result_img, warnings, render_info, dialog_img = self._render_dialog_meta_driven(
             screenshot=screenshot,
             screenshot_path=screenshot_path,
             ui_json=ui_json,
@@ -149,9 +149,59 @@ class PatchRenderer(BaseRenderer):
             # image_model=image_model,  # 已废弃
         )
 
+        # 保存最终合成结果
         output_path = Path(output_dir) / f"final_{datetime.now().strftime('%Y%m%d_%H%M%S')}.png"
         output_path.parent.mkdir(parents=True, exist_ok=True)
         result_img.save(str(output_path))
+
+        # 保存单独的弹窗图像（便于检查和复用）
+        if dialog_img:
+            dialog_path = output_path.parent / f"dialog_only_{output_path.stem}.png"
+            dialog_img.save(str(dialog_path))
+            print(f"  ✓ 弹窗图像已单独保存: {dialog_path.name}")
+            if render_info is not None:
+                render_info['dialog_image_path'] = str(dialog_path)
+
+        # 绘制关闭按钮检测框并保存可视化图
+        if render_info and render_info.get('close_button'):
+            cb = render_info['close_button']
+            vis_img = result_img.convert('RGBA').copy()
+            vis_draw = ImageDraw.Draw(vis_img)
+            # 绘制红色检测框
+            cb_x, cb_y = cb['x'], cb['y']
+            cb_w, cb_h = cb['width'], cb['height']
+            box_color = (255, 0, 0, 255)
+            line_w = max(2, min(4, cb_w // 8))
+            vis_draw.rectangle(
+                [cb_x, cb_y, cb_x + cb_w, cb_y + cb_h],
+                outline=box_color, width=line_w
+            )
+            # 添加标签
+            label = f"close_button ({cb['position']})"
+            font_path = 'C:/Windows/Fonts/msyh.ttc'
+            try:
+                from PIL import ImageFont
+                label_font = ImageFont.truetype(font_path, 14)
+            except Exception:
+                label_font = ImageFont.load_default()
+            label_bbox = vis_draw.textbbox((0, 0), label, font=label_font)
+            label_w = label_bbox[2] - label_bbox[0]
+            label_h = label_bbox[3] - label_bbox[1]
+            # 标签背景（在检测框上方）
+            label_bg_y = cb_y - label_h - 4
+            vis_draw.rectangle(
+                [cb_x, label_bg_y, cb_x + label_w + 4, cb_y],
+                fill=(255, 0, 0, 200)
+            )
+            vis_draw.text(
+                (cb_x + 2, label_bg_y + 2), label,
+                fill=(255, 255, 255, 255), font=label_font
+            )
+            # 保存
+            vis_path = output_path.parent / f"vis_bbox_{output_path.stem}.png"
+            vis_img.save(str(vis_path))
+            print(f"  ✓ 关闭按钮检测框已保存: {vis_path.name}")
+            render_info['vis_bbox_path'] = str(vis_path)
 
         metadata = {'gt_category': gt_category, 'gt_sample': gt_sample, 'meta_driven': True}
         if warnings:
@@ -173,12 +223,12 @@ class PatchRenderer(BaseRenderer):
         reference_path: Optional[str] = None,
         # image_model 参数已废弃（不再使用 DashScope）
         # image_model: Optional[str] = None,
-    ) -> Tuple[Image.Image, list, dict]:
+    ) -> Tuple[Image.Image, list, dict, Optional[Image.Image]]:
         """
         Meta-driven 弹窗生成核心逻辑（从 run_pipeline.py 迁移）。
 
         Returns:
-            (合成后截图, 告警列表, 渲染信息dict)
+            (合成后截图, 告警列表, 渲染信息dict, 弹窗图像)
             渲染信息包含: dialog_bounds, matched_component, position_method 等
         """
         from app.utils.meta_loader import MetaLoader
@@ -190,7 +240,7 @@ class PatchRenderer(BaseRenderer):
 
         if not (gt_category and gt_sample and gt_dir):
             logger.error("dialog 模式需要指定 gt_category、gt_sample 和 gt_dir")
-            return screenshot.convert('RGB'), warnings, render_info
+            return screenshot.convert('RGB'), warnings, render_info, None
 
         meta_loader = MetaLoader(gt_dir)
         visual_style_prompt = meta_loader.extract_visual_style_prompt(gt_category, gt_sample)
@@ -256,7 +306,7 @@ class PatchRenderer(BaseRenderer):
 
         if not dialog_img:
             logger.warning("弹窗图像生成失败，返回原始截图")
-            return screenshot.convert('RGB'), warnings, render_info
+            return screenshot.convert('RGB'), warnings, render_info, None
 
         # 计算位置
         dialog_position = meta_features.get('dialog_position', 'center')
@@ -330,10 +380,22 @@ class PatchRenderer(BaseRenderer):
             draw.line([(btn_x + margin, btn_y + button_size - margin), (btn_x + button_size - margin, btn_y + margin)],
                       fill=x_color, width=line_width)
             result_img = Image.alpha_composite(result_img, button_layer)
+            # 关闭按钮检测框（结果图坐标系）
+            close_btn_bbox = {
+                'x': btn_x,
+                'y': btn_y,
+                'width': button_size,
+                'height': button_size,
+                'position': close_button_pos,
+            }
             print(f"  ✓ 关闭按钮: {close_button_pos} → ({btn_x}, {btn_y}), {button_size}px")
+
+        else:
+            close_btn_bbox = None
 
         # 收集渲染信息用于人工校验
         render_info = {
+            'close_button': close_btn_bbox,
             'dialog_bounds': {
                 'x': pos_x,
                 'y': pos_y,
@@ -366,7 +428,7 @@ class PatchRenderer(BaseRenderer):
         ]
 
         print("  ✓ Meta-driven 弹窗合成完成")
-        return result_img, warnings, render_info
+        return result_img, warnings, render_info, dialog_img
 
     # ==================== 原有方法（保留不删） ====================
 

@@ -1,0 +1,21 @@
+{
+  "query": "在(瑞幸咖啡)购买一杯{product}，选择{store_preference}取餐",
+  "app_name": "瑞幸咖啡",
+  "fault_mode": "会员登录弹窗",
+  "fault_mode_key": "mode_2",
+  "mapping": {
+    "query": "在(瑞幸咖啡)购买一杯{product}，选择{store_preference}取餐",
+    "query_id": "demo-02-query-001",
+    "app_name": "瑞幸咖啡",
+    "example_dir": "injection_demo_02",
+    "fault_mode": "会员登录弹窗",
+    "fault_mode_key": "mode_2",
+    "injection_config": {
+      "anomaly_mode": "dialog",
+      "gt_category": "dialog",
+      "gt_sample": "去哪儿-首页-权限类弹窗.jpg",
+      "reference_path": "data/gt-category/dialog/去哪儿-首页-权限类弹窗.jpg",
+      "instruction": "模拟需要会员登录的权限弹窗"
+    }
+  }
+}

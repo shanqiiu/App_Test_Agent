@@ -1,0 +1,104 @@
+{
+  "timestamp": "20260430_161153",
+  "screenshot": "..\\..\\data\\examples\\injection_demo_01\\screenshots\\09.jpg",
+  "instruction": "模拟查询结果无票的系统提示弹窗",
+  "outputs": {
+    "stage1_omni_raw": "outputs\\injection_demo_01_mode_2\\injection_20260430_161152\\anomaly_generated\\09_stage1_omni_raw_20260430_161153.json",
+    "stage1_annotated": "outputs\\injection_demo_01_mode_2\\injection_20260430_161152\\anomaly_generated\\09_stage1_annotated_20260430_161153.png",
+    "stage2_filtered": "outputs\\injection_demo_01_mode_2\\injection_20260430_161152\\anomaly_generated\\09_stage2_filtered_20260430_161153.json",
+    "stage2_annotated": "outputs\\injection_demo_01_mode_2\\injection_20260430_161152\\anomaly_generated\\09_stage2_annotated_20260430_161153.png",
+    "final_image": "outputs\\injection_demo_01_mode_2\\injection_20260430_161152\\anomaly_generated\\final_20260430_161315.png",
+    "meta_driven": true
+  },
+  "timing": {
+    "stage1": 27.58,
+    "stage2": 14.96,
+    "stage3": 39.79
+  },
+  "stage2_status": "success",
+  "render_metadata": {
+    "gt_category": "dialog",
+    "gt_sample": "京东到家-外卖页面-优惠券弹窗.jpg",
+    "meta_driven": true,
+    "warnings": [
+      {
+        "type": "position_fallback",
+        "message": "位置回退：未找到关键词对应组件，使用百分比定位 (24, 2482)"
+      }
+    ],
+    "render_info": {
+      "dialog_bounds": {
+        "x": 24,
+        "y": 2482,
+        "width": 1176,
+        "height": 274
+      },
+      "screen_size": {
+        "width": 1224,
+        "height": 2776
+      },
+      "position_method": "fallback",
+      "dialog_position_type": "bottom-fixed",
+      "ui_components_count": 12,
+      "ui_components_preview": [
+        {
+          "index": 0,
+          "class": "StatusBar",
+          "bounds": {
+            "x": 26,
+            "y": 39,
+            "width": 1155,
+            "height": 96
+          }
+        },
+        {
+          "index": 1,
+          "class": "NavigationBar",
+          "bounds": {
+            "x": 4,
+            "y": 178,
+            "width": 1192,
+            "height": 114
+          }
+        },
+        {
+          "index": 2,
+          "class": "DateSelector",
+          "bounds": {
+            "x": 25,
+            "y": 319,
+            "width": 1170,
+            "height": 99
+          }
+        },
+        {
+          "index": 3,
+          "class": "TripInfo",
+          "bounds": {
+            "x": 80,
+            "y": 482,
+            "width": 1035,
+            "height": 231
+          }
+        },
+        {
+          "index": 4,
+          "class": "SeatTypeSelector",
+          "bounds": {
+            "x": 74,
+            "y": 812,
+            "width": 1076,
+            "height": 250
+          }
+        }
+      ],
+      "dialog_image_path": "outputs\\injection_demo_01_mode_2\\injection_20260430_161152\\anomaly_generated\\dialog_only_final_20260430_161315.png"
+    }
+  },
+  "warnings": [
+    {
+      "type": "position_fallback",
+      "message": "位置回退：未找到关键词对应组件，使用百分比定位 (24, 2482)"
+    }
+  ]
+}

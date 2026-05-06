@@ -1,0 +1,55 @@
+{
+  "description": "进入(铁路12306)购买从{origin}到{destination}的火车票，出发时间为{departure_date} {departure_time}",
+  "app_name": "铁路12306",
+  "preconditions": [
+    "App已安装",
+    "用户已登录",
+    "网络可用",
+    "定位权限已开启"
+  ],
+  "parameters": {
+    "origin": {
+      "type": "city",
+      "required": true,
+      "example": "北京"
+    },
+    "destination": {
+      "type": "city",
+      "required": true,
+      "example": "长春"
+    },
+    "departure_date": {
+      "type": "date_relative",
+      "required": true,
+      "example": "下周一"
+    },
+    "departure_time": {
+      "type": "time",
+      "required": true,
+      "example": "05:00"
+    }
+  },
+  "element_mapping": {
+    "出发站": {
+      "selector": "xpath=//EditText[@text='出发站']",
+      "timeout": 5000
+    },
+    "到达站": {
+      "selector": "xpath=//EditText[@text='到达站']",
+      "timeout": 5000
+    },
+    "日期选择": {
+      "selector": "xpath=//TextView[@text='出发日期']",
+      "timeout": 5000
+    },
+    "查询按钮": {
+      "selector": "xpath=//Button[@text='查询车票']",
+      "timeout": 5000
+    }
+  },
+  "error_recovery": {
+    "无票": "回退到日期选择，提示用户切换日期或车次",
+    "查询超时": "重试查询，最多3次",
+    "支付失败": "保留订单草稿，支持30分钟内续付"
+  }
+}

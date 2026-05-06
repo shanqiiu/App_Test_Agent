@@ -1,0 +1,911 @@
+{
+  "metadata": {
+    "source": "11.jpg",
+    "extractionMethod": "OmniParser",
+    "models": {
+      "detection": "YOLO (icon_detect)",
+      "ocr": "PaddleOCR",
+      "caption": "Florence2"
+    },
+    "timestamp": "2026-04-30T16:15:14.124405",
+    "resolution": {
+      "width": 1224,
+      "height": 2776
+    }
+  },
+  "components": [
+    {
+      "index": 0,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 1056,
+        "y": 49,
+        "width": 101,
+        "height": 83
+      },
+      "text": "51",
+      "clickable": true,
+      "source": "box_yolo_content_yolo",
+      "contentDesc": "51"
+    },
+    {
+      "index": 1,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 23,
+        "y": 53,
+        "width": 152,
+        "height": 69
+      },
+      "text": "09:50",
+      "clickable": true,
+      "source": "box_yolo_content_yolo",
+      "contentDesc": "09:50"
+    },
+    {
+      "index": 2,
+      "class": "TextView",
+      "bounds": {
+        "x": 39,
+        "y": 56,
+        "width": 313,
+        "height": 59
+      },
+      "text": "09:50",
+      "clickable": false,
+      "source": "box_ocr_content_ocr"
+    },
+    {
+      "index": 3,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 1150,
+        "y": 57,
+        "width": 43,
+        "height": 68
+      },
+      "text": "Power",
+      "clickable": true,
+      "source": "box_yolo_content_yolo",
+      "contentDesc": "Power"
+    },
+    {
+      "index": 4,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 970,
+        "y": 59,
+        "width": 81,
+        "height": 66
+      },
+      "text": "5A",
+      "clickable": true,
+      "source": "box_yolo_content_yolo",
+      "contentDesc": "5A"
+    },
+    {
+      "index": 5,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 896,
+        "y": 60,
+        "width": 68,
+        "height": 61
+      },
+      "text": "Podcasts",
+      "clickable": true,
+      "source": "box_yolo_content_yolo",
+      "contentDesc": "Podcasts"
+    },
+    {
+      "index": 6,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 302,
+        "y": 61,
+        "width": 60,
+        "height": 59
+      },
+      "text": "Print",
+      "clickable": true,
+      "source": "box_yolo_content_yolo",
+      "contentDesc": "Print"
+    },
+    {
+      "index": 7,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 781,
+        "y": 63,
+        "width": 54,
+        "height": 56
+      },
+      "text": "News",
+      "clickable": true,
+      "source": "box_yolo_content_yolo",
+      "contentDesc": "News"
+    },
+    {
+      "index": 8,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 838,
+        "y": 63,
+        "width": 55,
+        "height": 56
+      },
+      "text": "Sleep",
+      "clickable": true,
+      "source": "box_yolo_content_yolo",
+      "contentDesc": "Sleep"
+    },
+    {
+      "index": 9,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 1018,
+        "y": 156,
+        "width": 173,
+        "height": 134
+      },
+      "text": "Korean Headset",
+      "clickable": true,
+      "source": "box_yolo_content_yolo",
+      "contentDesc": "Korean Headset"
+    },
+    {
+      "index": 10,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 30,
+        "y": 169,
+        "width": 87,
+        "height": 118
+      },
+      "text": "Back",
+      "clickable": true,
+      "source": "box_yolo_content_yolo",
+      "contentDesc": "Back"
+    },
+    {
+      "index": 11,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 414,
+        "y": 177,
+        "width": 91,
+        "height": 83
+      },
+      "text": "Line",
+      "clickable": true,
+      "source": "box_yolo_content_yolo",
+      "contentDesc": "Line"
+    },
+    {
+      "index": 12,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 503,
+        "y": 177,
+        "width": 181,
+        "height": 85
+      },
+      "text": "Chinese language",
+      "clickable": true,
+      "source": "box_yolo_content_yolo",
+      "contentDesc": "Chinese language"
+    },
+    {
+      "index": 13,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 774,
+        "y": 177,
+        "width": 232,
+        "height": 90
+      },
+      "text": "Chinese language",
+      "clickable": true,
+      "source": "box_yolo_content_yolo",
+      "contentDesc": "Chinese language"
+    },
+    {
+      "index": 14,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 218,
+        "y": 178,
+        "width": 197,
+        "height": 87
+      },
+      "text": "TestTest Testing",
+      "clickable": true,
+      "source": "box_yolo_content_yolo",
+      "contentDesc": "TestTest Testing"
+    },
+    {
+      "index": 15,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 685,
+        "y": 178,
+        "width": 87,
+        "height": 87
+      },
+      "text": "Line",
+      "clickable": true,
+      "source": "box_yolo_content_yolo",
+      "contentDesc": "Line"
+    },
+    {
+      "index": 16,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 196,
+        "y": 304,
+        "width": 231,
+        "height": 73
+      },
+      "text": "Asian League",
+      "clickable": true,
+      "source": "box_yolo_content_yolo",
+      "contentDesc": "Asian League"
+    },
+    {
+      "index": 17,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 434,
+        "y": 308,
+        "width": 147,
+        "height": 62
+      },
+      "text": "Asian People",
+      "clickable": true,
+      "source": "box_yolo_content_yolo",
+      "contentDesc": "Asian People"
+    },
+    {
+      "index": 18,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 1104,
+        "y": 419,
+        "width": 91,
+        "height": 97
+      },
+      "text": "Next",
+      "clickable": true,
+      "source": "box_yolo_content_yolo",
+      "contentDesc": "Next"
+    },
+    {
+      "index": 19,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 315,
+        "y": 422,
+        "width": 122,
+        "height": 82
+      },
+      "text": "Volunteer",
+      "clickable": true,
+      "source": "box_yolo_content_yolo",
+      "contentDesc": "Volunteer"
+    },
+    {
+      "index": 20,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 457,
+        "y": 423,
+        "width": 433,
+        "height": 79
+      },
+      "text": "Video Monitor",
+      "clickable": true,
+      "source": "box_yolo_content_yolo",
+      "contentDesc": "Video Monitor"
+    },
+    {
+      "index": 21,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 44,
+        "y": 425,
+        "width": 103,
+        "height": 77
+      },
+      "text": "Chinese People People",
+      "clickable": true,
+      "source": "box_yolo_content_yolo",
+      "contentDesc": "Chinese People People"
+    },
+    {
+      "index": 22,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 154,
+        "y": 426,
+        "width": 112,
+        "height": 77
+      },
+      "text": "Foreign Language",
+      "clickable": true,
+      "source": "box_yolo_content_yolo",
+      "contentDesc": "Foreign Language"
+    },
+    {
+      "index": 23,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 265,
+        "y": 426,
+        "width": 53,
+        "height": 77
+      },
+      "text": "Airplane",
+      "clickable": true,
+      "source": "box_yolo_content_yolo",
+      "contentDesc": "Airplane"
+    },
+    {
+      "index": 24,
+      "class": "TextView",
+      "bounds": {
+        "x": 59,
+        "y": 440,
+        "width": 827,
+        "height": 48
+      },
+      "text": " 03-03 08:25",
+      "clickable": false,
+      "source": "box_ocr_content_ocr"
+    },
+    {
+      "index": 25,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 51,
+        "y": 513,
+        "width": 79,
+        "height": 61
+      },
+      "text": "Xray",
+      "clickable": true,
+      "source": "box_yolo_content_yolo",
+      "contentDesc": "Xray"
+    },
+    {
+      "index": 26,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 893,
+        "y": 517,
+        "width": 45,
+        "height": 62
+      },
+      "text": "Help",
+      "clickable": true,
+      "source": "box_yolo_content_yolo",
+      "contentDesc": "Help"
+    },
+    {
+      "index": 27,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 441,
+        "y": 582,
+        "width": 261,
+        "height": 56
+      },
+      "text": "TestTest",
+      "clickable": true,
+      "source": "box_yolo_content_yolo",
+      "contentDesc": "TestTest"
+    },
+    {
+      "index": 28,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 96,
+        "y": 583,
+        "width": 322,
+        "height": 55
+      },
+      "text": "Carrier",
+      "clickable": true,
+      "source": "box_yolo_content_yolo",
+      "contentDesc": "Carrier"
+    },
+    {
+      "index": 29,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 721,
+        "y": 584,
+        "width": 412,
+        "height": 54
+      },
+      "text": "Conference",
+      "clickable": true,
+      "source": "box_yolo_content_yolo",
+      "contentDesc": "Conference"
+    },
+    {
+      "index": 30,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 868,
+        "y": 636,
+        "width": 57,
+        "height": 51
+      },
+      "text": "Asian Walking",
+      "clickable": true,
+      "source": "box_yolo_content_yolo",
+      "contentDesc": "Asian Walking"
+    },
+    {
+      "index": 31,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 779,
+        "y": 788,
+        "width": 358,
+        "height": 98
+      },
+      "text": "Designer",
+      "clickable": true,
+      "source": "box_yolo_content_yolo",
+      "contentDesc": "Designer"
+    },
+    {
+      "index": 32,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 80,
+        "y": 928,
+        "width": 1056,
+        "height": 106
+      },
+      "text": "Carrier",
+      "clickable": true,
+      "source": "box_yolo_content_yolo",
+      "contentDesc": "Carrier"
+    },
+    {
+      "index": 33,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 1056,
+        "y": 1104,
+        "width": 68,
+        "height": 76
+      },
+      "text": "Salon",
+      "clickable": true,
+      "source": "box_yolo_content_yolo",
+      "contentDesc": "Salon"
+    },
+    {
+      "index": 34,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 94,
+        "y": 1112,
+        "width": 69,
+        "height": 76
+      },
+      "text": "Circle",
+      "clickable": true,
+      "source": "box_yolo_content_yolo",
+      "contentDesc": "Circle"
+    },
+    {
+      "index": 35,
+      "class": "TextView",
+      "bounds": {
+        "x": 208,
+        "y": 1159,
+        "width": 615,
+        "height": 40
+      },
+      "text": "1iE 220721 20000417 5412",
+      "clickable": false,
+      "source": "box_ocr_content_ocr"
+    },
+    {
+      "index": 36,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 588,
+        "y": 1301,
+        "width": 379,
+        "height": 73
+      },
+      "text": "133 9447 1489 ",
+      "clickable": true,
+      "source": "box_yolo_content_ocr",
+      "contentDesc": "133 9447 1489 "
+    },
+    {
+      "index": 37,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 89,
+        "y": 1302,
+        "width": 276,
+        "height": 74
+      },
+      "text": "Asian League",
+      "clickable": true,
+      "source": "box_yolo_content_yolo",
+      "contentDesc": "Asian League"
+    },
+    {
+      "index": 38,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 376,
+        "y": 1302,
+        "width": 168,
+        "height": 74
+      },
+      "text": "H86 Decimal",
+      "clickable": true,
+      "source": "box_yolo_content_yolo",
+      "contentDesc": "H86 Decimal"
+    },
+    {
+      "index": 39,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 1056,
+        "y": 1302,
+        "width": 73,
+        "height": 80
+      },
+      "text": "Person",
+      "clickable": true,
+      "source": "box_yolo_content_yolo",
+      "contentDesc": "Person"
+    },
+    {
+      "index": 40,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 991,
+        "y": 1304,
+        "width": 64,
+        "height": 72
+      },
+      "text": "Close",
+      "clickable": true,
+      "source": "box_yolo_content_yolo",
+      "contentDesc": "Close"
+    },
+    {
+      "index": 41,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 40,
+        "y": 1440,
+        "width": 629,
+        "height": 143
+      },
+      "text": "Vendee House",
+      "clickable": true,
+      "source": "box_yolo_content_yolo",
+      "contentDesc": "Vendee House"
+    },
+    {
+      "index": 42,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 718,
+        "y": 1472,
+        "width": 206,
+        "height": 67
+      },
+      "text": "Korean Fashion Store",
+      "clickable": true,
+      "source": "box_yolo_content_yolo",
+      "contentDesc": "Korean Fashion Store"
+    },
+    {
+      "index": 43,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 619,
+        "y": 1633,
+        "width": 172,
+        "height": 53
+      },
+      "text": "Asian People People",
+      "clickable": true,
+      "source": "box_yolo_content_yolo",
+      "contentDesc": "Asian People People"
+    },
+    {
+      "index": 44,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 935,
+        "y": 1714,
+        "width": 257,
+        "height": 207
+      },
+      "text": "50 ",
+      "clickable": true,
+      "source": "box_yolo_content_ocr",
+      "contentDesc": "50 "
+    },
+    {
+      "index": 45,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 472,
+        "y": 1716,
+        "width": 439,
+        "height": 207
+      },
+      "text": "40/ ",
+      "clickable": true,
+      "source": "box_yolo_content_ocr",
+      "contentDesc": "40/ "
+    },
+    {
+      "index": 46,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 349,
+        "y": 1748,
+        "width": 74,
+        "height": 83
+      },
+      "text": "Close",
+      "clickable": true,
+      "source": "box_yolo_content_yolo",
+      "contentDesc": "Close"
+    },
+    {
+      "index": 47,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 234,
+        "y": 1944,
+        "width": 74,
+        "height": 68
+      },
+      "text": "Close",
+      "clickable": true,
+      "source": "box_yolo_content_yolo",
+      "contentDesc": "Close"
+    },
+    {
+      "index": 48,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 968,
+        "y": 1946,
+        "width": 217,
+        "height": 58
+      },
+      "text": "World Soccer League",
+      "clickable": true,
+      "source": "box_yolo_content_yolo",
+      "contentDesc": "World Soccer League"
+    },
+    {
+      "index": 49,
+      "class": "TextView",
+      "bounds": {
+        "x": 521,
+        "y": 1960,
+        "width": 344,
+        "height": 37
+      },
+      "text": "350",
+      "clickable": false,
+      "source": "box_ocr_content_ocr"
+    },
+    {
+      "index": 50,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 318,
+        "y": 2008,
+        "width": 112,
+        "height": 69
+      },
+      "text": "M0,0L0,5 4.5,5z",
+      "clickable": true,
+      "source": "box_yolo_content_yolo",
+      "contentDesc": "M0,0L0,5 4.5,5z"
+    },
+    {
+      "index": 51,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 237,
+        "y": 2009,
+        "width": 71,
+        "height": 69
+      },
+      "text": "Close",
+      "clickable": true,
+      "source": "box_yolo_content_yolo",
+      "contentDesc": "Close"
+    },
+    {
+      "index": 52,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 128,
+        "y": 2010,
+        "width": 98,
+        "height": 65
+      },
+      "text": "M0,0L0,5 4.5,5z",
+      "clickable": true,
+      "source": "box_yolo_content_yolo",
+      "contentDesc": "M0,0L0,5 4.5,5z"
+    },
+    {
+      "index": 53,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 966,
+        "y": 2012,
+        "width": 209,
+        "height": 58
+      },
+      "text": "Conference Break",
+      "clickable": true,
+      "source": "box_yolo_content_yolo",
+      "contentDesc": "Conference Break"
+    },
+    {
+      "index": 54,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 972,
+        "y": 2074,
+        "width": 129,
+        "height": 69
+      },
+      "text": "Meituan",
+      "clickable": true,
+      "source": "box_yolo_content_yolo",
+      "contentDesc": "Meituan"
+    },
+    {
+      "index": 55,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 231,
+        "y": 2075,
+        "width": 81,
+        "height": 78
+      },
+      "text": "Close",
+      "clickable": true,
+      "source": "box_yolo_content_yolo",
+      "contentDesc": "Close"
+    },
+    {
+      "index": 56,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 125,
+        "y": 2076,
+        "width": 103,
+        "height": 76
+      },
+      "text": "M0,0L0,5 4.5,5z",
+      "clickable": true,
+      "source": "box_yolo_content_yolo",
+      "contentDesc": "M0,0L0,5 4.5,5z"
+    },
+    {
+      "index": 57,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 1099,
+        "y": 2079,
+        "width": 83,
+        "height": 59
+      },
+      "text": "Asian People People",
+      "clickable": true,
+      "source": "box_yolo_content_yolo",
+      "contentDesc": "Asian People People"
+    },
+    {
+      "index": 58,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 91,
+        "y": 2155,
+        "width": 358,
+        "height": 120
+      },
+      "text": "0",
+      "clickable": true,
+      "source": "box_yolo_content_yolo",
+      "contentDesc": "0"
+    },
+    {
+      "index": 59,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 1119,
+        "y": 2173,
+        "width": 68,
+        "height": 80
+      },
+      "text": "Oval",
+      "clickable": true,
+      "source": "box_yolo_content_yolo",
+      "contentDesc": "Oval"
+    },
+    {
+      "index": 60,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 659,
+        "y": 2175,
+        "width": 67,
+        "height": 64
+      },
+      "text": "Circle",
+      "clickable": true,
+      "source": "box_yolo_content_yolo",
+      "contentDesc": "Circle"
+    },
+    {
+      "index": 61,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 528,
+        "y": 2288,
+        "width": 327,
+        "height": 90
+      },
+      "text": "A shopping platform or store.",
+      "clickable": true,
+      "source": "box_yolo_content_yolo",
+      "contentDesc": "A shopping platform or store."
+    },
+    {
+      "index": 62,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 800,
+        "y": 2524,
+        "width": 371,
+        "height": 143
+      },
+      "text": "F ",
+      "clickable": true,
+      "source": "box_yolo_content_ocr",
+      "contentDesc": "F "
+    },
+    {
+      "index": 63,
+      "class": "ImageButton",
+      "bounds": {
+        "x": 44,
+        "y": 2559,
+        "width": 72,
+        "height": 70
+      },
+      "text": "Currency Exchange",
+      "clickable": true,
+      "source": "box_yolo_content_yolo",
+      "contentDesc": "Currency Exchange"
+    }
+  ],
+  "componentCount": 64
+}

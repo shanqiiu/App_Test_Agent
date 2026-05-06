@@ -1,9 +1,9 @@
 {
   "category": "dialog_blocking",
   "description": "弹窗覆盖UI - 用于生成各类遮挡弹窗异常",
-  "count": 13,
+  "count": 16,
   "samples": {
-    "使用教程遮挡.jpg": {
+    "美团-神券页面-权益升级引导弹窗.jpg": {
       "anomaly_type": "tutorial_guide",
       "anomaly_description": "美团神券页面中央弹出权益升级引导弹窗，显示'神券权益升级 快来查看、膨胀你的专属神券吧'",
       "visual_features": {
@@ -63,7 +63,7 @@
         "height": 1172
       }
     },
-    "使用教程遮挡2.jpg": {
+    "美团-瑞幸咖啡商品页-浮动提示横幅.jpg": {
       "anomaly_type": "floating_tip_banner",
       "anomaly_description": "美团APP在瑞幸咖啡商品页面底部弹出红色浮动提示横幅，显示'到店自取，取餐更快更便宜!'",
       "visual_features": {
@@ -121,7 +121,7 @@
         ]
       }
     },
-    "使用教程遮挡3.jpg": {
+    "美团外卖-店铺页-浮动提示横幅.jpg": {
       "anomaly_type": "floating_tip_banner",
       "anomaly_description": "美团外卖页面底部弹出黄色浮动提示横幅，显示'这家店所有优惠的商品都在这里喔～'",
       "visual_features": {
@@ -178,7 +178,7 @@
         ]
       }
     },
-    "关闭按钮干扰.jpg": {
+    "铁路12306-首页-通知权限弹窗.jpg": {
       "anomaly_type": "permission_dialog",
       "anomaly_description": "铁路12306首页中央弹出微信/支付宝/负一屏通知权限弹窗，显示开启行程提醒等通知功能",
       "visual_features": {
@@ -237,7 +237,7 @@
         "height": 848
       }
     },
-    "去哪网消息通知.jpg": {
+    "去哪儿旅行-首页-位置权限弹窗.jpg": {
       "anomaly_type": "permission_dialog",
       "anomaly_description": "去哪儿旅行首页中央弹出位置权限请求弹窗，显示'允许“去哪儿旅行”访问你的位置？'",
       "visual_features": {
@@ -302,7 +302,7 @@
         "height": 1698
       }
     },
-    "商品下方存在遮挡.jpg": {
+    "京东到家-外卖页面-优惠券弹窗.jpg": {
       "anomaly_type": "promotional_coupont_dialog",
       "anomaly_description": "京东到家外卖页面底部弹出专属福利优惠券弹窗，显示'百补好运券 满4元可用'",
       "visual_features": {
@@ -361,7 +361,7 @@
         "height": 274
       }
     },
-    "广告弹窗.jpg": {
+    "携程旅行-首页-推广弹窗.jpg": {
       "anomaly_type": "promotional_popup",
       "anomaly_description": "携程旅行首页中央弹出携程榜单推广弹窗，显示'被世界米到了！'的宣传内容",
       "visual_features": {
@@ -423,7 +423,7 @@
         "height": 854
       }
     },
-    "弹出广告.jpg": {
+    "华为花粉俱乐部-首页-勋章奖励弹窗.jpg": {
       "anomaly_type": "reward_badge_dialog",
       "anomaly_description": "华为花粉俱乐部首页中央弹出HarmonyOS勋章奖励弹窗，显示'恭喜您获得勋章 鸿蒙合伙人 30天'",
       "visual_features": {
@@ -486,67 +486,7 @@
         "height": 1196
       }
     },
-    "弹出提示.jpg": {
-      "anomaly_type": "context_menu_dropdown",
-      "anomaly_description": "哔哩哔哩北京大学官方账号页面弹出作品排序下拉菜单，显示'最新'和'最热'选项",
-      "visual_features": {
-        "app_style": "哔哩哔哩",
-        "source_brand": "北京大学",
-        "source_brand_keywords": [
-          "北京大学",
-          "北大",
-          "Peking University",
-          "Bilibili"
-        ],
-        "primary_color": "#FFFFFF",
-        "background": "白色 #FFFFFF",
-        "dialog_position": "bottom-left-inline",
-        "dialog_size_ratio": {
-          "width": 0.35,
-          "height": 0.28
-        },
-        "overlay_enabled": false,
-        "overlay_opacity": 0,
-        "close_button_position": "none",
-        "close_button_style": "none",
-        "main_button_text": "",
-        "main_button_style": "none",
-        "title_text": "",
-        "subtitle_text": "",
-        "special_elements": [
-          "下拉菜单",
-          "选中指示器（红色对勾）",
-          "分栏切换按钮"
-        ],
-        "list_style": "vertical_list",
-        "selected_indicator": "red_checkmark",
-        "menu_items": [
-          "最新",
-          "最热"
-        ],
-        "selected_item": "最热"
-      },
-      "generation_template": {
-        "instruction": "在哔哩哔哩APP的北京大学官方账号主页，点击作品列表上方的排序按钮，弹出包含'最新'和'最热'选项的下拉菜单，其中'最热'被选中并带有红色对勾标记。",
-        "patch_operations": [
-          {
-            "type": "add",
-            "component": "DropdownMenu",
-            "position": "bottom-left-inline",
-            "overlay": false,
-            "close_button": false
-          }
-        ],
-        "key_points": [
-          "弹窗为白色背景的垂直下拉菜单",
-          "包含两个选项：'最新'和'最热'",
-          "'最热'选项右侧有红色对勾标识",
-          "菜单位于作品列表上方区域左侧",
-          "无遮罩层，无关闭按钮"
-        ]
-      }
-    },
-    "携程开屏优惠广告.jpg": {
+    "携程旅行-机票页面-新客福利弹窗.jpg": {
       "anomaly_type": "promotional_coupont_dialog",
       "anomaly_description": "携程旅行APP机票页面中央弹出新客随机福利弹窗，显示90元国内机票券包、100元国际机票券包和1288元出行权益包等优惠内容",
       "visual_features": {
@@ -621,7 +561,7 @@
         "height": 1638
       }
     },
-    "携程通知.jpg": {
+    "携程旅行-首页-通知权限弹窗.jpg": {
       "anomaly_type": "permission_dialog",
       "anomaly_description": "携程旅行APP首页中央弹出权限请求弹窗，显示'允许“携程旅行”向你发送通知？'",
       "visual_features": {
@@ -682,7 +622,7 @@
         "height": 744
       }
     },
-    "满减信息遮挡.jpg": {
+    "瑞幸咖啡-点餐页面-浮动优惠横幅.jpg": {
       "anomaly_type": "floating_tip_banner",
       "anomaly_description": "瑞幸咖啡APP点餐页面底部弹出浮动提示横幅，显示'选到店自取再减19.5元'优惠信息",
       "visual_features": {
@@ -734,7 +674,7 @@
         ]
       }
     },
-    "12306无票弹窗.jpg": {
+    "铁路12306-购票页面-购票确认弹窗.jpg": {
       "anomaly_type": "ticket_booking_confirmation_dialog",
       "anomaly_description": "12306火车票购票页面弹出车次Z112的购票确认弹窗，显示硬座、硬卧、软卧等席别价格及预订按钮",
       "visual_features": {
@@ -792,6 +732,125 @@
         "y": 1170,
         "width": 1136,
         "height": 1347
+      }
+    },
+    "铁路12306-车票查询页-无弹窗.jpg": {
+      "anomaly_type": "base_source",
+      "anomaly_description": "铁路12306 APP车票查询结果页（北京到长春），原始截图无弹窗覆盖，作为弹窗注入的基础源图",
+      "visual_features": {
+        "app_style": "铁路12306",
+        "source_brand": "铁路12306",
+        "source_brand_keywords": [
+          "12306",
+          "铁路12306",
+          "中国铁路",
+          "火车票"
+        ],
+        "primary_color": "#409EFF",
+        "dialog_position": "none",
+        "overlay_enabled": false
+      },
+      "generation_template": {
+        "instruction": "在12306车票查询结果页上添加弹窗覆盖",
+        "patch_operations": [],
+        "key_points": [
+          "原始查询页，无弹窗覆盖",
+          "可直接作为弹窗注入的底图"
+        ]
+      }
+    },
+    "铁路12306-车票查询页-无票弹窗.jpg": {
+      "anomaly_type": "no_ticket_dialog",
+      "anomaly_description": "铁路12306 APP车票查询结果页弹出无票提示弹窗，提示当前所选车次无可用车票，建议用户更改日期或车次",
+      "visual_features": {
+        "app_style": "铁路12306",
+        "source_brand": "铁路12306",
+        "source_brand_keywords": [
+          "12306",
+          "铁路12306",
+          "中国铁路",
+          "火车票"
+        ],
+        "primary_color": "#FF6600",
+        "dialog_position": "center",
+        "overlay_enabled": true,
+        "overlay_opacity": 0.5
+      },
+      "generation_template": {
+        "instruction": "在12306车票查询页中央添加无票提示弹窗",
+        "patch_operations": [
+          {
+            "type": "add",
+            "component": "NoTicketDialog",
+            "position": "center",
+            "overlay": true
+          }
+        ],
+        "key_points": [
+          "弹窗位于屏幕中央",
+          "提示当前无可用车票",
+          "引导用户更改日期或车次"
+        ]
+      }
+    },
+    "铁路12306-车票查询页-无票弹窗2.jpg": {
+      "anomaly_type": "no_ticket_dialog",
+      "anomaly_description": "铁路12306 APP车票查询结果页弹出无票提示弹窗（变体2），显示直达车次无票信息，包含候补下单等操作引导",
+      "visual_features": {
+        "app_style": "铁路12306",
+        "source_brand": "铁路12306",
+        "source_brand_keywords": [
+          "12306",
+          "铁路12306",
+          "中国铁路",
+          "火车票"
+        ],
+        "primary_color": "#FF6600",
+        "dialog_position": "center",
+        "overlay_enabled": true,
+        "overlay_opacity": 0.5
+      },
+      "generation_template": {
+        "instruction": "在12306车票查询页中央添加无票提示弹窗，显示直达车次无票并引导候补",
+        "patch_operations": [
+          {
+            "type": "add",
+            "component": "NoTicketDialog",
+            "position": "center",
+            "overlay": true
+          }
+        ],
+        "key_points": [
+          "弹窗位于屏幕中央",
+          "直达车次无票提示",
+          "包含候补下单引导"
+        ]
+      }
+    },
+    "铁路12306-车票搜索结果页-无弹窗.jpg": {
+      "anomaly_type": "base_source",
+      "anomaly_description": "铁路12306 APP车票搜索结果页（北京到长春），显示直达/中转选项与日期日历，原始截图无弹窗覆盖",
+      "visual_features": {
+        "app_style": "铁路12306",
+        "source_brand": "铁路12306",
+        "source_brand_keywords": [
+          "12306",
+          "铁路12306",
+          "中国铁路",
+          "火车票"
+        ],
+        "primary_color": "#409EFF",
+        "dialog_position": "none",
+        "overlay_enabled": false
+      },
+      "generation_template": {
+        "instruction": "在12306车票搜索结果页上添加弹窗覆盖",
+        "patch_operations": [],
+        "key_points": [
+          "原始搜索结果页，无弹窗覆盖",
+          "包含日期选择与车次列表",
+          "适合作为弹窗注入底图"
+        ]
       }
     }
   },

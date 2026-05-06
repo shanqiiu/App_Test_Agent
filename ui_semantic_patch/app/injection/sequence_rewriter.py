@@ -52,6 +52,12 @@ class SequenceRewriter:
         if not self.pipeline_script.exists():
             raise FileNotFoundError(f"run_pipeline.py 不存在: {self.pipeline_script}")
 
+    # 不需要 GT 参考图的异常模式列表
+    NO_GT_MODES = {
+        'modify_text', 'modify_text_ai', 'modify_text_ocr', 'modify_text_e2e',
+        'text_overlay', 'area_loading', 'content_duplicate',
+    }
+
     def rewrite(
         self,
         original_screenshots: List[Path],
@@ -59,6 +65,7 @@ class SequenceRewriter:
         anomaly_type: str,
         instruction: str,
         gt_sample: str = None,
+        gt_category: str = None,
         decision_log: Dict = None
     ) -> Dict:
         """
@@ -70,6 +77,7 @@ class SequenceRewriter:
             anomaly_type: 异常类型（对应 GT 模板目录名）
             instruction: 异常生成指令
             gt_sample: GT 样本名称，默认使用第一个可用样本
+            gt_category: GT 类别名称（为空则根据 anomaly_type 推断）
             decision_log: 决策日志（可选）
 
         Returns:
@@ -92,11 +100,19 @@ class SequenceRewriter:
         # 规范化异常类型名称（去除空格）
         anomaly_type_normalized = anomaly_type.replace(" ", "")
 
-        # 确定 GT 样本
-        if gt_sample is None:
-            gt_sample = self._get_default_sample(anomaly_type_normalized)
+        # 确定 GT 样本（仅 dialog 模式需要，其他模式不需要）
+        need_gt = anomaly_type_normalized not in self.NO_GT_MODES
+        if need_gt:
             if gt_sample is None:
-                raise ValueError(f"找不到异常类型 '{anomaly_type}' 的 GT 样本")
+                gt_sample = self._get_default_sample(anomaly_type_normalized)
+            if gt_sample is None:
+                # 如果找不到 GT 样本但确实需要，尝试使用 dialog 类别
+                gt_sample = self._get_default_sample('dialog')
+            if gt_sample is None and need_gt:
+                raise ValueError(f"找不到异常类型 '{anomaly_type}' 的 GT 样本，"
+                                f"请确保 {self.gt_template_dir / anomaly_type_normalized} 目录存在")
+        else:
+            gt_sample = gt_sample or ""
 
         # 创建输出目录
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
@@ -217,17 +233,21 @@ class SequenceRewriter:
         # 确定 anomaly_mode
         anomaly_mode = self._get_anomaly_mode(anomaly_type)
 
-        # 构建命令
+        # 构建命令（仅 dialog 模式需要 gt-category 和 gt-sample）
         cmd = [
             sys.executable,
             str(self.pipeline_script),
             "--screenshot", str(screenshot_path),
             "--instruction", instruction,
             "--anomaly-mode", anomaly_mode,
-            "--gt-category", anomaly_type,
-            "--gt-sample", gt_sample,
             "--output", str(output_dir)
         ]
+        if anomaly_mode == 'dialog' and gt_sample:
+            # dialog 模式需要 GT 参考图
+            cmd += ["--gt-category", anomaly_type, "--gt-sample", gt_sample]
+        elif gt_sample:
+            # 其他模式如果有指定 gt_sample 也传入
+            cmd += ["--gt-category", anomaly_type, "--gt-sample", gt_sample]
 
         print(f"  命令: {' '.join(cmd)}")
 
@@ -318,8 +338,13 @@ class SequenceRewriter:
             "dialog": "dialog",
             "area_loading": "area_loading",
             "content_duplicate": "content_duplicate",
+            "modify_text": "modify_text",
+            "modify_text_ai": "modify_text_ai",
+            "modify_text_ocr": "modify_text_ocr",
+            "modify_text_e2e": "modify_text_e2e",
+            "text_overlay": "text_overlay",
         }
-        return mode_mapping.get(anomaly_type, "dialog")
+        return mode_mapping.get(anomaly_type, anomaly_type)
 
     def _get_default_sample(self, anomaly_type: str) -> Optional[str]:
         """获取指定类型的默认样本"""

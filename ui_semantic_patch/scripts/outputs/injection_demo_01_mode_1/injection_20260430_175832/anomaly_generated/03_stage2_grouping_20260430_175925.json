@@ -1,0 +1,168 @@
+{
+  "groups": [
+    {
+      "name": "顶部状态栏",
+      "indices": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7
+      ],
+      "class": "StatusBar",
+      "text": "时间、电量、网络状态"
+    },
+    {
+      "name": "城市选择栏",
+      "indices": [
+        8,
+        9,
+        10,
+        11
+      ],
+      "class": "CitySelector",
+      "text": "北京 <> 长春"
+    },
+    {
+      "name": "日期选择栏",
+      "indices": [
+        12,
+        13,
+        14,
+        15,
+        16,
+        17,
+        18
+      ],
+      "class": "DateSelector",
+      "text": "日期选择"
+    },
+    {
+      "name": "直达中转切换",
+      "indices": [
+        19,
+        20
+      ],
+      "class": "ToggleSwitch",
+      "text": "直达/中转"
+    },
+    {
+      "name": "筛选条件",
+      "indices": [
+        21,
+        22,
+        23,
+        24
+      ],
+      "class": "FilterOptions",
+      "text": "高铁/动车、普通车、有票、筛选"
+    },
+    {
+      "name": "出发站选择",
+      "indices": [
+        25,
+        26,
+        27,
+        28,
+        29
+      ],
+      "class": "StationSelector",
+      "text": "北京丰台、北京朝阳、北京西、北京"
+    },
+    {
+      "name": "最近购买记录",
+      "indices": [
+        30,
+        31,
+        32,
+        33,
+        34,
+        35
+      ],
+      "class": "RecentPurchases",
+      "text": "最近购买的车次"
+    },
+    {
+      "name": "车次列表项1",
+      "indices": [
+        36,
+        37,
+        38,
+        39,
+        40,
+        41,
+        42,
+        43,
+        44,
+        45
+      ],
+      "class": "TrainItem",
+      "text": "Z112 车次信息"
+    },
+    {
+      "name": "车次列表项2",
+      "indices": [
+        46,
+        47,
+        48,
+        49,
+        50,
+        51,
+        52,
+        53,
+        54,
+        55
+      ],
+      "class": "TrainItem",
+      "text": "Z156 车次信息"
+    },
+    {
+      "name": "车次列表项3",
+      "indices": [
+        56,
+        57,
+        58,
+        59,
+        60,
+        61,
+        62,
+        63,
+        64,
+        65
+      ],
+      "class": "TrainItem",
+      "text": "G3533 车次信息"
+    },
+    {
+      "name": "车次列表项4",
+      "indices": [
+        66,
+        67,
+        68,
+        69,
+        70,
+        71,
+        72,
+        73,
+        74,
+        75
+      ],
+      "class": "TrainItem",
+      "text": "G101 车次信息"
+    },
+    {
+      "name": "底部导航栏",
+      "indices": [
+        76,
+        77,
+        78,
+        79
+      ],
+      "class": "BottomNavigation",
+      "text": "筛选、耗时最短、发时最早、价格最低、候补下单"
+    }
+  ]
+}

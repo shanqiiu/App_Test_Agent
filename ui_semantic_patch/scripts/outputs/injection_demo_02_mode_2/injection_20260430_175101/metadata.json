@@ -1,0 +1,38 @@
+{
+  "timestamp": "20260430_175101",
+  "original_length": 13,
+  "modified_length": 5,
+  "injection_point": 2,
+  "anomaly_type": "modify_text",
+  "anomaly_type_normalized": "modify_text",
+  "gt_sample": "去哪儿-首页-权限类弹窗.jpg",
+  "instruction": "将查询结果修改为「未找到相关结果」状态",
+  "truncated_steps": 10,
+  "anomaly_images_count": 2,
+  "original_screenshots": [
+    "D:\\workspace\\projects\\activate\\App_Test_Agent\\data\\examples\\injection_demo_02\\screenshots\\01.jpg",
+    "D:\\workspace\\projects\\activate\\App_Test_Agent\\data\\examples\\injection_demo_02\\screenshots\\02.jpg",
+    "D:\\workspace\\projects\\activate\\App_Test_Agent\\data\\examples\\injection_demo_02\\screenshots\\03.jpg",
+    "D:\\workspace\\projects\\activate\\App_Test_Agent\\data\\examples\\injection_demo_02\\screenshots\\04.jpg",
+    "D:\\workspace\\projects\\activate\\App_Test_Agent\\data\\examples\\injection_demo_02\\screenshots\\05.jpg",
+    "D:\\workspace\\projects\\activate\\App_Test_Agent\\data\\examples\\injection_demo_02\\screenshots\\06.jpg",
+    "D:\\workspace\\projects\\activate\\App_Test_Agent\\data\\examples\\injection_demo_02\\screenshots\\07.jpg",
+    "D:\\workspace\\projects\\activate\\App_Test_Agent\\data\\examples\\injection_demo_02\\screenshots\\08.jpg",
+    "D:\\workspace\\projects\\activate\\App_Test_Agent\\data\\examples\\injection_demo_02\\screenshots\\09.jpg",
+    "D:\\workspace\\projects\\activate\\App_Test_Agent\\data\\examples\\injection_demo_02\\screenshots\\10.jpg",
+    "D:\\workspace\\projects\\activate\\App_Test_Agent\\data\\examples\\injection_demo_02\\screenshots\\11.jpg",
+    "D:\\workspace\\projects\\activate\\App_Test_Agent\\data\\examples\\injection_demo_02\\screenshots\\12.jpg",
+    "D:\\workspace\\projects\\activate\\App_Test_Agent\\data\\examples\\injection_demo_02\\screenshots\\13.jpg"
+  ],
+  "modified_sequence": [
+    "D:\\workspace\\projects\\activate\\App_Test_Agent\\ui_semantic_patch\\scripts\\outputs\\injection_demo_02_mode_2\\injection_20260430_175101\\modified_sequence\\step_00.jpg",
+    "D:\\workspace\\projects\\activate\\App_Test_Agent\\ui_semantic_patch\\scripts\\outputs\\injection_demo_02_mode_2\\injection_20260430_175101\\modified_sequence\\step_01.jpg",
+    "D:\\workspace\\projects\\activate\\App_Test_Agent\\ui_semantic_patch\\scripts\\outputs\\injection_demo_02_mode_2\\injection_20260430_175101\\modified_sequence\\step_02.jpg",
+    "D:\\workspace\\projects\\activate\\App_Test_Agent\\ui_semantic_patch\\scripts\\outputs\\injection_demo_02_mode_2\\injection_20260430_175101\\modified_sequence\\step_03_anomaly.png",
+    "D:\\workspace\\projects\\activate\\App_Test_Agent\\ui_semantic_patch\\scripts\\outputs\\injection_demo_02_mode_2\\injection_20260430_175101\\modified_sequence\\step_04_anomaly.png"
+  ],
+  "anomaly_images": [
+    "D:\\workspace\\projects\\activate\\App_Test_Agent\\ui_semantic_patch\\scripts\\outputs\\injection_demo_02_mode_2\\injection_20260430_175101\\modified_sequence\\step_03_anomaly.png",
+    "D:\\workspace\\projects\\activate\\App_Test_Agent\\ui_semantic_patch\\scripts\\outputs\\injection_demo_02_mode_2\\injection_20260430_175101\\modified_sequence\\step_04_anomaly.png"
+  ]
+}
