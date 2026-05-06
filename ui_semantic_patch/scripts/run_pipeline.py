@@ -12,6 +12,7 @@ run_pipeline.py - UI 异常场景生成流水线
 
 import argparse
 import json
+import logging
 import os
 import sys
 import time
@@ -63,6 +64,7 @@ from app.core.schemas import (
     validate_stage1_output,
 )
 from app.renderers.text_overlay import EditOp
+from app.utils.logging_utils import setup_logging
 
 
 
@@ -375,6 +377,11 @@ def run_pipeline(
     output_dir = Path(output_dir)
     output_dir.mkdir(parents=True, exist_ok=True)
 
+    # ===== 配置日志（同时输出到终端 + 日志文件）=====
+    logger = logging.getLogger(__name__)
+    setup_logging(log_dir=str(output_dir), log_name=f"pipeline_{timestamp}")
+    logger.info("日志文件: %s", output_dir / f"pipeline_{timestamp}.log")
+
     # 结果收集
     results = {
         'timestamp': timestamp,
@@ -386,12 +393,12 @@ def run_pipeline(
 
     pipeline_start = time.time()
 
-    print("=" * 60)
-    print("UI 异常场景生成流水线（简化模式）")
-    print("=" * 60)
-    print(f"  截图: {screenshot_path}")
-    print(f"  指令: {instruction}")
-    print(f"  输出目录: {output_dir}")
+    logger.info("=" * 60)
+    logger.info("UI 异常场景生成流水线（简化模式）")
+    logger.info("=" * 60)
+    logger.info("  截图: %s", screenshot_path)
+    logger.info("  指令: %s", instruction)
+    logger.info("  输出目录: %s", output_dir)
 
     skip_detection_modes = {'modify_text_e2e'}
     skip_detection = anomaly_mode in skip_detection_modes

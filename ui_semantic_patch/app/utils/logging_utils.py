@@ -47,14 +47,22 @@ def setup_logging(
     # === 文件 Handler ===
     if log_dir:
         log_path = Path(log_dir).resolve() / f"{log_name}.log"
-        log_path.parent.mkdir(parents=True, exist_ok=True)
+        file_handler_created = False
         try:
+            log_path.parent.mkdir(parents=True, exist_ok=True)
             file_handler = logging.FileHandler(str(log_path), encoding='utf-8')
             file_handler.setLevel(level)
             file_handler.setFormatter(formatter)
             logger.addHandler(file_handler)
+            file_handler_created = True
+        except PermissionError as e:
+            print(f"[WARN] 无权限创建日志目录或文件 {log_path}: {e}")
+        except OSError as e:
+            print(f"[WARN] 无法创建日志目录或文件 {log_path}: {e}")
         except Exception as e:
-            print(f"[WARN] 无法创建日志文件 {log_path}: {e}")
+            print(f"[WARN] 创建日志文件时发生错误 {log_path}: {e}")
+        if not file_handler_created:
+            print("[INFO] 将仅输出到控制台")
 
     # === 终端 Handler ===
     if console:

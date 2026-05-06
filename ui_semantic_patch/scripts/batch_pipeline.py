@@ -31,6 +31,7 @@ batch_pipeline.py - 批量异常场景生成
 
 import argparse
 import json
+import logging
 import os
 import sys
 import re
@@ -189,6 +190,7 @@ def run_batch(
         dry_run: 只打印计划，不实际执行
     """
     from app.utils.meta_loader import MetaLoader
+    from app.utils.logging_utils import setup_logging
     from run_pipeline import run_pipeline
 
     gt_dir = gt_dir or str(DEFAULT_GT_DIR)
@@ -246,10 +248,14 @@ def run_batch(
         print("\n[DRY RUN] 使用 --run 来实际执行")
         return
 
-    # 4. 创建输出目录
+    # 4. 创建输出目录并配置日志
     timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
     batch_output = Path(output_dir) / f"batch_{gt_category}_{timestamp}"
     batch_output.mkdir(parents=True, exist_ok=True)
+
+    logger = logging.getLogger(__name__)
+    setup_logging(log_dir=str(batch_output), log_name=f"batch_{gt_category}")
+    logger.info("日志文件: %s", batch_output / f"batch_{gt_category}.log")
 
     # 5. 批量执行
     results = []

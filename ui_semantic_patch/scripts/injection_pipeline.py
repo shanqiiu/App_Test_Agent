@@ -23,6 +23,7 @@ injection_pipeline.py - 异常注入决策主入口
         └── ...
 """
 
+import logging
 import os
 import sys
 import json
@@ -54,6 +55,7 @@ from typing import List, Optional
 sys.path.insert(0, str(Path(__file__).parent))
 
 from app.injection import SequenceAnalyzer, AnomalyRecommender, SequenceRewriter, QualityVerifier
+from app.utils.logging_utils import setup_logging
 
 
 def load_task(input_dir: Path) -> dict:
@@ -293,23 +295,31 @@ def main():
         print(f"❌ 输入目录不存在: {input_dir}")
         sys.exit(1)
 
+    # ===== 配置日志 =====
+    logger = logging.getLogger(__name__)
+    output_dir.mkdir(parents=True, exist_ok=True)
+    setup_logging(log_dir=str(output_dir), log_name="injection_pipeline")
+    logger.info("日志文件: %s", output_dir / "injection_pipeline.log")
+
     # 加载任务和截图
     task = load_task(input_dir)
     task_description = args.task or task.get("description", "未指定任务")
 
     screenshots = load_screenshots(input_dir)
     if not screenshots:
-        print(f"❌ 未找到截图文件: {input_dir}")
+        logger.error("❌ 未找到截图文件: %s", input_dir)
         sys.exit(1)
 
-    print("\n" + "="*60)
-    print("🚀 异常注入决策流水线")
-    print("="*60)
-    print(f"\n输入目录: {input_dir}")
-    print(f"输出目录: {output_dir}")
-    print(f"任务描述: {task_description}")
-    print(f"截图数量: {len(screenshots)}")
-    print(f"交互模式: {'启用' if interactive else '禁用'}")
+    logger.info("")
+    logger.info("%s", "="*60)
+    logger.info("🚀 异常注入决策流水线")
+    logger.info("%s", "="*60)
+    logger.info("")
+    logger.info("输入目录: %s", input_dir)
+    logger.info("输出目录: %s", output_dir)
+    logger.info("任务描述: %s", task_description)
+    logger.info("截图数量: %d", len(screenshots))
+    logger.info("交互模式: %s", '启用' if interactive else '禁用')
     if mock_mode:
         print(f"Mock 模式: 启用")
         if args.mock_config:
