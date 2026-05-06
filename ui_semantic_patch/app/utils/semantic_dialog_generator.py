@@ -2952,9 +2952,8 @@ class SemanticDialogGenerator:
         dialog_position = meta_features.get('dialog_position', 'center')
         corner_style = meta_features.get('corner_radius', 'large')
 
-        # 提取按钮和关闭按钮信息
-        close_button_pos = meta_features.get('close_button_position', 'none')
-        close_button_style = meta_features.get('close_button_style', 'default')
+        # 关闭按钮信息（由 PatchRenderer 在合成阶段绘制，此处仅作记录）
+        # close_button_pos / close_button_style 在 meta_features 中保留供 PatchRenderer 使用
 
         # 提取遮罩层信息
         overlay_enabled = meta_features.get('overlay_enabled', True)
@@ -3042,17 +3041,8 @@ class SemanticDialogGenerator:
         else:
             buttons_prompt_part = ''
 
-        # 构建关闭按钮描述（保留原始灰色样式）
-        if close_button_pos != 'none':
-            close_button_desc = f"""### Close Button (CRITICAL - must be visible)
-- Position: {close_button_pos}
-- Style: {close_button_style}
-- IMPORTANT: The close button should use a LIGHT GRAY circular background (like the reference image)
-- The close button must be INSIDE the dialog area or directly attached to it
-- DO NOT place the close button floating in the black background area
-- Make sure the close button is clearly visible and properly rendered"""
-        else:
-            close_button_desc = "### Close Button\n- No close button"
+        # 关闭按钮由 PatchRenderer 在合成阶段统一绘制，AI 不参与
+        close_button_desc = "### Close Button\n- No close button (will be added manually later)"
 
         # 构建 Logo/Badge 文字描述
         if brand_name:
