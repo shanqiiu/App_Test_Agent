@@ -1,0 +1,112 @@
+{
+  "timestamp": "20260506_155304",
+  "screenshot": "D:\\workspace\\projects\\activate\\App_Test_Agent\\data\\examples\\injection_demo_02\\screenshots\\03.jpg",
+  "instruction": "模拟商品售罄的系统提示弹窗",
+  "outputs": {
+    "stage1_omni_raw": "D:\\workspace\\projects\\activate\\App_Test_Agent\\ui_semantic_patch\\scripts\\outputs1\\injection_demo_02_mode_1\\injection_20260506_155302\\anomaly_generated\\03_stage1_omni_raw_20260506_155304.json",
+    "stage1_annotated": "D:\\workspace\\projects\\activate\\App_Test_Agent\\ui_semantic_patch\\scripts\\outputs1\\injection_demo_02_mode_1\\injection_20260506_155302\\anomaly_generated\\03_stage1_annotated_20260506_155304.png",
+    "stage2_filtered": "D:\\workspace\\projects\\activate\\App_Test_Agent\\ui_semantic_patch\\scripts\\outputs1\\injection_demo_02_mode_1\\injection_20260506_155302\\anomaly_generated\\03_stage2_filtered_20260506_155304.json",
+    "stage2_annotated": "D:\\workspace\\projects\\activate\\App_Test_Agent\\ui_semantic_patch\\scripts\\outputs1\\injection_demo_02_mode_1\\injection_20260506_155302\\anomaly_generated\\03_stage2_annotated_20260506_155304.png",
+    "final_image": "D:\\workspace\\projects\\activate\\App_Test_Agent\\ui_semantic_patch\\scripts\\outputs1\\injection_demo_02_mode_1\\injection_20260506_155302\\anomaly_generated\\final_20260506_155539.png",
+    "meta_driven": true
+  },
+  "timing": {
+    "stage1": 29.85,
+    "stage2": 18.5,
+    "stage3": 107.44
+  },
+  "stage2_status": "success",
+  "render_metadata": {
+    "gt_category": "dialog",
+    "gt_sample": "美团-瑞幸咖啡商品页-浮动提示横幅.jpg",
+    "meta_driven": true,
+    "warnings": [
+      {
+        "type": "position_fallback",
+        "message": "位置回退：未找到关键词对应组件，使用百分比定位 (61, 2423)"
+      }
+    ],
+    "render_info": {
+      "close_button": {
+        "x": 586,
+        "y": 2771,
+        "width": 50,
+        "height": 50,
+        "position": "bottom-center"
+      },
+      "dialog_bounds": {
+        "x": 61,
+        "y": 2423,
+        "width": 1101,
+        "height": 333
+      },
+      "screen_size": {
+        "width": 1224,
+        "height": 2776
+      },
+      "position_method": "fallback",
+      "dialog_position_type": "bottom-fixed",
+      "ui_components_count": 12,
+      "ui_components_preview": [
+        {
+          "index": 0,
+          "class": "StatusBar",
+          "bounds": {
+            "x": 28,
+            "y": 54,
+            "width": 1167,
+            "height": 68
+          }
+        },
+        {
+          "index": 1,
+          "class": "NavigationBar",
+          "bounds": {
+            "x": 26,
+            "y": 175,
+            "width": 1175,
+            "height": 111
+          }
+        },
+        {
+          "index": 2,
+          "class": "ImageButton",
+          "bounds": {
+            "x": 470,
+            "y": 314,
+            "width": 236,
+            "height": 101
+          }
+        },
+        {
+          "index": 3,
+          "class": "ImageButton",
+          "bounds": {
+            "x": 233,
+            "y": 317,
+            "width": 237,
+            "height": 100
+          }
+        },
+        {
+          "index": 4,
+          "class": "ImageButton",
+          "bounds": {
+            "x": 8,
+            "y": 319,
+            "width": 217,
+            "height": 101
+          }
+        }
+      ],
+      "dialog_image_path": "D:\\workspace\\projects\\activate\\App_Test_Agent\\ui_semantic_patch\\scripts\\outputs1\\injection_demo_02_mode_1\\injection_20260506_155302\\anomaly_generated\\dialog_only_final_20260506_155539.png",
+      "vis_bbox_path": "D:\\workspace\\projects\\activate\\App_Test_Agent\\ui_semantic_patch\\scripts\\outputs1\\injection_demo_02_mode_1\\injection_20260506_155302\\anomaly_generated\\vis_bbox_final_20260506_155539.png"
+    }
+  },
+  "warnings": [
+    {
+      "type": "position_fallback",
+      "message": "位置回退：未找到关键词对应组件，使用百分比定位 (61, 2423)"
+    }
+  ]
+}

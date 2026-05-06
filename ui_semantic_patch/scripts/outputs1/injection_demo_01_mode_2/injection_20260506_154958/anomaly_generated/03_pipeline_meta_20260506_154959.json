@@ -1,0 +1,112 @@
+{
+  "timestamp": "20260506_154959",
+  "screenshot": "D:\\workspace\\projects\\activate\\App_Test_Agent\\data\\examples\\injection_demo_01\\screenshots\\03.jpg",
+  "instruction": "模拟查询结果无票的系统提示弹窗",
+  "outputs": {
+    "stage1_omni_raw": "D:\\workspace\\projects\\activate\\App_Test_Agent\\ui_semantic_patch\\scripts\\outputs1\\injection_demo_01_mode_2\\injection_20260506_154958\\anomaly_generated\\03_stage1_omni_raw_20260506_154959.json",
+    "stage1_annotated": "D:\\workspace\\projects\\activate\\App_Test_Agent\\ui_semantic_patch\\scripts\\outputs1\\injection_demo_01_mode_2\\injection_20260506_154958\\anomaly_generated\\03_stage1_annotated_20260506_154959.png",
+    "stage2_filtered": "D:\\workspace\\projects\\activate\\App_Test_Agent\\ui_semantic_patch\\scripts\\outputs1\\injection_demo_01_mode_2\\injection_20260506_154958\\anomaly_generated\\03_stage2_filtered_20260506_154959.json",
+    "stage2_annotated": "D:\\workspace\\projects\\activate\\App_Test_Agent\\ui_semantic_patch\\scripts\\outputs1\\injection_demo_01_mode_2\\injection_20260506_154958\\anomaly_generated\\03_stage2_annotated_20260506_154959.png",
+    "final_image": "D:\\workspace\\projects\\activate\\App_Test_Agent\\ui_semantic_patch\\scripts\\outputs1\\injection_demo_01_mode_2\\injection_20260506_154958\\anomaly_generated\\final_20260506_155254.png",
+    "meta_driven": true
+  },
+  "timing": {
+    "stage1": 31.7,
+    "stage2": 24.29,
+    "stage3": 119.78
+  },
+  "stage2_status": "success",
+  "render_metadata": {
+    "gt_category": "dialog",
+    "gt_sample": "携程旅行-机票页面-新客福利弹窗.jpg",
+    "meta_driven": true,
+    "warnings": [
+      {
+        "type": "position_fallback",
+        "message": "位置回退：未找到关键词对应组件，使用百分比定位 (41, 569)"
+      }
+    ],
+    "render_info": {
+      "close_button": {
+        "x": 587,
+        "y": 2222,
+        "width": 50,
+        "height": 50,
+        "position": "bottom-center"
+      },
+      "dialog_bounds": {
+        "x": 41,
+        "y": 569,
+        "width": 1142,
+        "height": 1638
+      },
+      "screen_size": {
+        "width": 1224,
+        "height": 2776
+      },
+      "position_method": "fallback",
+      "dialog_position_type": "center",
+      "ui_components_count": 12,
+      "ui_components_preview": [
+        {
+          "index": 0,
+          "class": "StatusBar",
+          "bounds": {
+            "x": 18,
+            "y": 42,
+            "width": 1172,
+            "height": 95
+          }
+        },
+        {
+          "index": 1,
+          "class": "CitySelector",
+          "bounds": {
+            "x": 0,
+            "y": 180,
+            "width": 801,
+            "height": 111
+          }
+        },
+        {
+          "index": 2,
+          "class": "DateSelector",
+          "bounds": {
+            "x": 26,
+            "y": 305,
+            "width": 1187,
+            "height": 165
+          }
+        },
+        {
+          "index": 3,
+          "class": "TripTypeSwitch",
+          "bounds": {
+            "x": 275,
+            "y": 494,
+            "width": 344,
+            "height": 217
+          }
+        },
+        {
+          "index": 4,
+          "class": "FilterOptions",
+          "bounds": {
+            "x": 212,
+            "y": 534,
+            "width": 850,
+            "height": 328
+          }
+        }
+      ],
+      "dialog_image_path": "D:\\workspace\\projects\\activate\\App_Test_Agent\\ui_semantic_patch\\scripts\\outputs1\\injection_demo_01_mode_2\\injection_20260506_154958\\anomaly_generated\\dialog_only_final_20260506_155254.png",
+      "vis_bbox_path": "D:\\workspace\\projects\\activate\\App_Test_Agent\\ui_semantic_patch\\scripts\\outputs1\\injection_demo_01_mode_2\\injection_20260506_154958\\anomaly_generated\\vis_bbox_final_20260506_155254.png"
+    }
+  },
+  "warnings": [
+    {
+      "type": "position_fallback",
+      "message": "位置回退：未找到关键词对应组件，使用百分比定位 (41, 569)"
+    }
+  ]
+}

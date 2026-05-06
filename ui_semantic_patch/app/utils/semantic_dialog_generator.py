@@ -173,7 +173,9 @@ def generate_image_dashscope(
                            "白色背景，灰色背景，渐变背景，彩色背景，white background, gray background, colored background, gradient background, "
                            "brand logo, brand text, brand name, reference image text, watermark, "
                            "close button, close icon, close symbol, X button, X icon, X mark, X symbol, "
-                           "circle close, circular button, exit button, dismiss button, 关闭按钮, 关闭图标, X图标, 叉号按钮")
+                           "circle close, circular button, exit button, dismiss button, corner icon, corner symbol, "
+                           "floating button, overlay button, close badge, 关闭按钮, 关闭图标, X图标, 叉号按钮, "
+                           "角落图标, 角标按钮, 浮动按钮")
 
     # ====== 调试日志：打印调用信息 ======
     print(f"\n{'='*60}")
@@ -1701,7 +1703,9 @@ class SemanticDialogGenerator:
                 f"{brand_neg_parts}, {brand_neg_parts_with_logo}, "
                 "brand logo, brand text, brand name, reference image text, watermark, "
                 "close button, close icon, close symbol, X button, X icon, X mark, X symbol, "
-                "circle close, circular button, exit button, dismiss button, 关闭按钮, 关闭图标, X图标, 叉号按钮"
+                "circle close, circular button, exit button, dismiss button, corner icon, corner symbol, "
+                "floating button, overlay button, close badge, 关闭按钮, 关闭图标, X图标, 叉号按钮, "
+                "角落图标, 角标按钮, 浮动按钮"
             )
 
             # ====== 打印构建的完整 Prompt ======
@@ -3089,14 +3093,13 @@ class SemanticDialogGenerator:
 
         # 关闭按钮：不写入 prompt，由 run_pipeline.py 在最终合成阶段用 PIL 精确绘制
         # 避免 AI 画一个 + pipeline 再画一个导致重复
-        # 使用正面指令替代否定指令——AI 文生图模型对 "Do not" 否定句效果很差
-        # 策略：明确告诉模型四个角应该放什么（而不是说不放什么）
-        close_desc = ('The dialog card has four clean, empty corners: '
-                      'the top-left corner shows only the icon, '
-                      'the top-right corner is completely empty (no icon, no circle, no X mark, no button), '
-                      'the bottom-left and bottom-right corners show only the rounded background. '
-                      'There is absolutely NO close button, NO X icon, NO circle, and NO symbol in any corner of the dialog. '
-                      'The corners are visually clean and uninterrupted by any decorative element.')
+        # z-image-turbo 等文生图模型对"角落放空"支持很差，需要用更具体的正面布局指令
+        close_desc = ('The dialog card has a CONTINUOUS, unbroken rounded rectangular shape. '
+                      'The top edge of the card is a straight horizontal line from left to right - '
+                      'there is no gap, no cutout, no symbol, no circle, and no icon of any kind '
+                      'at the top-right corner or anywhere on the top edge. '
+                      'All four corners are identical smooth rounded corners with background color only. '
+                      'The card visually appears as a clean, uninterrupted rounded rectangle.')
 
         # 参考图风格指令：当有参考图直接传入时，使用更精确的描述
         # reference_path 在调用时传入，这里通过成员方法的参数获取
