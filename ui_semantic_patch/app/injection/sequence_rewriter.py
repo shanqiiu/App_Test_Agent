@@ -132,9 +132,9 @@ class SequenceRewriter:
         print(f"输出目录: {run_output_dir}")
         print(f"{'='*60}\n")
 
-        # Step 1: 复制注入点之前的截图（包含注入点）
+        # Step 1: 复制全部原始截图到序列目录
         modified_sequence = []
-        for i in range(injection_point + 1):
+        for i in range(len(original_screenshots)):
             src = original_screenshots[i]
             dst = sequence_dir / f"step_{i:02d}{src.suffix}"
             shutil.copy2(src, dst)
@@ -151,14 +151,21 @@ class SequenceRewriter:
             output_dir=anomaly_dir
         )
 
-        # Step 3: 将异常截图添加到序列
+        # Step 3: 将异常截图替换到序列中注入点后的第一个位置
+        # 先移除该位置的原始截图，再替换为异常图
         anomaly_sequence_paths = []
         for j, anomaly_img in enumerate(anomaly_images):
-            dst = sequence_dir / f"step_{injection_point + 1 + j:02d}_anomaly{anomaly_img.suffix}"
+            replace_idx = injection_point + 1 + j
+            # 移除该位置的原始截图（如果有）
+            original_at_idx = sequence_dir / f"step_{replace_idx:02d}{anomaly_img.suffix}"
+            if original_at_idx.exists():
+                original_at_idx.unlink()
+                print(f"  替换: step_{replace_idx:02d} (原始)")
+            dst = sequence_dir / f"step_{replace_idx:02d}_anomaly{anomaly_img.suffix}"
             shutil.copy2(anomaly_img, dst)
             modified_sequence.append(dst)
             anomaly_sequence_paths.append(dst)
-            print(f"  添加异常: {anomaly_img.name} → {dst.name}")
+            print(f"  异常: {anomaly_img.name} → {dst.name}")
 
         # Step 4: 保存元数据
         metadata = {
@@ -318,14 +325,15 @@ class SequenceRewriter:
         return anomaly_images
 
     def _find_generated_images(self, output_dir: Path) -> List[Path]:
-        """查找生成的图片文件"""
-        image_extensions = {'.png', '.jpg', '.jpeg', '.webp'}
+        """查找最终生成的异常截图（仅 final_*.png）"""
         images = []
 
         for f in output_dir.iterdir():
-            if f.is_file() and f.suffix.lower() in image_extensions:
-                # 排除一些中间文件
-                if not any(skip in f.name.lower() for skip in ['annotated', 'debug', 'mask']):
+            if f.is_file() and f.suffix.lower() == '.png':
+                # 只取 final_ 开头的最终合成结果
+                # 排除 dialog_only（独立弹窗）、vis_bbox（检测框可视化）、
+                # annotated（标注图）、debug（调试）、stage1/2（中间结果）
+                if f.name.startswith('final_'):
                     images.append(f)
 
         # 按文件名排序

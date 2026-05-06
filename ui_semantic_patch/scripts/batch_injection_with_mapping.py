@@ -174,11 +174,11 @@ def batch_process(
         # 处理每个映射（每个query可能对应2个故障模式）
         for mapping in mappings:
             fault_mode = mapping.get('fault_mode', '')
-            fault_mode_key = mapping.get('fault_mode_key', '')
+            current_fault_mode_key = mapping.get('fault_mode_key', '')
             injection_config = mapping.get('injection_config', {})
 
             # 创建输出目录
-            output_dir = output_base_dir / f"{demo_dir.name}_{fault_mode_key}"
+            output_dir = output_base_dir / f"{demo_dir.name}_{current_fault_mode_key}"
             output_dir.mkdir(parents=True, exist_ok=True)
 
             print(f"\n处理: {demo_dir.name} - {fault_mode}")
@@ -212,7 +212,7 @@ def batch_process(
                         'query': query,
                         'app_name': app_name,
                         'fault_mode': fault_mode,
-                        'fault_mode_key': fault_mode_key,
+                        'fault_mode_key': current_fault_mode_key,
                         'mapping': mapping,
                         'rule_decision': decision
                     }
