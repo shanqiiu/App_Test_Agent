@@ -152,18 +152,19 @@ class SequenceRewriter:
         )
 
         # Step 3: 将异常截图插入到序列中
-        # 序列逻辑：
+        # 序列逻辑（关闭弹窗后应回到同一张原图，而非跳转到下一步）：
         #   step_N              - 弹窗前的正常操作（N = injection_point）
-        #   step_N+1_anomaly    - 弹窗出现（异常图，插入）
-        #   step_N+2.jpg        - 关闭弹窗后恢复到原界面（原图 N+1 平移至此）
-        #   step_N+3.jpg        - 继续操作（原图 N+2 平移至此）
+        #   step_N+1_anomaly    - 弹窗出现（异常图，基于 N 生成）
+        #   step_N+2.jpg        - 关闭弹窗 → 回到同一界面（复制 N）
+        #   step_N+3.jpg        - 继续操作（原图 N+1 平移至此）
         anomaly_sequence_paths = []
-        insert_idx = injection_point + 1  # 异常图插入位置（紧接注入点）
+        insert_start = injection_point + 1  # 插入起始位置
 
-        # 3a. 将 injection_point+1 之后的所有原图步号 +1（倒序遍历避免覆盖）
-        for i in range(len(original_screenshots) - 1, insert_idx - 1, -1):
+        # 3a. 将 injection_point 之后的所有原图号 +2，腾出两步位置
+        # 从最后一张倒序到 injection_point+1（不移动注入点本身）
+        for i in range(len(original_screenshots) - 1, injection_point, -1):
             src_name = f"step_{i:02d}"
-            dst_name = f"step_{i + 1:02d}"
+            dst_name = f"step_{i + 2:02d}"
             for ext in ['.jpg', '.jpeg', '.png', '.webp']:
                 src_path = sequence_dir / f"{src_name}{ext}"
                 if src_path.exists():
@@ -171,13 +172,20 @@ class SequenceRewriter:
                     src_path.rename(dst_path)
                     break
 
-        # 3b. 将异常图放入腾出的位置
-        for j, anomaly_img in enumerate(anomaly_images):
-            dst = sequence_dir / f"step_{insert_idx + j:02d}_anomaly{anomaly_img.suffix}"
-            shutil.copy2(anomaly_img, dst)
-            modified_sequence.append(dst)
-            anomaly_sequence_paths.append(dst)
-            print(f"  异常: {anomaly_img.name} → {dst.name}")
+        # 3b. 插入异常图（位置: injection_point + 1）
+        anomaly_img = anomaly_images[0]
+        anomaly_dst = sequence_dir / f"step_{insert_start:02d}_anomaly{anomaly_img.suffix}"
+        shutil.copy2(anomaly_img, anomaly_dst)
+        modified_sequence.append(anomaly_dst)
+        anomaly_sequence_paths.append(anomaly_dst)
+        print(f"  异常: {anomaly_img.name} → {anomaly_dst.name}")
+
+        # 3c. 插入注入点原图副本（位置: injection_point + 2，模拟关闭弹窗恢复界面）
+        base_src = original_screenshots[injection_point]
+        restore_dst = sequence_dir / f"step_{insert_start + 1:02d}{base_src.suffix}"
+        shutil.copy2(base_src, restore_dst)
+        modified_sequence.append(restore_dst)
+        print(f"  恢复: {base_src.name} → {restore_dst.name}")
 
         # Step 4: 保存元数据
         metadata = {
