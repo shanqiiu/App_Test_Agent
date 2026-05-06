@@ -151,17 +151,29 @@ class SequenceRewriter:
             output_dir=anomaly_dir
         )
 
-        # Step 3: 将异常截图替换到序列中注入点后的第一个位置
-        # 先移除该位置的原始截图，再替换为异常图
+        # Step 3: 将异常截图插入到序列中
+        # 序列逻辑：
+        #   step_N              - 弹窗前的正常操作（N = injection_point）
+        #   step_N+1.jpg        - 弹窗出现前的界面（原图，保留）
+        #   step_N+2_anomaly    - 弹窗出现（异常图，插入）
+        #   step_N+3.jpg        - 关闭弹窗后继续操作（原图 N+2 平移至此）
         anomaly_sequence_paths = []
+        insert_idx = injection_point + 2  # 异常图插入位置
+
+        # 3a. 将 injection_point+2 之后的所有原图步号 +1（倒序遍历避免覆盖）
+        for i in range(len(original_screenshots) - 1, insert_idx - 1, -1):
+            src_name = f"step_{i:02d}"
+            dst_name = f"step_{i + 1:02d}"
+            for ext in ['.jpg', '.jpeg', '.png', '.webp']:
+                src_path = sequence_dir / f"{src_name}{ext}"
+                if src_path.exists():
+                    dst_path = sequence_dir / f"{dst_name}{ext}"
+                    src_path.rename(dst_path)
+                    break
+
+        # 3b. 将异常图放入腾出的位置
         for j, anomaly_img in enumerate(anomaly_images):
-            replace_idx = injection_point + 1 + j
-            # 移除该位置的原始截图（如果有）
-            original_at_idx = sequence_dir / f"step_{replace_idx:02d}{anomaly_img.suffix}"
-            if original_at_idx.exists():
-                original_at_idx.unlink()
-                print(f"  替换: step_{replace_idx:02d} (原始)")
-            dst = sequence_dir / f"step_{replace_idx:02d}_anomaly{anomaly_img.suffix}"
+            dst = sequence_dir / f"step_{insert_idx + j:02d}_anomaly{anomaly_img.suffix}"
             shutil.copy2(anomaly_img, dst)
             modified_sequence.append(dst)
             anomaly_sequence_paths.append(dst)
@@ -177,7 +189,7 @@ class SequenceRewriter:
             "anomaly_type_normalized": anomaly_type_normalized,
             "gt_sample": gt_sample,
             "instruction": instruction,
-            "truncated_steps": len(original_screenshots) - injection_point - 1,
+            "inserted_steps": len(anomaly_images),  # 插入的异常步数
             "anomaly_images_count": len(anomaly_images),
             "original_screenshots": [str(p) for p in original_screenshots],
             "modified_sequence": [str(p) for p in modified_sequence],
@@ -198,7 +210,7 @@ class SequenceRewriter:
         print(f"✓ 序列改写完成")
         print(f"  原始长度: {len(original_screenshots)}")
         print(f"  改写后长度: {len(modified_sequence)}")
-        print(f"  截断步骤数: {metadata['truncated_steps']}")
+        print(f"  插入异常数: {len(anomaly_images)}")
         print(f"  输出目录: {run_output_dir}")
         print(f"{'='*60}\n")
 

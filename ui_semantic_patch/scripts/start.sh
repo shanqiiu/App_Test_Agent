@@ -12,7 +12,7 @@ python "$SCRIPT_DIR/run_pipeline.py" \
   --instruction "模拟查询结果无票的系统提示弹窗" \
   --anomaly-mode dialog \
   --gt-category dialog \
-  --gt-sample 华为花粉俱乐部-首页-勋章奖励弹窗.jpg \
+  --gt-sample 携程旅行-首页-推广弹窗.jpg \
   --output "$SCRIPT_DIR/outputs/injection_demo_01_mode_2"
 
 # python "$SCRIPT_DIR/batch_injection_with_mapping.py" \
