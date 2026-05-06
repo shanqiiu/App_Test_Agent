@@ -1,0 +1,74 @@
+{
+  "query": "进入(铁路12306)购买从{origin}到{destination}的火车票，出发时间为{departure_date} {departure_time}",
+  "app_name": "铁路12306",
+  "fault_mode": "弹窗广告遮挡查询按钮",
+  "fault_mode_key": "mode_1",
+  "mapping": {
+    "query": "进入(铁路12306)购买从{origin}到{destination}的火车票，出发时间为{departure_date} {departure_time}",
+    "query_id": "demo-01-query-001",
+    "app_name": "铁路12306",
+    "example_dir": "injection_demo_01",
+    "fault_mode": "弹窗广告遮挡查询按钮",
+    "fault_mode_key": "mode_1",
+    "injection_config": {
+      "anomaly_mode": "dialog",
+      "gt_category": "dialog",
+      "gt_sample": "铁路12306-首页-通知权限弹窗.jpg",
+      "reference_path": "data/gt-category/dialog/铁路12306-首页-通知权限弹窗.jpg",
+      "instruction": "在首页生成广告弹窗遮挡查询功能"
+    }
+  },
+  "rule_decision": {
+    "success": true,
+    "injection_point": 2,
+    "anomaly_mode": "modify_text",
+    "instruction": "将查询结果修改为「未找到相关结果」状态",
+    "gt_category": "",
+    "gt_sample": "",
+    "fault_mode": "无结果状态提示",
+    "page_type": "列表/结果页",
+    "matched_rule_id": "search_result_empty",
+    "reasoning": "页面类型=列表/结果页, 等待=False, 匹配规则=search_result_empty",
+    "history": [
+      {
+        "step_index": 0,
+        "screenshot_path": "D:\\workspace\\projects\\activate\\App_Test_Agent\\data\\examples\\injection_demo_01\\screenshots\\01.jpg",
+        "think": "前 2 步强制跳过",
+        "decision": "SKIP",
+        "anomaly_type": null,
+        "instruction": null,
+        "conclusion": "",
+        "timestamp": "2026-05-06T14:11:18.766957",
+        "action": null,
+        "context": {},
+        "confidence": 0.0
+      },
+      {
+        "step_index": 1,
+        "screenshot_path": "D:\\workspace\\projects\\activate\\App_Test_Agent\\data\\examples\\injection_demo_01\\screenshots\\02.jpg",
+        "think": "前 2 步强制跳过",
+        "decision": "SKIP",
+        "anomaly_type": null,
+        "instruction": null,
+        "conclusion": "",
+        "timestamp": "2026-05-06T14:11:18.766957",
+        "action": null,
+        "context": {},
+        "confidence": 0.0
+      },
+      {
+        "step_index": 2,
+        "screenshot_path": "D:\\workspace\\projects\\activate\\App_Test_Agent\\data\\examples\\injection_demo_01\\screenshots\\03.jpg",
+        "think": "页面类型=列表/结果页, 等待=False, 匹配规则=search_result_empty",
+        "decision": "INJECT",
+        "anomaly_type": "modify_text",
+        "instruction": "将查询结果修改为「未找到相关结果」状态",
+        "conclusion": "列表/结果页",
+        "timestamp": "2026-05-06T14:11:25.541003",
+        "action": null,
+        "context": {},
+        "confidence": 0.0
+      }
+    ]
+  }
+}

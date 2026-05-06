@@ -166,7 +166,12 @@ def generate_image_dashscope(
     # 默认负面提示词（排除非黑色背景、低质量图像、通用品牌相关、关闭按钮）
     # 注意：具体参考图品牌的 negative_prompt 应由调用方通过 negative_prompt 参数传入
     if negative_prompt is None:
-        negative_prompt = "低分辨率，低画质，肢体畸形，手指畸形，画面过饱和，蜡像感，人脸无细节，过度光滑，画面具有 AI 感。构图混乱。文字模糊，扭曲。白色背景，灰色背景，渐变背景，彩色背景，white background, gray background, colored background, gradient background, brand logo, brand text, brand name, reference image text, watermark, close button, X button, X icon, 关闭按钮"
+        negative_prompt = ("低分辨率，低画质，肢体畸形，手指畸形，画面过饱和，蜡像感，人脸无细节，过度光滑，画面具有 AI 感。"
+                           "构图混乱。文字模糊，扭曲。"
+                           "白色背景，灰色背景，渐变背景，彩色背景，white background, gray background, colored background, gradient background, "
+                           "brand logo, brand text, brand name, reference image text, watermark, "
+                           "close button, close icon, close symbol, X button, X icon, X mark, X symbol, "
+                           "circle close, circular button, exit button, dismiss button, 关闭按钮, 关闭图标, X图标, 叉号按钮")
 
     # ====== 调试日志：打印调用信息 ======
     print(f"\n{'='*60}")
@@ -1692,7 +1697,9 @@ class SemanticDialogGenerator:
                 "构图混乱。文字模糊，扭曲。"
                 "白色背景，灰色背景，渐变背景，彩色背景，white background, gray background, colored background, gradient background, "
                 f"{brand_neg_parts}, {brand_neg_parts_with_logo}, "
-                "brand logo, brand text, brand name, reference image text, watermark, close button, X button, X icon, 关闭按钮"
+                "brand logo, brand text, brand name, reference image text, watermark, "
+                "close button, close icon, close symbol, X button, X icon, X mark, X symbol, "
+                "circle close, circular button, exit button, dismiss button, 关闭按钮, 关闭图标, X图标, 叉号按钮"
             )
 
             # ====== 打印构建的完整 Prompt ======
@@ -1749,6 +1756,9 @@ class SemanticDialogGenerator:
 
                 # 后处理：裁切到实际内容区域并 resize 到目标尺寸
                 image = self._crop_to_content_and_resize(image, width, height)
+
+                # 后处理：边缘抗锯齿平滑（修复背景移除和 resize 造成的锯齿毛刺）
+                image = self._smooth_edges(image, feather_radius=1)
 
                 # 注意：关闭按钮不在此处绘制
                 # 对于 bottom-center 等位置，关闭按钮应该在弹窗卡片外部
@@ -2457,10 +2467,10 @@ class SemanticDialogGenerator:
 
         AI 文生图模型经常无视 "Do not draw any close button" 的否定指令，
         在弹窗的角落（通常是右上角）自行画一个 X 按钮。
-        由于 X 按钮与弹窗卡片相连，_find_largest_connected_region 无法过滤。
 
-        策略：扫描内容区域的 4 个角落，检测是否存在只占据角落的小型内容块。
-        判断标准：角落区域内有内容，但这些内容行的宽度远小于弹窗主体宽度。
+        策略（双层检测）：
+        第 1 层：扫描 4 个角落，检测小型孤立内容块（保留原有逻辑，调高灵敏度）
+        第 2 层：专门对右上角进行 X 形状模式检测（两对角线交叉扫描）
 
         Args:
             image: 已去背景的 RGBA 图像
@@ -2479,19 +2489,19 @@ class SemanticDialogGenerator:
         content_width = right - left
         content_height = bottom - top
 
-        # 弹窗太小不处理
         if content_width < 50 or content_height < 50:
             return image
 
         alpha = image.split()[3]
         result = image.copy()
-        result_pixels = result.load()
+        pixels = result.load()
+        total_erased = 0
 
-        # 角落扫描区域大小：内容尺寸的 12%
-        corner_h = max(20, int(content_height * 0.12))
-        corner_w = max(20, int(content_width * 0.12))
+        # ==================== 第 1 层：角落孤立内容检测 ====================
+        corner_h = max(20, int(content_height * 0.15))   # 从 12% 提高到 15%
+        corner_w = max(20, int(content_width * 0.15))
 
-        # 主体宽度参考：在内容区域中间 1/3 高度范围内，找到典型的内容行宽度
+        # 主体宽度参考
         mid_start = top + content_height // 3
         mid_end = top + content_height * 2 // 3
         mid_widths = []
@@ -2509,15 +2519,48 @@ class SemanticDialogGenerator:
             if row_right > row_left:
                 mid_widths.append(row_right - row_left)
 
-        if not mid_widths:
-            return image
+        typical_width = sorted(mid_widths)[len(mid_widths) // 2] if mid_widths else content_width
+        # 放宽宽度阈值从 30% 到 40%
+        width_threshold = typical_width * 0.40
 
-        typical_width = sorted(mid_widths)[len(mid_widths) // 2]  # 中位数
-        # 角落内容行的宽度阈值：如果一行内容宽度不到主体的 30%，认为是角落小元素
-        width_threshold = typical_width * 0.30
+        def has_x_pattern(cy_start, cy_end, cx_start, cx_end) -> bool:
+            """
+            在指定区域检测 X 形状模式。
+            沿两条对角线扫描，统计交叉点的像素密度。
+            X 按钮的特征：两条对角线方向都有较高的像素密度，且中心区域密度更高。
+            """
+            dia1_count = 0  # 左上→右下对角线
+            dia2_count = 0  # 右上→左下对角线
+            h = cy_end - cy_start
+            w = cx_end - cx_start
+            if h < 4 or w < 4:
+                return False
 
-        def scan_and_erase_corner(cy_start, cy_end, cx_start, cx_end, corner_name):
-            """扫描指定角落区域，如果发现小型孤立内容则擦除"""
+            # 沿两条对角线采样
+            steps = min(h, w)
+            for i in range(steps):
+                # 左上→右下
+                x1 = cx_start + int(i * w / steps)
+                y1 = cy_start + int(i * h / steps)
+                if 0 <= x1 < result.width and 0 <= y1 < result.height:
+                    if alpha.getpixel((x1, y1)) > 10:
+                        dia1_count += 1
+
+                # 右上→左下
+                x2 = cx_end - 1 - int(i * w / steps)
+                y2 = cy_start + int(i * h / steps)
+                if 0 <= x2 < result.width and 0 <= y2 < result.height:
+                    if alpha.getpixel((x2, y2)) > 10:
+                        dia2_count += 1
+
+            # 两条对角线都有较高填充率 → X 形状
+            fill_rate_1 = dia1_count / steps if steps > 0 else 0
+            fill_rate_2 = dia2_count / steps if steps > 0 else 0
+            return fill_rate_1 > 0.25 and fill_rate_2 > 0.25
+
+        def scan_and_erase_corner(cy_start, cy_end, cx_start, cx_end, corner_name,
+                                  aggressive=False):
+            """扫描指定角落区域，如果发现疑似关闭按钮则擦除"""
             corner_pixels = []
             for y in range(cy_start, cy_end):
                 for x in range(cx_start, cx_end):
@@ -2525,29 +2568,22 @@ class SemanticDialogGenerator:
                         corner_pixels.append((x, y))
 
             if not corner_pixels:
-                return 0  # 角落无内容
+                return 0
 
-            # 关键检查：角落内容是否触及内边界（与主体相连）
-            # 如果触及，说明是卡片圆角的一部分，绝对不能擦除
-            # 内边界定义：对于 top-right 角落，内边界是左侧(cx_start)和底部(cy_end-1)
-            # 检查边界方向上 3 像素的容差范围
-            inner_margin = 3
-
-            # 判断是哪个角落，确定内边界方向
+            # 内边界检测（aggressive 模式放宽容差）
+            inner_margin = 5 if aggressive else 3
             is_top = (cy_start <= top + corner_h)
             is_right = (cx_end >= right - 1)
             is_left = (cx_start <= left + 1)
 
             touches_inner_boundary = False
             for (px, py) in corner_pixels:
-                # 水平内边界：top-right/bottom-right 的左侧，top-left/bottom-left 的右侧
                 if is_right and px <= cx_start + inner_margin:
                     touches_inner_boundary = True
                     break
                 if is_left and px >= cx_end - 1 - inner_margin:
                     touches_inner_boundary = True
                     break
-                # 垂直内边界：top-* 的底部，bottom-* 的顶部
                 if is_top and py >= cy_end - 1 - inner_margin:
                     touches_inner_boundary = True
                     break
@@ -2556,27 +2592,30 @@ class SemanticDialogGenerator:
                     break
 
             if touches_inner_boundary:
-                return 0  # 内容触及内边界，是卡片主体的一部分
+                return 0
 
-            # 检查角落内容的水平范围
+            # 检查角落内容宽度
             px_left = min(p[0] for p in corner_pixels)
             px_right = max(p[0] for p in corner_pixels) + 1
             corner_content_width = px_right - px_left
 
-            # 检查角落内容是否远小于主体宽度
-            if corner_content_width > width_threshold:
-                return 0  # 角落内容宽度较大，可能是正常内容（标题栏等），不擦除
+            w_thresh = width_threshold * (1.5 if aggressive else 1.0)
+            if corner_content_width > w_thresh:
+                return 0
 
-            # 检查像素密度：X 按钮是细线条，密度低；卡片填充区域密度高
+            # 密度检测（aggressive 模式更宽松）
             corner_area = (cx_end - cx_start) * (cy_end - cy_start)
             pixel_density = len(corner_pixels) / corner_area if corner_area > 0 else 0
-            if pixel_density > 0.4:
-                return 0  # 密度过高，更像是卡片的实心区域，不是 X 线条
+            density_threshold = 0.6 if aggressive else 0.4
+            if pixel_density > density_threshold:
+                # 密度过高也可能是卡片区域，但检查是否有 X 形状模式
+                if not aggressive or not has_x_pattern(cy_start, cy_end, cx_start, cx_end):
+                    return 0
 
-            # 确认是小型角落元素，擦除
+            # 擦除
             erased = 0
             for (x, y) in corner_pixels:
-                result_pixels[x, y] = (0, 0, 0, 0)
+                pixels[x, y] = (0, 0, 0, 0)
                 erased += 1
 
             if erased > 0:
@@ -2584,39 +2623,33 @@ class SemanticDialogGenerator:
                       f"({corner_content_width}px 宽, 密度 {pixel_density:.1%})")
             return erased
 
-        total_erased = 0
+        # --- 第 1 层：标准 4 角扫描 ---
+        corners = [
+            (top, top + corner_h, right - corner_w, right, "右上", False),
+            (top, top + corner_h, left, left + corner_w, "左上", False),
+            (bottom - corner_h, bottom, right - corner_w, right, "右下", False),
+            (bottom - corner_h, bottom, left, left + corner_w, "左下", False),
+        ]
+        for cy_s, cy_e, cx_s, cx_e, name, aggr in corners:
+            total_erased += scan_and_erase_corner(cy_s, cy_e, cx_s, cx_e, name, aggr)
 
-        # 扫描右上角（最常见的 X 按钮位置）
-        total_erased += scan_and_erase_corner(
-            top, top + corner_h,
-            right - corner_w, right,
-            "右上"
-        )
-
-        # 扫描左上角
-        total_erased += scan_and_erase_corner(
-            top, top + corner_h,
-            left, left + corner_w,
-            "左上"
-        )
-
-        # 扫描右下角（罕见但可能）
-        total_erased += scan_and_erase_corner(
-            bottom - corner_h, bottom,
-            right - corner_w, right,
-            "右下"
-        )
-
-        # 扫描左下角（罕见但可能）
-        total_erased += scan_and_erase_corner(
-            bottom - corner_h, bottom,
-            left, left + corner_w,
-            "左下"
-        )
+        # ==================== 第 2 层：右上角 X 形状深度检测 ====================
+        # 如果标准模式没有擦除任何内容，使用 aggressive 模式专门扫描右上角
+        # 使用更大的扫描区域（20%），更高的密度阈值，X 形状辅助判断
+        if total_erased < 5:
+            x_corner_h = max(24, int(content_height * 0.20))
+            x_corner_w = max(24, int(content_width * 0.20))
+            pre_erased = total_erased
+            total_erased += scan_and_erase_corner(
+                top, top + x_corner_h,
+                right - x_corner_w, right,
+                "右上(深度)", aggressive=True,
+            )
+            if total_erased > pre_erased:
+                print(f"  ✓ 第 2 层深度检测触发: 额外擦除 {total_erased - pre_erased} 像素")
 
         if total_erased > 0:
             print(f"  ✓ AI 关闭按钮擦除完成: 共 {total_erased} 像素")
-
         return result
 
     def _find_largest_connected_region(
@@ -2786,6 +2819,41 @@ class SemanticDialogGenerator:
         b_fixed = bleed_channel(b)
 
         return Image.merge('RGBA', (r_fixed, g_fixed, b_fixed, alpha))
+
+    @staticmethod
+    def _smooth_edges(image: Image.Image, feather_radius: int = 1) -> Image.Image:
+        """
+        对 RGBA 图像做边缘抗锯齿平滑，修复背景移除和缩放造成的锯齿毛刺。
+
+        策略：对 alpha 通道做"扩张 + 模糊 + 阈值"：
+        1. 小幅膨胀 alpha 遮罩，覆盖锯齿凹陷
+        2. 高斯模糊创建平滑过渡
+        3. 重新阈值化保留自然的抗锯齿渐变
+
+        Args:
+            image: RGBA 图像
+            feather_radius: 羽化半径（默认 1，轻微平滑）
+
+        Returns:
+            边缘平滑后的图像
+        """
+        if image.mode != 'RGBA':
+            return image
+
+        r, g, b, alpha = image.split()
+
+        # 1. 膨胀 alpha 遮罩，填补锯齿凹陷
+        # 使用 PIL 的 MaxFilter（3x3 最大值滤波）实现膨胀
+        dilated = alpha.filter(ImageFilter.MaxFilter(3))
+
+        # 2. 高斯模糊创建平滑过渡
+        smoothed = dilated.filter(ImageFilter.GaussianBlur(radius=feather_radius))
+
+        # 3. 将 alpha < 5 的噪声清零
+        # 使用 point 变换：低于 5 的设为 0，其余不变
+        smoothed = smoothed.point(lambda x: 0 if x < 5 else x)
+
+        return Image.merge('RGBA', (r, g, b, smoothed))
 
     def _build_ai_prompt(
         self,
@@ -3042,7 +3110,6 @@ class SemanticDialogGenerator:
             buttons_prompt_part = ''
 
         # 关闭按钮由 PatchRenderer 在合成阶段统一绘制，AI 不参与
-        close_button_desc = "### Close Button\n- No close button (will be added manually later)"
 
         # 构建 Logo/Badge 文字描述
         if brand_name:
@@ -3078,7 +3145,13 @@ class SemanticDialogGenerator:
         # 关闭按钮：不写入 prompt，由 run_pipeline.py 在最终合成阶段用 PIL 精确绘制
         # 避免 AI 画一个 + pipeline 再画一个导致重复
         # 使用正面指令替代否定指令——AI 文生图模型对 "Do not" 否定句效果很差
-        close_desc = 'The dialog has clean edges with NO X button, NO close icon, and NO circular button in any corner. All four corners of the dialog card must show only the background color or content — leave corners completely empty and undecorated.'
+        # 策略：明确告诉模型四个角应该放什么（而不是说不放什么）
+        close_desc = ('The dialog card has four clean, empty corners: '
+                      'the top-left corner shows only the icon, '
+                      'the top-right corner is completely empty (no icon, no circle, no X mark, no button), '
+                      'the bottom-left and bottom-right corners show only the rounded background. '
+                      'There is absolutely NO close button, NO X icon, NO circle, and NO symbol in any corner of the dialog. '
+                      'The corners are visually clean and uninterrupted by any decorative element.')
 
         # 参考图风格指令：当有参考图直接传入时，使用更精确的描述
         # reference_path 在调用时传入，这里通过成员方法的参数获取
