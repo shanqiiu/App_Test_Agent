@@ -1,5 +1,6 @@
 """
 简化生成结果，提取关键信息另存为干净目录。
+每个 query_异常模式 只保留最新时间戳的 injection 结果。
 
 输入: outputs 目录
 输出: outputs_clean 目录
@@ -16,33 +17,71 @@ import json
 from pathlib import Path
 import shutil
 import uuid
+import re
+from datetime import datetime
 
 INPUT_DIR = Path(r"D:\workspace\projects\activate\App_Test_Agent\ui_semantic_patch\scripts\outputs")
 OUTPUT_DIR = Path(r"D:\workspace\projects\activate\App_Test_Agent\ui_semantic_patch\scripts\outputs_clean")
 
 
-def find_all_pipeline_metas(root: Path):
-    """递归查找所有 *_pipeline_meta_*.json 文件，返回 (query_folder_name, pipeline_meta_path) 列表"""
+def parse_injection_timestamp(folder_name: str) -> datetime:
+    """从 injection_YYYYMMDD_HHMMSS 格式解析时间戳"""
+    match = re.match(r"injection_(\d{8})_(\d{6})", folder_name)
+    if match:
+        date_str, time_str = match.groups()
+        return datetime.strptime(f"{date_str}_{time_str}", "%Y%m%d_%H%M%S")
+    return datetime.min  # 如果无法解析，返回最早时间
+
+
+def find_latest_injection_per_query(root: Path):
+    """
+    为每个 query_folder 找到最新时间戳的 injection 子文件夹
+    返回: [(query_folder_name, injection_folder_path, pipeline_meta_path)]
+    """
     results = []
-    for f in sorted(root.rglob("*_pipeline_meta_*.json")):
-        # 跳过已在 outputs_clean 中的
-        if OUTPUT_DIR in f.parents:
+
+    for query_folder in sorted(root.iterdir()):
+        if not query_folder.is_dir():
             continue
-        # 上级目录结构: .../query_folder/.../pipeline_meta.json
-        # 推断 query_folder 为 outputs/xxx/ 下的第一级子目录
-        rel = f.relative_to(root)
-        query_folder = rel.parts[0]  # 如 injection_demo_01_mode_1
-        results.append((query_folder, f))
+        if query_folder.name == OUTPUT_DIR.name:
+            continue
+
+        # 查找所有 injection_YYYYMMDD_HHMMSS 子文件夹
+        injection_folders = []
+        for subfolder in query_folder.iterdir():
+            if not subfolder.is_dir():
+                continue
+            if subfolder.name.startswith("injection_"):
+                timestamp = parse_injection_timestamp(subfolder.name)
+                injection_folders.append((timestamp, subfolder))
+
+        if not injection_folders:
+            print(f"  [SKIP] {query_folder.name}: 未找到 injection 子文件夹")
+            continue
+
+        # 按时间戳排序，取最新的
+        injection_folders.sort(key=lambda x: x[0], reverse=True)
+        latest_timestamp, latest_folder = injection_folders[0]
+
+        # 在最新的 injection 文件夹中查找 pipeline_meta 文件
+        pipeline_metas = list(latest_folder.rglob("*_pipeline_meta_*.json"))
+
+        if not pipeline_metas:
+            print(f"  [SKIP] {query_folder.name}/{latest_folder.name}: 未找到 pipeline_meta 文件")
+            continue
+
+        # 通常只有一个 pipeline_meta，取第一个
+        results.append((query_folder.name, latest_folder, pipeline_metas[0]))
+        print(f"  [SELECT] {query_folder.name}: {latest_folder.name} ({len(injection_folders)} 个 injection 中最新)")
+
     return results
 
 
-def get_query_info(query_folder_name: str, pipeline_meta_path: Path) -> dict:
+def get_query_info(query_folder_name: str, injection_folder: Path) -> dict:
     """从 decision_log.json 或文件夹名中提取 query/app 等信息"""
-    # 尝试从 pipeline_meta_path 回溯找到同级的 decision_log.json
-    # 查找路径：pipeline_meta 同一级、上一级、或上两级
     candidates = [
-        pipeline_meta_path.parent / "decision_log.json",
-        pipeline_meta_path.parent.parent / "decision_log.json",
+        injection_folder / "decision_log.json",
+        injection_folder.parent / "decision_log.json",
     ]
     for c in candidates:
         if c.exists():
@@ -63,7 +102,6 @@ def get_query_info(query_folder_name: str, pipeline_meta_path: Path) -> dict:
             except Exception:
                 pass
 
-    # 如果找不到 decision_log，从 pipeline_meta 和文件夹名推断部分信息
     return {
         "query": "",
         "app_name": query_folder_name,
@@ -88,20 +126,22 @@ def process():
         shutil.rmtree(OUTPUT_DIR)
     OUTPUT_DIR.mkdir(parents=True)
 
-    pipeline_metas = find_all_pipeline_metas(INPUT_DIR)
-    if not pipeline_metas:
-        print("[WARN] 未找到任何 *_pipeline_meta_*.json 文件")
+    print(f"扫描 {INPUT_DIR} 中的 query 文件夹...")
+    selected = find_latest_injection_per_query(INPUT_DIR)
+
+    if not selected:
+        print("[WARN] 未找到有效的 injection 数据")
         return
 
-    print(f"找到 {len(pipeline_metas)} 个 pipeline_meta 文件，正在处理...")
+    print(f"\n处理 {len(selected)} 个 query 的最新 injection 数据...")
 
     stats = {"ok": 0, "skipped_no_final_image": 0, "skipped_no_close_button": 0}
 
-    for query_folder_name, pm_path in pipeline_metas:
+    for query_folder_name, injection_folder, pm_path in selected:
         try:
             pm_data = json.loads(pm_path.read_text(encoding="utf-8"))
         except Exception as e:
-            print(f"  [SKIP] 无法解析 {pm_path.name}: {e}")
+            print(f"  [SKIP] {query_folder_name}: 无法解析 {pm_path.name}: {e}")
             continue
 
         # --- 提取 close_button 坐标（核心数据）---
@@ -109,28 +149,26 @@ def process():
         close_button = render_info.get("close_button")
         if not close_button:
             stats["skipped_no_close_button"] += 1
-            print(f"  [SKIP] {pm_path.name}: 无 close_button 信息")
+            print(f"  [SKIP] {query_folder_name}: 无 close_button 信息")
             continue
 
         # --- 获取最终异常截图路径 ---
         final_image_rel = pm_data.get("outputs", {}).get("final_image", "")
         final_image_path = Path(final_image_rel)
         if not final_image_path.exists():
-            # 尝试相对路径拼接
             final_image_path = pm_path.parent / final_image_path.name
             if not final_image_path.exists():
-                # 最后尝试同级目录下找 final_*.png
                 finals = list(pm_path.parent.glob("final_*.png"))
                 if finals:
                     final_image_path = finals[0]
                 else:
                     stats["skipped_no_final_image"] += 1
-                    print(f"  [SKIP] {pm_path.name}: 找不到 final_image ({final_image_rel})")
+                    print(f"  [SKIP] {query_folder_name}: 找不到 final_image ({final_image_rel})")
                     continue
 
         # --- 组装信息 ---
         uid = str(uuid.uuid4())
-        query_info = get_query_info(query_folder_name, pm_path)
+        query_info = get_query_info(query_folder_name, injection_folder)
 
         # 目标目录: outputs_clean/query_folder/uuid/
         target_dir = OUTPUT_DIR / query_folder_name / uid
@@ -158,6 +196,7 @@ def process():
             "pipeline_meta_source": str(pm_path.resolve()),
             "pipeline_timestamp": pm_data.get("timestamp", ""),
             "position_method": render_info.get("position_method", ""),
+            "injection_folder": injection_folder.name,
             **query_info,
         }
         (target_dir / "info.json").write_text(
