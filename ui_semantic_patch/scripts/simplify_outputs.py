@@ -77,8 +77,8 @@ def find_latest_injection_per_query(root: Path):
     return results
 
 
-def get_query_info(query_folder_name: str, injection_folder: Path) -> dict:
-    """从 decision_log.json 或文件夹名中提取 query/app 等信息"""
+def get_query_info(query_folder_name: str, injection_folder: Path) -> tuple[dict, str]:
+    """从 decision_log.json 或文件夹名中提取 query/app 等信息，返回 (info_dict, query_id)"""
     candidates = [
         injection_folder / "decision_log.json",
         injection_folder.parent / "decision_log.json",
@@ -87,18 +87,19 @@ def get_query_info(query_folder_name: str, injection_folder: Path) -> dict:
         if c.exists():
             try:
                 data = json.loads(c.read_text(encoding="utf-8"))
+                query_id = data.get("mapping", {}).get("query_id", "")
                 return {
                     "query": data.get("query", ""),
                     "app_name": data.get("app_name", ""),
                     "fault_mode": data.get("fault_mode", ""),
                     "fault_mode_key": data.get("fault_mode_key", ""),
-                    "query_id": data.get("mapping", {}).get("query_id", ""),
+                    "query_id": query_id,
                     "anomaly_instruction": data.get("mapping", {}).get("injection_config", {}).get("instruction", ""),
                     "gt_sample": data.get("mapping", {}).get("injection_config", {}).get("gt_sample", ""),
                     "anomaly_mode": data.get("mapping", {}).get("injection_config", {}).get("anomaly_mode", ""),
                     "matched_rule_id": data.get("rule_decision", {}).get("matched_rule_id", ""),
                     "injection_point": data.get("rule_decision", {}).get("injection_point", ""),
-                }
+                }, query_id
             except Exception:
                 pass
 
@@ -113,7 +114,7 @@ def get_query_info(query_folder_name: str, injection_folder: Path) -> dict:
         "anomaly_mode": "",
         "matched_rule_id": "",
         "injection_point": "",
-    }
+    }, ""
 
 
 def process():
@@ -167,10 +168,11 @@ def process():
                     continue
 
         # --- 组装信息 ---
-        uid = str(uuid.uuid4())
-        query_info = get_query_info(query_folder_name, injection_folder)
+        query_info, query_id = get_query_info(query_folder_name, injection_folder)
+        # 使用 decision_log.json 中的 query_id 作为文件夹名，如果没有则生成 uuid
+        uid = query_id if query_id else str(uuid.uuid4())
 
-        # 目标目录: outputs_clean/query_folder/uuid/
+        # 目标目录: outputs_clean/query_folder/<query_id>/
         target_dir = OUTPUT_DIR / query_folder_name / uid
         target_dir.mkdir(parents=True, exist_ok=True)
 
