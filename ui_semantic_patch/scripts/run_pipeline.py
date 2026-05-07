@@ -367,9 +367,9 @@ def run_pipeline(
         包含所有输出路径的字典
 
     Note:
-        - dialog 模式：使用 semantic_ai 渲染模式（DashScope AI 图像生成）
+        - dialog 模式：使用 semantic_ai 渲染模式（DashScope/通用 AI 图像生成）
         - area_loading 模式：在指定区域中心覆盖加载图标
-        - AI 图像生成 API Key 从环境变量 DASHSCOPE_API_KEY 获取
+        - AI 图像生成 API Key 从环境变量 IMAGE_GEN_API_KEY 或 DASHSCOPE_API_KEY 获取
         - 当指定 gt_category 和 gt_sample 时，启用 meta.json 驱动的精准语义生成
     """
     timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')

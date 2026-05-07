@@ -29,8 +29,8 @@ from datetime import datetime
 from .base import BaseRenderer, RenderResult
 from app.generators.prompts import PROMPT_AREA_LOADING_STYLE, PROMPT_AREA_LOADING_ICON
 
-# DashScope API Key（优先使用环境变量）
-DASHSCOPE_API_KEY = os.environ.get('DASHSCOPE_API_KEY')
+# 图像生成 API Key（优先使用 IMAGE_GEN_API_KEY，回退到 DASHSCOPE_API_KEY）
+IMAGE_GEN_API_KEY = os.environ.get('IMAGE_GEN_API_KEY') or os.environ.get('DASHSCOPE_API_KEY')
 
 
 class AreaLoadingRenderer(BaseRenderer):
@@ -408,13 +408,15 @@ Generate the icon image now."""
             import dashscope
             from dashscope import MultiModalConversation
 
-            # 使用环境变量的 DashScope API Key
-            dashscope_key = DASHSCOPE_API_KEY
+            # 使用环境变量的图像生成 API Key（优先 IMAGE_GEN_API_KEY，回退 DASHSCOPE_API_KEY）
+            dashscope_key = IMAGE_GEN_API_KEY
             if not dashscope_key:
-                print("  ⚠ DASHSCOPE_API_KEY 环境变量未设置")
+                print("  ⚠ IMAGE_GEN_API_KEY 或 DASHSCOPE_API_KEY 环境变量未设置")
                 return None
 
-            dashscope.base_http_api_url = 'https://dashscope.aliyuncs.com/api/v1'
+            # 优先使用 IMAGE_GEN_API_URL，回退到 DASHSCOPE_API_URL 或默认
+            api_url = os.environ.get('IMAGE_GEN_API_URL') or os.environ.get('DASHSCOPE_API_URL', 'https://dashscope.aliyuncs.com/api/v1')
+            dashscope.base_http_api_url = api_url
 
             messages = [{
                 "role": "user",

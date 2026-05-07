@@ -51,7 +51,7 @@ class PatchRenderer(BaseRenderer):
             reference_path:  参考弹窗图片路径
 
         Note:
-            AI 图像生成使用 DashScope API，Key 从环境变量 DASHSCOPE_API_KEY 获取
+            AI 图像生成使用 IMAGE_GEN_API_KEY 或 DASHSCOPE_API_KEY 环境变量（优先前者）
             当通过 BaseRenderer.render() 接口调用时，screenshot_path/ui_json_path 可为 None
         """
         self.screenshot_path = screenshot_path

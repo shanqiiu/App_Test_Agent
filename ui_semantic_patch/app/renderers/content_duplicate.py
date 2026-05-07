@@ -27,8 +27,8 @@ from datetime import datetime
 from .base import BaseRenderer, RenderResult
 from app.generators.prompts import PROMPT_CONTENT_DUPLICATE_PANEL
 
-# DashScope API Key（优先使用环境变量）
-DASHSCOPE_API_KEY = os.environ.get('DASHSCOPE_API_KEY')
+# 图像生成 API Key（优先使用 IMAGE_GEN_API_KEY，回退到 DASHSCOPE_API_KEY）
+IMAGE_GEN_API_KEY = os.environ.get('IMAGE_GEN_API_KEY') or os.environ.get('DASHSCOPE_API_KEY')
 
 
 class ContentDuplicateRenderer(BaseRenderer):
@@ -45,12 +45,12 @@ class ContentDuplicateRenderer(BaseRenderer):
         初始化渲染器
 
         Args:
-            api_key: API密钥（VLM和DashScope）
+            api_key: API密钥（VLM和图像生成）
             vlm_api_url: VLM API地址
             vlm_model: VLM模型名称
             fonts_dir: 字体目录路径
         """
-        self.api_key = api_key or DASHSCOPE_API_KEY
+        self.api_key = api_key or IMAGE_GEN_API_KEY
         self.vlm_api_url = vlm_api_url
         self.vlm_model = vlm_model
         self.fonts_dir = fonts_dir

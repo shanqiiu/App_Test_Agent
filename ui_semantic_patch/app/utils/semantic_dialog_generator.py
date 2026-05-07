@@ -32,22 +32,24 @@ from dashscope import MultiModalConversation
 from app.utils.reference_analyzer import ReferenceAnalyzer, ReferenceStyleApplier
 
 
-# ==================== DashScope 图像生成工具函数 ====================
+# ==================== 图像生成工具函数 ====================
 def _get_image_backend() -> str:
     """读取图像生成后端配置。"""
     backend = os.getenv("IMAGE_GEN_BACKEND", "auto").strip().lower()
-    if backend not in {"auto", "local", "dashscope"}:
+    if backend not in {"auto", "local", "dashscope", "huawei_mlops"}:
         print(f"  ⚠ 未知 IMAGE_GEN_BACKEND={backend}，回退到 auto")
         return "auto"
     return backend
 
 
 def _resolve_dashscope_models(force_model: Optional[str], has_ref: bool) -> Tuple[str, bool]:
-    """根据配置和输入条件解析 DashScope 模型。
+    """根据配置和输入条件解析图像生成模型。
     
+    优先使用 IMAGE_GEN_MODEL，如未设置则回退到 DASHSCOPE_IMAGE_GEN_MODEL。
     当前统一使用文生图模型 (gen_model)，参考图以 style reference 方式传入 prompt。
     """
-    gen_model = os.getenv("DASHSCOPE_IMAGE_GEN_MODEL", "qwen-image-max").strip() or "qwen-image-max"
+    gen_model = os.getenv("IMAGE_GEN_MODEL") or os.getenv("DASHSCOPE_IMAGE_GEN_MODEL", "qwen-image-max")
+    gen_model = gen_model.strip() if gen_model else "qwen-image-max"
 
     if force_model == 'gen':
         return gen_model, False
@@ -125,13 +127,17 @@ def generate_image_dashscope(
 ) -> Optional[Image.Image]:
     """
     使用 DashScope 云端 API 生成图像。
+    优先使用 IMAGE_GEN_API_KEY/IMAGE_GEN_API_URL，如未设置则回退到 DASHSCOPE_*。
     """
-    api_key = api_key or os.getenv("DASHSCOPE_API_KEY")
+    # 优先使用 IMAGE_GEN_API_KEY，如未设置则回退到 DASHSCOPE_API_KEY
+    api_key = api_key or os.getenv("IMAGE_GEN_API_KEY") or os.getenv("DASHSCOPE_API_KEY")
     if not api_key:
-        print("  ⚠ DASHSCOPE_API_KEY 环境变量未设置")
+        print("  ⚠ IMAGE_GEN_API_KEY 或 DASHSCOPE_API_KEY 环境变量未设置")
         return None
 
-    dashscope.base_http_api_url = os.getenv("DASHSCOPE_API_URL", "https://dashscope.aliyuncs.com/api/v1")
+    # 优先使用 IMAGE_GEN_API_URL，如未设置则回退到 DASHSCOPE_API_URL
+    api_url = os.getenv("IMAGE_GEN_API_URL") or os.getenv("DASHSCOPE_API_URL", "https://dashscope.aliyuncs.com/api/v1")
+    dashscope.base_http_api_url = api_url
 
     # 解析并规范化尺寸
     try:
@@ -282,6 +288,7 @@ def generate_image(
 
     IMAGE_GEN_BACKEND:
     - dashscope: 强制走 DashScope API
+    - huawei_mlops: 强制走华为 MLOps 服务
     - local: 强制走本地服务
     - auto: 优先本地服务，未配置时回退到 DashScope
     """
@@ -298,6 +305,16 @@ def generate_image(
             prompt_extend=prompt_extend,
             reference_image_path=reference_image_path,
             force_model=force_model,
+        )
+
+    if backend == "huawei_mlops":
+        print("  ℹ 图像生成后端: huawei_mlops")
+        return generate_image_huawei_mlops(
+            prompt=prompt,
+            api_key=api_key,
+            size=size,
+            negative_prompt=negative_prompt,
+            save_path=save_path,
         )
 
     if backend == "local":
@@ -527,6 +544,132 @@ def _process_local_response(result: dict) -> 'Optional[Image.Image]':
         
     except Exception as e:
         print(f"  处理本地服务响应失败：{e}")
+        import traceback
+        traceback.print_exc()
+        return None
+
+
+def generate_image_huawei_mlops(
+    prompt: str,
+    api_key: str = None,
+    size: str = '1024*1024',
+    negative_prompt: str = None,
+    save_path: str = None,
+) -> Optional[Image.Image]:
+    """
+    使用华为 MLOps 服务生成图像。
+    
+    API 格式：OpenAI 兼容 (/v1/chat/completions)
+    响应格式：choices[0].message.content (base64 编码的图像)
+    
+    Args:
+        prompt: 图像描述提示词
+        api_key: API 密钥（可选，默认从 HUAWEI_MLOPS_API_KEY 环境变量读取）
+        size: 图像尺寸，格式 'width*height'（注意：华为 MLOps 不直接支持尺寸参数，
+              尺寸信息会被拼接到 prompt 中）
+        negative_prompt: 负面提示词（华为 MLOps 当前不支持）
+        save_path: 保存路径（可选）
+    
+    Returns:
+        生成的 PIL Image 对象，失败返回 None
+    """
+    # 获取配置
+    api_key = api_key or os.getenv("HUAWEI_MLOPS_API_KEY") or os.getenv("IMAGE_GEN_API_KEY")
+    api_url = os.getenv("HUAWEI_MLOPS_API_URL", "http://mlops.huawei.com/mlops-service/api/v2/agentService/v1/chat/completions")
+    model = os.getenv("HUAWEI_MLOPS_MODEL", "flux_txt_to_image")
+    
+    if not api_key:
+        print("  ⚠ HUAWEI_MLOPS_API_KEY 或 IMAGE_GEN_API_KEY 环境变量未设置")
+        return None
+    
+    # 将尺寸信息拼接到 prompt（华为 MLOps 不支持独立尺寸参数）
+    enhanced_prompt = prompt
+    if size:
+        try:
+            w, h = size.split('*')
+            enhanced_prompt = f"{prompt}，图像尺寸为 {w}x{h} 像素"
+        except ValueError:
+            pass
+    
+    # 添加负面提示词到 prompt（华为 MLOps 不支持独立 negative_prompt）
+    if negative_prompt:
+        enhanced_prompt = f"{enhanced_prompt}。不要包含：{negative_prompt}"
+    
+    # 设置请求头
+    headers = {
+        'Content-Type': 'application/json',
+        'Authorization': f'Bearer {api_key}'
+    }
+    
+    # 设置请求体（OpenAI 兼容格式）
+    json_data = {
+        "model": model,
+        "messages": [
+            {
+                "role": "user",
+                "content": enhanced_prompt
+            }
+        ],
+        "max_tokens": 2048
+    }
+    
+    # 调试日志
+    print(f"\n{'='*60}")
+    print(f"📝 华为 MLOps API 调用信息:")
+    print(f"{'='*60}")
+    print(f"  URL: {api_url}")
+    print(f"  Model: {model}")
+    print(f"  API Key（后 8 位）: ...{api_key[-8:]}")
+    print(f"  Prompt: {enhanced_prompt[:200]}{'...' if len(enhanced_prompt) > 200 else ''}")
+    print(f"{'='*60}\n")
+    
+    # 发送请求
+    try:
+        # 禁用代理，直接访问
+        proxies = {"http": None, "https": None}
+        timeout = int(os.getenv("HUAWEI_MLOPS_TIMEOUT", "120"))
+        
+        response = requests.post(api_url, headers=headers, json=json_data, timeout=timeout, proxies=proxies)
+        
+        if response.status_code != 200:
+            print(f"  ⚠ 华为 MLOps API 请求失败，状态码: {response.status_code}")
+            print(f"  响应: {response.text[:500]}")
+            return None
+        
+        # 解析响应
+        response_data = response.json()
+        
+        # 提取 base64 图像数据
+        image_data = response_data.get('choices', [{}])[0].get('message', {}).get('content', '')
+        
+        if not image_data:
+            print("  ⚠ 响应中未找到图像数据")
+            print(f"  响应结构: {list(response_data.keys())}")
+            return None
+        
+        # 解码 base64 图像
+        try:
+            image_bytes = base64.b64decode(image_data)
+            image = Image.open(io.BytesIO(image_bytes)).convert('RGBA')
+            
+            # 保存图像（如果指定了路径）
+            if save_path:
+                with open(save_path, "wb") as f:
+                    f.write(image_bytes)
+                print(f"  ✓ 图像已保存至: {save_path}")
+            
+            print(f"  ✓ 华为 MLOps 图像生成成功，尺寸: {image.size}")
+            return image
+            
+        except Exception as e:
+            print(f"  ⚠ 解码图像失败: {e}")
+            return None
+            
+    except requests.exceptions.Timeout:
+        print(f"  ⚠ 华为 MLOps API 请求超时")
+        return None
+    except Exception as e:
+        print(f"  ⚠ 华为 MLOps API 请求异常: {e}")
         import traceback
         traceback.print_exc()
         return None
