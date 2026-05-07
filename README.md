@@ -45,8 +45,37 @@
 ### 1. 环境准备
 
 ```bash
-cp .env.example .env                                          # 填写 VLM_API_KEY
+cp .env.example .env                                          # 填写 VLM_API_KEY 和图像生成配置
 pip install -r ui_semantic_patch/requirements.txt  # 安装核心依赖
+```
+
+**环境变量配置说明：**
+
+```bash
+# VLM 配置（必需）
+VLM_API_KEY=your-vlm-api-key
+VLM_API_URL=https://api.openai-next.com/v1/chat/completions
+VLM_MODEL=gpt-4o
+
+# 图像生成配置（4 种后端可选）
+IMAGE_GEN_BACKEND=dashscope        # 选项: dashscope / huawei_mlops / local / auto
+
+# 通用图像生成配置（兼容任意 OpenAI 格式 API）
+IMAGE_GEN_API_KEY=your-key
+IMAGE_GEN_API_URL=https://api.provider.com/v1
+IMAGE_GEN_MODEL=your-model
+
+# 华为 MLOps 专属配置（当 backend=huawei_mlops 时使用）
+HUAWEI_MLOPS_API_KEY=your-key
+HUAWEI_MLOPS_API_URL=http://mlops.huawei.com/...
+HUAWEI_MLOPS_MODEL=flux_txt_to_image
+
+# DashScope 专属配置（向后兼容）
+DASHSCOPE_API_KEY=your-key
+DASHSCOPE_IMAGE_GEN_MODEL=qwen-image-max
+
+# 本地服务配置（当 backend=local 时使用）
+LOCAL_IMAGE_API_URL=http://10.85.177.2:8042/generate
 ```
 
 ### 1.1 `omn` Conda 环境恢复（已导出）
@@ -160,6 +189,13 @@ App_Test_Agent/
 
 ### 最新里程碑
 
+**Milestone 5: 多后端图像生成支持** (2026-05-07)
+- 新增 **华为 MLOps** 图像生成后端支持（OpenAI 兼容格式）
+- 新增通用 **IMAGE_GEN_*** 配置变量，兼容任意 OpenAI 格式 API 提供商
+- 完善配置回退机制：`IMAGE_GEN_API_KEY` → `DASHSCOPE_API_KEY`
+- 支持 4 种图像生成后端：`dashscope` / `huawei_mlops` / `local` / `auto`
+- 向后兼容：现有 `DASHSCOPE_*` 配置无需修改即可继续工作
+
 **Milestone 4: 架构重构与注入决策** (2026-03-09)
 - 完成脚本层重构：拆分为 `analysis/`、`renderers/`、`generators/`、`injection/` 四个子包
 - 实现渲染器统一基类（`renderers/base.py`）
@@ -193,9 +229,9 @@ App_Test_Agent/
 
 **AI 感知**: OmniParser (YOLO + PaddleOCR + Florence2) · VLM (qwen-vl-max / GPT-4o)
 
-**图像生成**: DashScope AI · PIL/Pillow
+**图像生成**: DashScope AI · 华为 MLOps · Local SD · PIL/Pillow (多后端自动切换)
 
-**异常渲染**: 程序化合成 · Alpha 混合 · 组件裁剪
+**异常渲染**: 程序化合成 · Alpha 混合 · 组件裁剪 · AI 图像编辑
 
 **注入决策**: VLM 语义分析 · GT 模板匹配 · 操作序列建模
 
@@ -207,7 +243,7 @@ App_Test_Agent/
 
 ---
 
-**最后更新**: 2026-03-26
+**最后更新**: 2026-05-07
 **文档同步**: AI 协作、环境与 `run_pipeline` 示例以 [Claude.md](./Claude.md) 为准。
 **项目状态**: Phase 2 进行中
-**里程碑**: Milestone 4 完成
+**里程碑**: Milestone 5 完成
