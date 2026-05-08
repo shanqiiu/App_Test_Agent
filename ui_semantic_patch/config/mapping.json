@@ -1,12 +1,28 @@
 {
-  "version": "2.0",
-  "description": "Query到异常注入参数的映射配置（基于examples2数据生成，从原映射文件匹配fault_mode）",
-  "last_updated": "2026-04-29",
+  "version": "3.0",
+  "description": "Query到异常注入参数的映射配置（根据人工审核修正：anomaly_mode对齐语义、删除冗余、修正reference_path）",
+  "last_updated": "2026-05-08",
+    "changelog": [
+    "v3.0: 基于异常query说明.md人工审核，修正18条anomaly_mode，删除7条冗余/重复映射，合并3对弹窗广告→广告遮挡界面，修复所有reference_path",
+    "v2.0: 基于examples2数据生成，从原映射文件匹配fault_mode"
+  ],
   "statistics": {
     "total_queries": 25,
-    "total_mappings": 49,
-    "matched": 24,
-    "unmatched": 1
+    "total_mappings": 42,
+      "by_anomaly_mode": {
+      "dialog": 16,
+      "modify_text_ai": 4,
+      "modify_text": 4,
+      "text_overlay": 11,
+      "content_duplicate": 3,
+      "area_loading": 1,
+      "response_delay": 3
+    },
+    "app_distribution": {
+      "去哪儿旅行": 8,
+      "视频": 32,
+      "铁路12306": 2
+    }
   },
   "mappings": [
     {
@@ -18,7 +34,7 @@
       "fault_mode_key": "mode_1",
       "injection_config": {
         "anomaly_mode": "modify_text_ai",
-        "instruction": "模拟订阅按钮置灰异常场景"
+        "instruction": "将订阅按钮置灰，显示为不可点击状态"
       }
     },
     {
@@ -31,24 +47,9 @@
       "injection_config": {
         "anomaly_mode": "dialog",
         "gt_category": "dialog",
-        "gt_sample": "去哪儿-首页-权限类弹窗.jpg",
-        "reference_path": "data/gt-category/dialog/去哪儿-首页-权限类弹窗.jpg",
-        "instruction": "模拟弹窗广告异常场景"
-      }
-    },
-    {
-      "query": "到(去哪儿旅行)买一张航空公司是东方航空的后天从南京到北京机票",
-      "query_id": "058aa114-8797-4383-82fb-beaa683dede5",
-      "app_name": "去哪儿旅行",
-      "example_dir": "injection_demo_02",
-      "fault_mode": "广告遮挡界面",
-      "fault_mode_key": "mode_2",
-      "injection_config": {
-        "anomaly_mode": "dialog",
-        "gt_category": "dialog",
-        "gt_sample": "去哪儿-首页-权限类弹窗.jpg",
-        "reference_path": "data/gt-category/dialog/去哪儿-首页-权限类弹窗.jpg",
-        "instruction": "模拟广告遮挡界面异常场景"
+        "gt_sample": "去哪儿旅行-首页-位置权限弹窗.jpg",
+        "reference_path": "data/gt-category/dialog/去哪儿旅行-首页-位置权限弹窗.jpg",
+        "instruction": "生成首页广告弹窗遮挡功能入口"
       }
     },
     {
@@ -61,9 +62,9 @@
       "injection_config": {
         "anomaly_mode": "dialog",
         "gt_category": "dialog",
-        "gt_sample": "我的华为-首页-广告弹窗.jpg",
-        "reference_path": "data/gt-category/dialog/我的华为-首页-广告弹窗.jpg",
-        "instruction": "模拟弹窗广告异常场景"
+        "gt_sample": "华为花粉俱乐部-首页-勋章奖励弹窗.jpg",
+        "reference_path": "data/gt-category/dialog/华为花粉俱乐部-首页-勋章奖励弹窗.jpg",
+        "instruction": "生成首页广告弹窗遮挡功能入口"
       }
     },
     {
@@ -74,11 +75,8 @@
       "fault_mode": "下载按钮遮挡",
       "fault_mode_key": "mode_2",
       "injection_config": {
-        "anomaly_mode": "dialog",
-        "gt_category": "dialog",
-        "gt_sample": "我的华为-首页-广告弹窗.jpg",
-        "reference_path": "data/gt-category/dialog/我的华为-首页-广告弹窗.jpg",
-        "instruction": "模拟下载按钮遮挡异常场景"
+        "anomaly_mode": "text_overlay",
+        "instruction": "在下载按钮区域生成遮挡元素，阻止用户点击下载"
       }
     },
     {
@@ -91,24 +89,9 @@
       "injection_config": {
         "anomaly_mode": "dialog",
         "gt_category": "dialog",
-        "gt_sample": "去哪儿-首页-权限类弹窗.jpg",
-        "reference_path": "data/gt-category/dialog/去哪儿-首页-权限类弹窗.jpg",
-        "instruction": "模拟弹窗广告异常场景"
-      }
-    },
-    {
-      "query": "去搜下下周六上海虹桥到深圳宝安的机票在(去哪儿旅行)上",
-      "query_id": "25aaa0d3-dcc2-4c6d-9076-7b2ce90889dc",
-      "app_name": "去哪儿旅行",
-      "example_dir": "injection_demo_04",
-      "fault_mode": "广告遮挡界面",
-      "fault_mode_key": "mode_2",
-      "injection_config": {
-        "anomaly_mode": "dialog",
-        "gt_category": "dialog",
-        "gt_sample": "去哪儿-首页-权限类弹窗.jpg",
-        "reference_path": "data/gt-category/dialog/去哪儿-首页-权限类弹窗.jpg",
-        "instruction": "模拟广告遮挡界面异常场景"
+        "gt_sample": "去哪儿旅行-首页-位置权限弹窗.jpg",
+        "reference_path": "data/gt-category/dialog/去哪儿旅行-首页-位置权限弹窗.jpg",
+        "instruction": "生成首页广告弹窗遮挡功能入口"
       }
     },
     {
@@ -119,11 +102,8 @@
       "fault_mode": "增值服务总价更便宜",
       "fault_mode_key": "mode_1",
       "injection_config": {
-        "anomaly_mode": "dialog",
-        "gt_category": "dialog",
-        "gt_sample": "去哪儿-首页-权限类弹窗.jpg",
-        "reference_path": "data/gt-category/dialog/去哪儿-首页-权限类弹窗.jpg",
-        "instruction": "模拟增值服务总价更便宜异常场景"
+        "anomaly_mode": "modify_text",
+        "instruction": "修改机票搜索结果页面中的价格显示，使增值服务(含保险/行李)的总价低于裸票价，制造价格逻辑矛盾"
       }
     },
     {
@@ -134,11 +114,8 @@
       "fault_mode": "价格计算异常",
       "fault_mode_key": "mode_2",
       "injection_config": {
-        "anomaly_mode": "dialog",
-        "gt_category": "dialog",
-        "gt_sample": "去哪儿-首页-权限类弹窗.jpg",
-        "reference_path": "data/gt-category/dialog/去哪儿-首页-权限类弹窗.jpg",
-        "instruction": "模拟价格计算异常异常场景"
+        "anomaly_mode": "modify_text",
+        "instruction": "修改机票搜索结果的价格数字，使显示的票价与实际税费之和不一致，制造计算错误异常"
       }
     },
     {
@@ -146,14 +123,11 @@
       "query_id": "3fcb65c1-1188-48f1-9462-b0ec00bcaf0e",
       "app_name": "视频",
       "example_dir": "injection_demo_06",
-      "fault_mode": "把“误杀3”改成“误杀6”？",
+      "fault_mode": "把\"误杀3\"改成\"误杀6\"",
       "fault_mode_key": "mode_1",
       "injection_config": {
-        "anomaly_mode": "dialog",
-        "gt_category": "dialog",
-        "gt_sample": "美团-首页-使用教程弹窗.jpg",
-        "reference_path": "data/gt-category/dialog/美团-首页-使用教程弹窗.jpg",
-        "instruction": "模拟把“误杀3”改成“误杀6”？异常场景"
+        "anomaly_mode": "modify_text_ai",
+        "instruction": "将页面中所有电影名称「误杀3」替换为「误杀6」，模拟内容名称篡改异常"
       }
     },
     {
@@ -164,11 +138,8 @@
       "fault_mode": "操作响应延迟",
       "fault_mode_key": "mode_2",
       "injection_config": {
-        "anomaly_mode": "dialog",
-        "gt_category": "dialog",
-        "gt_sample": "美团-首页-使用教程弹窗.jpg",
-        "reference_path": "data/gt-category/dialog/美团-首页-使用教程弹窗.jpg",
-        "instruction": "模拟操作响应延迟异常场景"
+        "anomaly_mode": "response_delay",
+        "instruction": "模拟操作响应延迟，注入点替换为前一帧副本，使连续两帧画面相同，模拟 UI 未响应"
       }
     },
     {
@@ -181,39 +152,9 @@
       "injection_config": {
         "anomaly_mode": "dialog",
         "gt_category": "dialog",
-        "gt_sample": "携程-首页-广告弹窗.jpg",
-        "reference_path": "data/gt-category/dialog/携程-首页-广告弹窗.jpg",
-        "instruction": "模拟弹窗广告异常场景"
-      }
-    },
-    {
-      "query": "华为(视频)把电影重生缓存下",
-      "query_id": "4047f7cc-41da-4998-b1c1-75f2a91d2a7c",
-      "app_name": "视频",
-      "example_dir": "injection_demo_07",
-      "fault_mode": "提示需要会员登录？",
-      "fault_mode_key": "mode_2",
-      "injection_config": {
-        "anomaly_mode": "dialog",
-        "gt_category": "dialog",
-        "gt_sample": "美团-首页-使用教程弹窗.jpg",
-        "reference_path": "data/gt-category/dialog/美团-首页-使用教程弹窗.jpg",
-        "instruction": "模拟提示需要会员登录？异常场景"
-      }
-    },
-    {
-      "query": "华为(视频)下载大鹏主演的长安的荔枝",
-      "query_id": "49f3273c-8cab-4c4b-b438-4920d3d31a43",
-      "app_name": "视频",
-      "example_dir": "injection_demo_08",
-      "fault_mode": "弹窗广告",
-      "fault_mode_key": "mode_1",
-      "injection_config": {
-        "anomaly_mode": "dialog",
-        "gt_category": "dialog",
-        "gt_sample": "携程-首页-广告弹窗.jpg",
-        "reference_path": "data/gt-category/dialog/携程-首页-广告弹窗.jpg",
-        "instruction": "模拟弹窗广告异常场景"
+        "gt_sample": "携程旅行-首页-推广弹窗.jpg",
+        "reference_path": "data/gt-category/dialog/携程旅行-首页-推广弹窗.jpg",
+        "instruction": "生成首页广告弹窗遮挡功能入口"
       }
     },
     {
@@ -222,13 +163,13 @@
       "app_name": "视频",
       "example_dir": "injection_demo_08",
       "fault_mode": "广告遮挡界面",
-      "fault_mode_key": "mode_2",
+      "fault_mode_key": "mode_1",
       "injection_config": {
         "anomaly_mode": "dialog",
         "gt_category": "dialog",
-        "gt_sample": "携程-首页-广告弹窗.jpg",
-        "reference_path": "data/gt-category/dialog/携程-首页-广告弹窗.jpg",
-        "instruction": "模拟广告遮挡界面异常场景"
+        "gt_sample": "携程旅行-首页-推广弹窗.jpg",
+        "reference_path": "data/gt-category/dialog/携程旅行-首页-推广弹窗.jpg",
+        "instruction": "在下载页面生成广告弹窗遮挡下载入口"
       }
     },
     {
@@ -241,9 +182,9 @@
       "injection_config": {
         "anomaly_mode": "dialog",
         "gt_category": "dialog",
-        "gt_sample": "我的华为-首页-广告弹窗.jpg",
-        "reference_path": "data/gt-category/dialog/我的华为-首页-广告弹窗.jpg",
-        "instruction": "模拟弹窗广告异常场景"
+        "gt_sample": "华为花粉俱乐部-首页-勋章奖励弹窗.jpg",
+        "reference_path": "data/gt-category/dialog/华为花粉俱乐部-首页-勋章奖励弹窗.jpg",
+        "instruction": "生成首页广告弹窗遮挡功能入口"
       }
     },
     {
@@ -254,26 +195,8 @@
       "fault_mode": "下载按钮遮挡",
       "fault_mode_key": "mode_2",
       "injection_config": {
-        "anomaly_mode": "dialog",
-        "gt_category": "dialog",
-        "gt_sample": "我的华为-首页-广告弹窗.jpg",
-        "reference_path": "data/gt-category/dialog/我的华为-首页-广告弹窗.jpg",
-        "instruction": "模拟下载按钮遮挡异常场景"
-      }
-    },
-    {
-      "query": "到华为(视频)上下载电影干柴烈火",
-      "query_id": "71ba06e9-f88b-47ac-89fb-f0beac30e761",
-      "app_name": "视频",
-      "example_dir": "injection_demo_10",
-      "fault_mode": "弹窗广告",
-      "fault_mode_key": "mode_1",
-      "injection_config": {
-        "anomaly_mode": "dialog",
-        "gt_category": "dialog",
-        "gt_sample": "我的华为-首页-广告弹窗.jpg",
-        "reference_path": "data/gt-category/dialog/我的华为-首页-广告弹窗.jpg",
-        "instruction": "模拟弹窗广告异常场景"
+        "anomaly_mode": "text_overlay",
+        "instruction": "在下载页面用横幅或浮层遮盖下载按钮区域，阻止用户点击下载"
       }
     },
     {
@@ -284,11 +207,8 @@
       "fault_mode": "下载按钮遮挡",
       "fault_mode_key": "mode_2",
       "injection_config": {
-        "anomaly_mode": "dialog",
-        "gt_category": "dialog",
-        "gt_sample": "我的华为-首页-广告弹窗.jpg",
-        "reference_path": "data/gt-category/dialog/我的华为-首页-广告弹窗.jpg",
-        "instruction": "模拟下载按钮遮挡异常场景"
+        "anomaly_mode": "text_overlay",
+        "instruction": "在下载按钮区域生成遮挡元素，阻止用户点击下载"
       }
     },
     {
@@ -299,26 +219,8 @@
       "fault_mode": "下载按钮遮挡",
       "fault_mode_key": "mode_1",
       "injection_config": {
-        "anomaly_mode": "dialog",
-        "gt_category": "dialog",
-        "gt_sample": "美团-首页-使用教程弹窗.jpg",
-        "reference_path": "data/gt-category/dialog/美团-首页-使用教程弹窗.jpg",
-        "instruction": "模拟下载按钮遮挡异常场景"
-      }
-    },
-    {
-      "query": "到华为(视频)下载电视剧老酒馆全集",
-      "query_id": "776ffb90-c68d-454a-9c2a-40a5acc86aeb",
-      "app_name": "视频",
-      "example_dir": "injection_demo_11",
-      "fault_mode": "下载入口被遮挡",
-      "fault_mode_key": "mode_2",
-      "injection_config": {
-        "anomaly_mode": "dialog",
-        "gt_category": "dialog",
-        "gt_sample": "美团-首页-使用教程弹窗.jpg",
-        "reference_path": "data/gt-category/dialog/美团-首页-使用教程弹窗.jpg",
-        "instruction": "模拟下载入口被遮挡异常场景"
+        "anomaly_mode": "text_overlay",
+        "instruction": "用浮层或横幅遮盖下载按钮区域，阻止下载操作"
       }
     },
     {
@@ -331,9 +233,7 @@
       "injection_config": {
         "anomaly_mode": "content_duplicate",
         "gt_category": "content_duplicate",
-        "gt_sample": "芒果TV-剧集主页-底部重复选集面板.jpg",
-        "reference_path": "data/gt-category/content_duplicate/芒果TV-剧集主页-底部重复选集面板.jpg",
-        "instruction": "模拟多个选集数的信息异常场景"
+        "instruction": "在选集页面复制已有选集按钮，制造多个重复选集入口导致内容歧义"
       }
     },
     {
@@ -346,9 +246,7 @@
       "injection_config": {
         "anomaly_mode": "content_duplicate",
         "gt_category": "content_duplicate",
-        "gt_sample": "芒果TV-剧集主页-底部重复选集面板.jpg",
-        "reference_path": "data/gt-category/content_duplicate/芒果TV-剧集主页-底部重复选集面板.jpg",
-        "instruction": "模拟选集显示混乱异常场景"
+        "instruction": "复制选集面板中的部分选集条目，打乱原有的选集排列顺序，制造显示混乱"
       }
     },
     {
@@ -361,24 +259,9 @@
       "injection_config": {
         "anomaly_mode": "dialog",
         "gt_category": "dialog",
-        "gt_sample": "去哪儿-首页-权限类弹窗.jpg",
-        "reference_path": "data/gt-category/dialog/去哪儿-首页-权限类弹窗.jpg",
-        "instruction": "模拟弹窗广告异常场景"
-      }
-    },
-    {
-      "query": "(去哪儿旅行)上购买一张去西安的机票",
-      "query_id": "a1a3ba62-a30f-4ddc-b8ad-5c3d10b7393e",
-      "app_name": "去哪儿旅行",
-      "example_dir": "injection_demo_13",
-      "fault_mode": "广告遮挡界面",
-      "fault_mode_key": "mode_2",
-      "injection_config": {
-        "anomaly_mode": "dialog",
-        "gt_category": "dialog",
-        "gt_sample": "去哪儿-首页-权限类弹窗.jpg",
-        "reference_path": "data/gt-category/dialog/去哪儿-首页-权限类弹窗.jpg",
-        "instruction": "模拟广告遮挡界面异常场景"
+        "gt_sample": "去哪儿旅行-首页-位置权限弹窗.jpg",
+        "reference_path": "data/gt-category/dialog/去哪儿旅行-首页-位置权限弹窗.jpg",
+        "instruction": "生成首页广告弹窗遮挡功能入口"
       }
     },
     {
@@ -391,9 +274,9 @@
       "injection_config": {
         "anomaly_mode": "dialog",
         "gt_category": "dialog",
-        "gt_sample": "我的华为-首页-广告弹窗.jpg",
-        "reference_path": "data/gt-category/dialog/我的华为-首页-广告弹窗.jpg",
-        "instruction": "模拟弹窗广告异常场景"
+        "gt_sample": "华为花粉俱乐部-首页-勋章奖励弹窗.jpg",
+        "reference_path": "data/gt-category/dialog/华为花粉俱乐部-首页-勋章奖励弹窗.jpg",
+        "instruction": "生成首页广告弹窗遮挡功能入口"
       }
     },
     {
@@ -404,11 +287,8 @@
       "fault_mode": "下载按钮遮挡",
       "fault_mode_key": "mode_2",
       "injection_config": {
-        "anomaly_mode": "dialog",
-        "gt_category": "dialog",
-        "gt_sample": "我的华为-首页-广告弹窗.jpg",
-        "reference_path": "data/gt-category/dialog/我的华为-首页-广告弹窗.jpg",
-        "instruction": "模拟下载按钮遮挡异常场景"
+        "anomaly_mode": "text_overlay",
+        "instruction": "在下载按钮区域生成遮挡元素，阻止用户点击下载"
       }
     },
     {
@@ -416,14 +296,11 @@
       "query_id": "b95299b3-9867-4275-8454-592717d07239",
       "app_name": "视频",
       "example_dir": "injection_demo_15",
-      "fault_mode": "把“长津湖”改成“常津湖”？",
+      "fault_mode": "把\"长津湖\"改成\"常津湖\"",
       "fault_mode_key": "mode_1",
       "injection_config": {
-        "anomaly_mode": "dialog",
-        "gt_category": "dialog",
-        "gt_sample": "美团-首页-使用教程弹窗.jpg",
-        "reference_path": "data/gt-category/dialog/美团-首页-使用教程弹窗.jpg",
-        "instruction": "模拟把“长津湖”改成“常津湖”？异常场景"
+        "anomaly_mode": "modify_text_ai",
+        "instruction": "将页面中所有电影名称「长津湖」替换为「常津湖」，模拟名称篡改异常"
       }
     },
     {
@@ -434,11 +311,8 @@
       "fault_mode": "操作响应延迟",
       "fault_mode_key": "mode_2",
       "injection_config": {
-        "anomaly_mode": "dialog",
-        "gt_category": "dialog",
-        "gt_sample": "美团-首页-使用教程弹窗.jpg",
-        "reference_path": "data/gt-category/dialog/美团-首页-使用教程弹窗.jpg",
-        "instruction": "模拟操作响应延迟异常场景"
+        "anomaly_mode": "response_delay",
+        "instruction": "模拟操作响应延迟，注入点替换为前一帧副本，使连续两帧画面相同，模拟 UI 未响应"
       }
     },
     {
@@ -451,9 +325,9 @@
       "injection_config": {
         "anomaly_mode": "dialog",
         "gt_category": "dialog",
-        "gt_sample": "我的华为-首页-广告弹窗.jpg",
-        "reference_path": "data/gt-category/dialog/我的华为-首页-广告弹窗.jpg",
-        "instruction": "模拟弹窗广告异常场景"
+        "gt_sample": "华为花粉俱乐部-首页-勋章奖励弹窗.jpg",
+        "reference_path": "data/gt-category/dialog/华为花粉俱乐部-首页-勋章奖励弹窗.jpg",
+        "instruction": "生成首页广告弹窗遮挡功能入口"
       }
     },
     {
@@ -464,11 +338,8 @@
       "fault_mode": "下载按钮遮挡",
       "fault_mode_key": "mode_2",
       "injection_config": {
-        "anomaly_mode": "dialog",
-        "gt_category": "dialog",
-        "gt_sample": "我的华为-首页-广告弹窗.jpg",
-        "reference_path": "data/gt-category/dialog/我的华为-首页-广告弹窗.jpg",
-        "instruction": "模拟下载按钮遮挡异常场景"
+        "anomaly_mode": "text_overlay",
+        "instruction": "在下载按钮区域生成遮挡元素，阻止用户点击下载"
       }
     },
     {
@@ -481,9 +352,9 @@
       "injection_config": {
         "anomaly_mode": "dialog",
         "gt_category": "dialog",
-        "gt_sample": "我的华为-首页-广告弹窗.jpg",
-        "reference_path": "data/gt-category/dialog/我的华为-首页-广告弹窗.jpg",
-        "instruction": "模拟弹窗广告异常场景"
+        "gt_sample": "华为花粉俱乐部-首页-勋章奖励弹窗.jpg",
+        "reference_path": "data/gt-category/dialog/华为花粉俱乐部-首页-勋章奖励弹窗.jpg",
+        "instruction": "生成首页广告弹窗遮挡功能入口"
       }
     },
     {
@@ -494,11 +365,8 @@
       "fault_mode": "下载按钮遮挡",
       "fault_mode_key": "mode_2",
       "injection_config": {
-        "anomaly_mode": "dialog",
-        "gt_category": "dialog",
-        "gt_sample": "我的华为-首页-广告弹窗.jpg",
-        "reference_path": "data/gt-category/dialog/我的华为-首页-广告弹窗.jpg",
-        "instruction": "模拟下载按钮遮挡异常场景"
+        "anomaly_mode": "text_overlay",
+        "instruction": "在下载按钮区域生成遮挡元素，阻止用户点击下载"
       }
     },
     {
@@ -511,9 +379,9 @@
       "injection_config": {
         "anomaly_mode": "dialog",
         "gt_category": "dialog",
-        "gt_sample": "我的华为-首页-广告弹窗.jpg",
-        "reference_path": "data/gt-category/dialog/我的华为-首页-广告弹窗.jpg",
-        "instruction": "模拟弹窗广告异常场景"
+        "gt_sample": "华为花粉俱乐部-首页-勋章奖励弹窗.jpg",
+        "reference_path": "data/gt-category/dialog/华为花粉俱乐部-首页-勋章奖励弹窗.jpg",
+        "instruction": "生成首页广告弹窗遮挡功能入口"
       }
     },
     {
@@ -524,11 +392,8 @@
       "fault_mode": "下载按钮遮挡",
       "fault_mode_key": "mode_2",
       "injection_config": {
-        "anomaly_mode": "dialog",
-        "gt_category": "dialog",
-        "gt_sample": "我的华为-首页-广告弹窗.jpg",
-        "reference_path": "data/gt-category/dialog/我的华为-首页-广告弹窗.jpg",
-        "instruction": "模拟下载按钮遮挡异常场景"
+        "anomaly_mode": "text_overlay",
+        "instruction": "在下载按钮区域生成遮挡元素，阻止用户点击下载"
       }
     },
     {
@@ -539,11 +404,8 @@
       "fault_mode": "商务舱比经济舱更便宜",
       "fault_mode_key": "mode_1",
       "injection_config": {
-        "anomaly_mode": "dialog",
-        "gt_category": "dialog",
-        "gt_sample": "去哪儿-首页-权限类弹窗.jpg",
-        "reference_path": "data/gt-category/dialog/去哪儿-首页-权限类弹窗.jpg",
-        "instruction": "模拟商务舱比经济舱更便宜异常场景"
+        "anomaly_mode": "modify_text",
+        "instruction": "修改机票搜索结果中商务舱的价格数字，使其低于同一航班的经济舱价格，制造价格逻辑错误"
       }
     },
     {
@@ -554,11 +416,8 @@
       "fault_mode": "价格逻辑错误",
       "fault_mode_key": "mode_2",
       "injection_config": {
-        "anomaly_mode": "dialog",
-        "gt_category": "dialog",
-        "gt_sample": "去哪儿-首页-权限类弹窗.jpg",
-        "reference_path": "data/gt-category/dialog/去哪儿-首页-权限类弹窗.jpg",
-        "instruction": "模拟价格逻辑错误异常场景"
+        "anomaly_mode": "modify_text",
+        "instruction": "修改机票搜索结果中的税费或附加费数字，使显示的总价与实际明细价格之和不一致"
       }
     },
     {
@@ -571,9 +430,9 @@
       "injection_config": {
         "anomaly_mode": "dialog",
         "gt_category": "dialog",
-        "gt_sample": "12306-首页-系统提示弹窗.jpg",
-        "reference_path": "data/gt-category/dialog/12306-首页-系统提示弹窗.jpg",
-        "instruction": "模拟系统提示弹窗异常场景"
+        "gt_sample": "铁路12306-首页-通知权限弹窗.jpg",
+        "reference_path": "data/gt-category/dialog/铁路12306-首页-通知权限弹窗.jpg",
+        "instruction": "生成系统提示弹窗告知服务不可用"
       }
     },
     {
@@ -584,11 +443,11 @@
       "fault_mode": "加载超时",
       "fault_mode_key": "mode_2",
       "injection_config": {
-        "anomaly_mode": "dialog",
-        "gt_category": "dialog",
-        "gt_sample": "12306-首页-系统提示弹窗.jpg",
-        "reference_path": "data/gt-category/dialog/12306-首页-系统提示弹窗.jpg",
-        "instruction": "模拟加载超时异常场景"
+        "anomaly_mode": "area_loading",
+        "gt_category": "area_loading",
+        "gt_sample": "哔哩哔哩-北大官方账号页-排序下拉菜单.jpg",
+        "reference_path": "data/gt-category/area_loading/哔哩哔哩-北大官方账号页-排序下拉菜单.jpg",
+        "instruction": "模拟页面加载超时异常，显示加载失败或超时状态，而非弹出弹窗"
       }
     },
     {
@@ -601,9 +460,9 @@
       "injection_config": {
         "anomaly_mode": "dialog",
         "gt_category": "dialog",
-        "gt_sample": "我的华为-首页-广告弹窗.jpg",
-        "reference_path": "data/gt-category/dialog/我的华为-首页-广告弹窗.jpg",
-        "instruction": "模拟弹窗广告异常场景"
+        "gt_sample": "华为花粉俱乐部-首页-勋章奖励弹窗.jpg",
+        "reference_path": "data/gt-category/dialog/华为花粉俱乐部-首页-勋章奖励弹窗.jpg",
+        "instruction": "生成首页广告弹窗遮挡功能入口"
       }
     },
     {
@@ -614,11 +473,8 @@
       "fault_mode": "下载按钮遮挡",
       "fault_mode_key": "mode_2",
       "injection_config": {
-        "anomaly_mode": "dialog",
-        "gt_category": "dialog",
-        "gt_sample": "我的华为-首页-广告弹窗.jpg",
-        "reference_path": "data/gt-category/dialog/我的华为-首页-广告弹窗.jpg",
-        "instruction": "模拟下载按钮遮挡异常场景"
+        "anomaly_mode": "text_overlay",
+        "instruction": "在下载按钮区域生成遮挡元素，阻止用户点击下载"
       }
     },
     {
@@ -631,9 +487,9 @@
       "injection_config": {
         "anomaly_mode": "dialog",
         "gt_category": "dialog",
-        "gt_sample": "我的华为-首页-广告弹窗.jpg",
-        "reference_path": "data/gt-category/dialog/我的华为-首页-广告弹窗.jpg",
-        "instruction": "模拟弹窗广告异常场景"
+        "gt_sample": "华为花粉俱乐部-首页-勋章奖励弹窗.jpg",
+        "reference_path": "data/gt-category/dialog/华为花粉俱乐部-首页-勋章奖励弹窗.jpg",
+        "instruction": "生成首页广告弹窗遮挡功能入口"
       }
     },
     {
@@ -644,11 +500,8 @@
       "fault_mode": "下载按钮遮挡",
       "fault_mode_key": "mode_2",
       "injection_config": {
-        "anomaly_mode": "dialog",
-        "gt_category": "dialog",
-        "gt_sample": "我的华为-首页-广告弹窗.jpg",
-        "reference_path": "data/gt-category/dialog/我的华为-首页-广告弹窗.jpg",
-        "instruction": "模拟下载按钮遮挡异常场景"
+        "anomaly_mode": "text_overlay",
+        "instruction": "在下载按钮区域生成遮挡元素，阻止用户点击下载"
       }
     },
     {
@@ -659,11 +512,8 @@
       "fault_mode": "第4集开始置灰，无法勾选下载",
       "fault_mode_key": "mode_1",
       "injection_config": {
-        "anomaly_mode": "dialog",
-        "gt_category": "dialog",
-        "gt_sample": "美团-首页-使用教程弹窗.jpg",
-        "reference_path": "data/gt-category/dialog/美团-首页-使用教程弹窗.jpg",
-        "instruction": "模拟第4集开始置灰，无法勾选下载异常场景"
+        "anomaly_mode": "modify_text_ai",
+        "instruction": "将选集列表中从第4集开始的勾选框置灰，并修改对应文字颜色为灰色，模拟选集下载权限限制异常"
       }
     },
     {
@@ -676,9 +526,9 @@
       "injection_config": {
         "anomaly_mode": "dialog",
         "gt_category": "dialog",
-        "gt_sample": "去哪儿-首页-权限类弹窗.jpg",
-        "reference_path": "data/gt-category/dialog/去哪儿-首页-权限类弹窗.jpg",
-        "instruction": "模拟权限限制异常场景"
+        "gt_sample": "去哪儿旅行-首页-位置权限弹窗.jpg",
+        "reference_path": "data/gt-category/dialog/去哪儿旅行-首页-位置权限弹窗.jpg",
+        "instruction": "生成权限限制弹窗，提示用户需要特定权限才能下载"
       }
     },
     {
@@ -691,9 +541,9 @@
       "injection_config": {
         "anomaly_mode": "dialog",
         "gt_category": "dialog",
-        "gt_sample": "我的华为-首页-广告弹窗.jpg",
-        "reference_path": "data/gt-category/dialog/我的华为-首页-广告弹窗.jpg",
-        "instruction": "模拟弹窗广告异常场景"
+        "gt_sample": "华为花粉俱乐部-首页-勋章奖励弹窗.jpg",
+        "reference_path": "data/gt-category/dialog/华为花粉俱乐部-首页-勋章奖励弹窗.jpg",
+        "instruction": "生成首页广告弹窗遮挡功能入口"
       }
     },
     {
@@ -704,11 +554,8 @@
       "fault_mode": "下载按钮遮挡",
       "fault_mode_key": "mode_2",
       "injection_config": {
-        "anomaly_mode": "dialog",
-        "gt_category": "dialog",
-        "gt_sample": "我的华为-首页-广告弹窗.jpg",
-        "reference_path": "data/gt-category/dialog/我的华为-首页-广告弹窗.jpg",
-        "instruction": "模拟下载按钮遮挡异常场景"
+        "anomaly_mode": "text_overlay",
+        "instruction": "在下载按钮区域生成遮挡元素，阻止用户点击下载"
       }
     },
     {
@@ -716,14 +563,12 @@
       "query_id": "f564a455-1834-4c40-a6cf-8dba277aea83",
       "app_name": "视频",
       "example_dir": "injection_demo_25",
-      "fault_mode": "多个集数标记为“最新”",
+      "fault_mode": "多个集数标记为\"最新\"",
       "fault_mode_key": "mode_1",
       "injection_config": {
         "anomaly_mode": "content_duplicate",
         "gt_category": "content_duplicate",
-        "gt_sample": "芒果TV-剧集主页-底部重复选集面板.jpg",
-        "reference_path": "data/gt-category/content_duplicate/芒果TV-剧集主页-底部重复选集面板.jpg",
-        "instruction": "模拟多个集数标记为“最新”异常场景"
+        "instruction": "在选集列表中将多个集数标记为「最新」，制造选集中重复最新标签导致内容歧义"
       }
     },
     {
@@ -734,11 +579,8 @@
       "fault_mode": "操作响应延迟",
       "fault_mode_key": "mode_2",
       "injection_config": {
-        "anomaly_mode": "dialog",
-        "gt_category": "dialog",
-        "gt_sample": "美团-首页-使用教程弹窗.jpg",
-        "reference_path": "data/gt-category/dialog/美团-首页-使用教程弹窗.jpg",
-        "instruction": "模拟操作响应延迟异常场景"
+        "anomaly_mode": "response_delay",
+        "instruction": "模拟操作响应延迟，注入点替换为前一帧副本，使连续两帧画面相同，模拟 UI 未响应"
       }
     }
   ]

@@ -55,7 +55,7 @@ class SequenceRewriter:
     # 不需要 GT 参考图的异常模式列表
     NO_GT_MODES = {
         'modify_text', 'modify_text_ai', 'modify_text_ocr', 'modify_text_e2e',
-        'text_overlay', 'area_loading', 'content_duplicate',
+        'text_overlay', 'area_loading', 'content_duplicate', 'response_delay',
     }
 
     def rewrite(
@@ -140,6 +140,87 @@ class SequenceRewriter:
             shutil.copy2(src, dst)
             modified_sequence.append(dst)
             print(f"  复制: {src.name} → {dst.name}")
+
+        # Step 1.5: 响应延迟特殊处理 — 不需要图像生成，插入前一帧副本使连续两帧相同
+        if anomaly_type_normalized == 'response_delay':
+            if injection_point < 1:
+                raise ValueError(
+                    f"响应延迟异常需要注入点 > 0（至少存在前一帧可复制），"
+                    f"当前注入点: {injection_point}"
+                )
+
+            # 将注入点及之后的所有帧后移一位，腾出插入位置
+            for i in range(len(original_screenshots) - 1, injection_point - 1, -1):
+                src_name = f"step_{i:02d}"
+                dst_name = f"step_{i + 1:02d}"
+                for ext in ['.jpg', '.jpeg', '.png', '.webp']:
+                    src_path = sequence_dir / f"{src_name}{ext}"
+                    if src_path.exists():
+                        dst_path = sequence_dir / f"{dst_name}{ext}"
+                        src_path.rename(dst_path)
+                        break
+
+            # 在注入点位置插入前一帧的副本（模拟 UI 未响应）
+            prev_src = original_screenshots[injection_point - 1]
+            delay_dst = sequence_dir / f"step_{injection_point:02d}_response_delay{prev_src.suffix}"
+            shutil.copy2(prev_src, delay_dst)
+
+            # 重建 modified_sequence（重新排序后的文件列表）
+            modified_sequence = sorted(
+                sequence_dir.glob("step_*.*"),
+                key=lambda p: p.name
+            )
+            anomaly_images = [delay_dst]
+            anomaly_sequence_paths = [delay_dst]
+
+            print(f"\n  ⏳ 响应延迟: 复制前一帧 {prev_src.name} → step_{injection_point:02d}")
+            print(f"  序列: [{', '.join(p.stem.replace('_response_delay', '') for p in modified_sequence)}]")
+
+            # Step 4: 保存元数据
+            metadata = {
+                "timestamp": timestamp,
+                "original_length": len(original_screenshots),
+                "modified_length": len(modified_sequence),
+                "injection_point": injection_point,
+                "anomaly_type": anomaly_type,
+                "anomaly_type_normalized": anomaly_type_normalized,
+                "gt_sample": gt_sample,
+                "instruction": instruction,
+                "inserted_steps": 1,
+                "anomaly_images_count": len(anomaly_images),
+                "original_screenshots": [str(p) for p in original_screenshots],
+                "modified_sequence": [str(p) for p in modified_sequence],
+                "anomaly_images": [str(p) for p in anomaly_sequence_paths],
+                "response_delay_source_step": injection_point - 1,
+            }
+
+            metadata_path = run_output_dir / "metadata.json"
+            with open(metadata_path, 'w', encoding='utf-8') as f:
+                json.dump(metadata, f, ensure_ascii=False, indent=2)
+
+            # Step 5: 保存决策日志
+            if decision_log:
+                log_path = run_output_dir / "decision_log.json"
+                with open(log_path, 'w', encoding='utf-8') as f:
+                    json.dump(decision_log, f, ensure_ascii=False, indent=2)
+
+            print(f"\n{'='*60}")
+            print(f"✓ 响应延迟注入完成")
+            print(f"  原始长度: {len(original_screenshots)}")
+            print(f"  改写后长度: {len(modified_sequence)}")
+            print(f"  注入点: Step {injection_point} (插入 Step {injection_point - 1} 的副本)")
+            print(f"  输出目录: {run_output_dir}")
+            print(f"{'='*60}\n")
+
+            return {
+                "success": True,
+                "output_path": run_output_dir,
+                "modified_sequence": modified_sequence,
+                "original_length": len(original_screenshots),
+                "modified_length": len(modified_sequence),
+                "anomaly_images": anomaly_sequence_paths,
+                "metadata": metadata
+            }
 
         # Step 2: 调用已有生成器生成异常截图
         base_screenshot = original_screenshots[injection_point]
@@ -376,6 +457,7 @@ class SequenceRewriter:
             "modify_text_ocr": "modify_text_ocr",
             "modify_text_e2e": "modify_text_e2e",
             "text_overlay": "text_overlay",
+            "response_delay": "response_delay",
         }
         return mode_mapping.get(anomaly_type, anomaly_type)
 
