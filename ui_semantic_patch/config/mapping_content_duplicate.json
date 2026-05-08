@@ -1,0 +1,52 @@
+{
+    "version":  "3.0",
+    "description":  "Query到异常注入参数的映射配置（根据人工审核修正：anomaly_mode对齐语义、删除冗余、修正reference_path） [按异常类型拆分: content_duplicate]",
+    "last_updated":  "2026-05-08",
+    "anomaly_type":  "content_duplicate",
+    "total_queries":  2,
+    "total_mappings":  3,
+    "app_distribution":  {
+                             "视频":  3
+                         },
+    "mappings":  [
+                     {
+                         "query":  "到华为(视频)下载我没有看完的电视剧历史的使命全集",
+                         "query_id":  "96167aa7-bf4f-46d7-9d7d-7444b673c59c",
+                         "app_name":  "视频",
+                         "example_dir":  "injection_demo_12",
+                         "fault_mode":  "多个选集数的信息",
+                         "fault_mode_key":  "mode_1",
+                         "injection_config":  {
+                                                  "anomaly_mode":  "content_duplicate",
+                                                  "gt_category":  "content_duplicate",
+                                                  "instruction":  "在选集页面复制已有选集按钮，制造多个重复选集入口导致内容歧义"
+                                              }
+                     },
+                     {
+                         "query":  "到华为(视频)下载我没有看完的电视剧历史的使命全集",
+                         "query_id":  "96167aa7-bf4f-46d7-9d7d-7444b673c59c",
+                         "app_name":  "视频",
+                         "example_dir":  "injection_demo_12",
+                         "fault_mode":  "选集显示混乱",
+                         "fault_mode_key":  "mode_2",
+                         "injection_config":  {
+                                                  "anomaly_mode":  "content_duplicate",
+                                                  "gt_category":  "content_duplicate",
+                                                  "instruction":  "复制选集面板中的部分选集条目，打乱原有的选集排列顺序，制造显示混乱"
+                                              }
+                     },
+                     {
+                         "query":  "到华为(视频)缓存电视剧三体最新一集",
+                         "query_id":  "f564a455-1834-4c40-a6cf-8dba277aea83",
+                         "app_name":  "视频",
+                         "example_dir":  "injection_demo_25",
+                         "fault_mode":  "多个集数标记为\"最新\"",
+                         "fault_mode_key":  "mode_1",
+                         "injection_config":  {
+                                                  "anomaly_mode":  "content_duplicate",
+                                                  "gt_category":  "content_duplicate",
+                                                  "instruction":  "在选集列表中将多个集数标记为「最新」，制造选集中重复最新标签导致内容歧义"
+                                              }
+                     }
+                 ]
+}

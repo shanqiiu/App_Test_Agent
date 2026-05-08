@@ -1,0 +1,62 @@
+{
+    "version":  "3.0",
+    "description":  "Query到异常注入参数的映射配置（根据人工审核修正：anomaly_mode对齐语义、删除冗余、修正reference_path） [按异常类型拆分: modify_text_ai]",
+    "last_updated":  "2026-05-08",
+    "anomaly_type":  "modify_text_ai",
+    "total_queries":  4,
+    "total_mappings":  4,
+    "app_distribution":  {
+                             "去哪儿旅行":  1,
+                             "视频":  3
+                         },
+    "mappings":  [
+                     {
+                         "query":  "(去哪儿旅行)购买一张从南京去北京的机票，后天18:00-21:00出发",
+                         "query_id":  "04a90dc3-5140-47d2-89ee-f31855483679",
+                         "app_name":  "去哪儿旅行",
+                         "example_dir":  "injection_demo_01",
+                         "fault_mode":  "订阅按钮置灰",
+                         "fault_mode_key":  "mode_1",
+                         "injection_config":  {
+                                                  "anomaly_mode":  "modify_text_ai",
+                                                  "instruction":  "将订阅按钮置灰，显示为不可点击状态"
+                                              }
+                     },
+                     {
+                         "query":  "去华为(视频)上下载电影误杀3",
+                         "query_id":  "3fcb65c1-1188-48f1-9462-b0ec00bcaf0e",
+                         "app_name":  "视频",
+                         "example_dir":  "injection_demo_06",
+                         "fault_mode":  "把\"误杀3\"改成\"误杀6\"",
+                         "fault_mode_key":  "mode_1",
+                         "injection_config":  {
+                                                  "anomaly_mode":  "modify_text_ai",
+                                                  "instruction":  "将页面中所有电影名称「误杀3」替换为「误杀6」，模拟内容名称篡改异常"
+                                              }
+                     },
+                     {
+                         "query":  "去华为(视频)上缓存下电影长津湖",
+                         "query_id":  "b95299b3-9867-4275-8454-592717d07239",
+                         "app_name":  "视频",
+                         "example_dir":  "injection_demo_15",
+                         "fault_mode":  "把\"长津湖\"改成\"常津湖\"",
+                         "fault_mode_key":  "mode_1",
+                         "injection_config":  {
+                                                  "anomaly_mode":  "modify_text_ai",
+                                                  "instruction":  "将页面中所有电影名称「长津湖」替换为「常津湖」，模拟名称篡改异常"
+                                              }
+                     },
+                     {
+                         "query":  "使用华为(视频)下载庆余年2",
+                         "query_id":  "d717fc15-ea13-40f4-98bb-82e87df411bc",
+                         "app_name":  "视频",
+                         "example_dir":  "injection_demo_23",
+                         "fault_mode":  "第4集开始置灰，无法勾选下载",
+                         "fault_mode_key":  "mode_1",
+                         "injection_config":  {
+                                                  "anomaly_mode":  "modify_text_ai",
+                                                  "instruction":  "将选集列表中从第4集开始的勾选框置灰，并修改对应文字颜色为灰色，模拟选集下载权限限制异常"
+                                              }
+                     }
+                 ]
+}

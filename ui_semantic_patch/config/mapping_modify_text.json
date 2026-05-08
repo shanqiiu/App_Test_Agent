@@ -1,0 +1,61 @@
+{
+    "version":  "3.0",
+    "description":  "Query到异常注入参数的映射配置（根据人工审核修正：anomaly_mode对齐语义、删除冗余、修正reference_path） [按异常类型拆分: modify_text]",
+    "last_updated":  "2026-05-08",
+    "anomaly_type":  "modify_text",
+    "total_queries":  2,
+    "total_mappings":  4,
+    "app_distribution":  {
+                             "去哪儿旅行":  4
+                         },
+    "mappings":  [
+                     {
+                         "query":  "到(去哪儿旅行)上订一张明天从北京去三亚的机票，价格要最最便宜的",
+                         "query_id":  "2d144335-c440-4c04-910f-3cc6653947a3",
+                         "app_name":  "去哪儿旅行",
+                         "example_dir":  "injection_demo_05",
+                         "fault_mode":  "增值服务总价更便宜",
+                         "fault_mode_key":  "mode_1",
+                         "injection_config":  {
+                                                  "anomaly_mode":  "modify_text",
+                                                  "instruction":  "修改机票搜索结果页面中的价格显示，使增值服务(含保险/行李)的总价低于裸票价，制造价格逻辑矛盾"
+                                              }
+                     },
+                     {
+                         "query":  "到(去哪儿旅行)上订一张明天从北京去三亚的机票，价格要最最便宜的",
+                         "query_id":  "2d144335-c440-4c04-910f-3cc6653947a3",
+                         "app_name":  "去哪儿旅行",
+                         "example_dir":  "injection_demo_05",
+                         "fault_mode":  "价格计算异常",
+                         "fault_mode_key":  "mode_2",
+                         "injection_config":  {
+                                                  "anomaly_mode":  "modify_text",
+                                                  "instruction":  "修改机票搜索结果的价格数字，使显示的票价与实际税费之和不一致，制造计算错误异常"
+                                              }
+                     },
+                     {
+                         "query":  "在(去哪儿旅行)上帮忙订一张从南京去重庆的机票，时间是3月26号的，选经济舱，最便宜的机票",
+                         "query_id":  "c6574643-a5ed-487c-a6e5-6b202067d47e",
+                         "app_name":  "去哪儿旅行",
+                         "example_dir":  "injection_demo_19",
+                         "fault_mode":  "商务舱比经济舱更便宜",
+                         "fault_mode_key":  "mode_1",
+                         "injection_config":  {
+                                                  "anomaly_mode":  "modify_text",
+                                                  "instruction":  "修改机票搜索结果中商务舱的价格数字，使其低于同一航班的经济舱价格，制造价格逻辑错误"
+                                              }
+                     },
+                     {
+                         "query":  "在(去哪儿旅行)上帮忙订一张从南京去重庆的机票，时间是3月26号的，选经济舱，最便宜的机票",
+                         "query_id":  "c6574643-a5ed-487c-a6e5-6b202067d47e",
+                         "app_name":  "去哪儿旅行",
+                         "example_dir":  "injection_demo_19",
+                         "fault_mode":  "价格逻辑错误",
+                         "fault_mode_key":  "mode_2",
+                         "injection_config":  {
+                                                  "anomaly_mode":  "modify_text",
+                                                  "instruction":  "修改机票搜索结果中的税费或附加费数字，使显示的总价与实际明细价格之和不一致"
+                                              }
+                     }
+                 ]
+}

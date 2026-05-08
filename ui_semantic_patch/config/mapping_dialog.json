@@ -1,0 +1,255 @@
+{
+    "version":  "3.0",
+    "description":  "Query到异常注入参数的映射配置（根据人工审核修正：anomaly_mode对齐语义、删除冗余、修正reference_path） [按异常类型拆分: dialog]",
+    "last_updated":  "2026-05-08",
+    "anomaly_type":  "dialog",
+    "total_queries":  16,
+    "total_mappings":  16,
+    "app_distribution":  {
+                             "铁路12306":  1,
+                             "去哪儿旅行":  3,
+                             "视频":  12
+                         },
+    "mappings":  [
+                     {
+                         "query":  "到(去哪儿旅行)买一张航空公司是东方航空的后天从南京到北京机票",
+                         "query_id":  "058aa114-8797-4383-82fb-beaa683dede5",
+                         "app_name":  "去哪儿旅行",
+                         "example_dir":  "injection_demo_02",
+                         "fault_mode":  "弹窗广告",
+                         "fault_mode_key":  "mode_1",
+                         "injection_config":  {
+                                                  "anomaly_mode":  "dialog",
+                                                  "gt_category":  "dialog",
+                                                  "gt_sample":  "去哪儿旅行-首页-位置权限弹窗.jpg",
+                                                  "reference_path":  "data/gt-category/dialog/去哪儿旅行-首页-位置权限弹窗.jpg",
+                                                  "instruction":  "生成首页广告弹窗遮挡功能入口"
+                                              }
+                     },
+                     {
+                         "query":  "去华为(视频)下载电视剧伏击第2集",
+                         "query_id":  "20eb2330-60a4-43aa-9161-4824af94ae3a",
+                         "app_name":  "视频",
+                         "example_dir":  "injection_demo_03",
+                         "fault_mode":  "弹窗广告",
+                         "fault_mode_key":  "mode_1",
+                         "injection_config":  {
+                                                  "anomaly_mode":  "dialog",
+                                                  "gt_category":  "dialog",
+                                                  "gt_sample":  "华为花粉俱乐部-首页-勋章奖励弹窗.jpg",
+                                                  "reference_path":  "data/gt-category/dialog/华为花粉俱乐部-首页-勋章奖励弹窗.jpg",
+                                                  "instruction":  "生成首页广告弹窗遮挡功能入口"
+                                              }
+                     },
+                     {
+                         "query":  "去搜下下周六上海虹桥到深圳宝安的机票在(去哪儿旅行)上",
+                         "query_id":  "25aaa0d3-dcc2-4c6d-9076-7b2ce90889dc",
+                         "app_name":  "去哪儿旅行",
+                         "example_dir":  "injection_demo_04",
+                         "fault_mode":  "弹窗广告",
+                         "fault_mode_key":  "mode_1",
+                         "injection_config":  {
+                                                  "anomaly_mode":  "dialog",
+                                                  "gt_category":  "dialog",
+                                                  "gt_sample":  "去哪儿旅行-首页-位置权限弹窗.jpg",
+                                                  "reference_path":  "data/gt-category/dialog/去哪儿旅行-首页-位置权限弹窗.jpg",
+                                                  "instruction":  "生成首页广告弹窗遮挡功能入口"
+                                              }
+                     },
+                     {
+                         "query":  "华为(视频)把电影重生缓存下",
+                         "query_id":  "4047f7cc-41da-4998-b1c1-75f2a91d2a7c",
+                         "app_name":  "视频",
+                         "example_dir":  "injection_demo_07",
+                         "fault_mode":  "弹窗广告",
+                         "fault_mode_key":  "mode_1",
+                         "injection_config":  {
+                                                  "anomaly_mode":  "dialog",
+                                                  "gt_category":  "dialog",
+                                                  "gt_sample":  "携程旅行-首页-推广弹窗.jpg",
+                                                  "reference_path":  "data/gt-category/dialog/携程旅行-首页-推广弹窗.jpg",
+                                                  "instruction":  "生成首页广告弹窗遮挡功能入口"
+                                              }
+                     },
+                     {
+                         "query":  "华为(视频)下载大鹏主演的长安的荔枝",
+                         "query_id":  "49f3273c-8cab-4c4b-b438-4920d3d31a43",
+                         "app_name":  "视频",
+                         "example_dir":  "injection_demo_08",
+                         "fault_mode":  "广告遮挡界面",
+                         "fault_mode_key":  "mode_1",
+                         "injection_config":  {
+                                                  "anomaly_mode":  "dialog",
+                                                  "gt_category":  "dialog",
+                                                  "gt_sample":  "携程旅行-首页-推广弹窗.jpg",
+                                                  "reference_path":  "data/gt-category/dialog/携程旅行-首页-推广弹窗.jpg",
+                                                  "instruction":  "在下载页面生成广告弹窗遮挡下载入口"
+                                              }
+                     },
+                     {
+                         "query":  "下载谈判官第16集在华为(视频)上",
+                         "query_id":  "52830461-5902-4cf5-90ee-5581e839dd55",
+                         "app_name":  "视频",
+                         "example_dir":  "injection_demo_09",
+                         "fault_mode":  "弹窗广告",
+                         "fault_mode_key":  "mode_1",
+                         "injection_config":  {
+                                                  "anomaly_mode":  "dialog",
+                                                  "gt_category":  "dialog",
+                                                  "gt_sample":  "华为花粉俱乐部-首页-勋章奖励弹窗.jpg",
+                                                  "reference_path":  "data/gt-category/dialog/华为花粉俱乐部-首页-勋章奖励弹窗.jpg",
+                                                  "instruction":  "生成首页广告弹窗遮挡功能入口"
+                                              }
+                     },
+                     {
+                         "query":  "(去哪儿旅行)上购买一张去西安的机票",
+                         "query_id":  "a1a3ba62-a30f-4ddc-b8ad-5c3d10b7393e",
+                         "app_name":  "去哪儿旅行",
+                         "example_dir":  "injection_demo_13",
+                         "fault_mode":  "弹窗广告",
+                         "fault_mode_key":  "mode_1",
+                         "injection_config":  {
+                                                  "anomaly_mode":  "dialog",
+                                                  "gt_category":  "dialog",
+                                                  "gt_sample":  "去哪儿旅行-首页-位置权限弹窗.jpg",
+                                                  "reference_path":  "data/gt-category/dialog/去哪儿旅行-首页-位置权限弹窗.jpg",
+                                                  "instruction":  "生成首页广告弹窗遮挡功能入口"
+                                              }
+                     },
+                     {
+                         "query":  "使用华为(视频)下载平凡的世界全集",
+                         "query_id":  "a418786c-8a8b-404b-8dc9-449f2c8518ba",
+                         "app_name":  "视频",
+                         "example_dir":  "injection_demo_14",
+                         "fault_mode":  "弹窗广告",
+                         "fault_mode_key":  "mode_1",
+                         "injection_config":  {
+                                                  "anomaly_mode":  "dialog",
+                                                  "gt_category":  "dialog",
+                                                  "gt_sample":  "华为花粉俱乐部-首页-勋章奖励弹窗.jpg",
+                                                  "reference_path":  "data/gt-category/dialog/华为花粉俱乐部-首页-勋章奖励弹窗.jpg",
+                                                  "instruction":  "生成首页广告弹窗遮挡功能入口"
+                                              }
+                     },
+                     {
+                         "query":  "在华为(视频)上下载你好生活第三集的第一期",
+                         "query_id":  "bb09ae49-7490-41eb-a3a6-27ead043e298",
+                         "app_name":  "视频",
+                         "example_dir":  "injection_demo_16",
+                         "fault_mode":  "弹窗广告",
+                         "fault_mode_key":  "mode_1",
+                         "injection_config":  {
+                                                  "anomaly_mode":  "dialog",
+                                                  "gt_category":  "dialog",
+                                                  "gt_sample":  "华为花粉俱乐部-首页-勋章奖励弹窗.jpg",
+                                                  "reference_path":  "data/gt-category/dialog/华为花粉俱乐部-首页-勋章奖励弹窗.jpg",
+                                                  "instruction":  "生成首页广告弹窗遮挡功能入口"
+                                              }
+                     },
+                     {
+                         "query":  "华为(视频)缓存我的三个母亲第3集",
+                         "query_id":  "bc0bb49f-5ff1-4b13-aecd-41e2686eec5c",
+                         "app_name":  "视频",
+                         "example_dir":  "injection_demo_17",
+                         "fault_mode":  "弹窗广告",
+                         "fault_mode_key":  "mode_1",
+                         "injection_config":  {
+                                                  "anomaly_mode":  "dialog",
+                                                  "gt_category":  "dialog",
+                                                  "gt_sample":  "华为花粉俱乐部-首页-勋章奖励弹窗.jpg",
+                                                  "reference_path":  "data/gt-category/dialog/华为花粉俱乐部-首页-勋章奖励弹窗.jpg",
+                                                  "instruction":  "生成首页广告弹窗遮挡功能入口"
+                                              }
+                     },
+                     {
+                         "query":  "去华为(视频)上下载电视剧伏击第1集",
+                         "query_id":  "be2421d0-f04d-4b0d-b21d-28b7ab05c035",
+                         "app_name":  "视频",
+                         "example_dir":  "injection_demo_18",
+                         "fault_mode":  "弹窗广告",
+                         "fault_mode_key":  "mode_1",
+                         "injection_config":  {
+                                                  "anomaly_mode":  "dialog",
+                                                  "gt_category":  "dialog",
+                                                  "gt_sample":  "华为花粉俱乐部-首页-勋章奖励弹窗.jpg",
+                                                  "reference_path":  "data/gt-category/dialog/华为花粉俱乐部-首页-勋章奖励弹窗.jpg",
+                                                  "instruction":  "生成首页广告弹窗遮挡功能入口"
+                                              }
+                     },
+                     {
+                         "query":  "(铁路12306)申请乘车证明",
+                         "query_id":  "c8756129-6ee2-473b-8a46-c8fc88173970",
+                         "app_name":  "铁路12306",
+                         "example_dir":  "injection_demo_20",
+                         "fault_mode":  "系统提示弹窗",
+                         "fault_mode_key":  "mode_1",
+                         "injection_config":  {
+                                                  "anomaly_mode":  "dialog",
+                                                  "gt_category":  "dialog",
+                                                  "gt_sample":  "铁路12306-首页-通知权限弹窗.jpg",
+                                                  "reference_path":  "data/gt-category/dialog/铁路12306-首页-通知权限弹窗.jpg",
+                                                  "instruction":  "生成系统提示弹窗告知服务不可用"
+                                              }
+                     },
+                     {
+                         "query":  "到华为(视频)缓存蜡笔小新第八季",
+                         "query_id":  "d51d41d0-460c-4937-b4db-117d8e49aa9c",
+                         "app_name":  "视频",
+                         "example_dir":  "injection_demo_21",
+                         "fault_mode":  "弹窗广告",
+                         "fault_mode_key":  "mode_1",
+                         "injection_config":  {
+                                                  "anomaly_mode":  "dialog",
+                                                  "gt_category":  "dialog",
+                                                  "gt_sample":  "华为花粉俱乐部-首页-勋章奖励弹窗.jpg",
+                                                  "reference_path":  "data/gt-category/dialog/华为花粉俱乐部-首页-勋章奖励弹窗.jpg",
+                                                  "instruction":  "生成首页广告弹窗遮挡功能入口"
+                                              }
+                     },
+                     {
+                         "query":  "去华为(视频)缓存电影绿皮书",
+                         "query_id":  "d61ecd58-f16e-428f-8b14-e5d3b0d1cac7",
+                         "app_name":  "视频",
+                         "example_dir":  "injection_demo_22",
+                         "fault_mode":  "弹窗广告",
+                         "fault_mode_key":  "mode_1",
+                         "injection_config":  {
+                                                  "anomaly_mode":  "dialog",
+                                                  "gt_category":  "dialog",
+                                                  "gt_sample":  "华为花粉俱乐部-首页-勋章奖励弹窗.jpg",
+                                                  "reference_path":  "data/gt-category/dialog/华为花粉俱乐部-首页-勋章奖励弹窗.jpg",
+                                                  "instruction":  "生成首页广告弹窗遮挡功能入口"
+                                              }
+                     },
+                     {
+                         "query":  "使用华为(视频)下载庆余年2",
+                         "query_id":  "d717fc15-ea13-40f4-98bb-82e87df411bc",
+                         "app_name":  "视频",
+                         "example_dir":  "injection_demo_23",
+                         "fault_mode":  "权限限制",
+                         "fault_mode_key":  "mode_2",
+                         "injection_config":  {
+                                                  "anomaly_mode":  "dialog",
+                                                  "gt_category":  "dialog",
+                                                  "gt_sample":  "去哪儿旅行-首页-位置权限弹窗.jpg",
+                                                  "reference_path":  "data/gt-category/dialog/去哪儿旅行-首页-位置权限弹窗.jpg",
+                                                  "instruction":  "生成权限限制弹窗，提示用户需要特定权限才能下载"
+                                              }
+                     },
+                     {
+                         "query":  "去华为(视频)下载电影家有喜事",
+                         "query_id":  "e0913249-0cb7-47b7-ae72-1ccbee95ecbe",
+                         "app_name":  "视频",
+                         "example_dir":  "injection_demo_24",
+                         "fault_mode":  "弹窗广告",
+                         "fault_mode_key":  "mode_1",
+                         "injection_config":  {
+                                                  "anomaly_mode":  "dialog",
+                                                  "gt_category":  "dialog",
+                                                  "gt_sample":  "华为花粉俱乐部-首页-勋章奖励弹窗.jpg",
+                                                  "reference_path":  "data/gt-category/dialog/华为花粉俱乐部-首页-勋章奖励弹窗.jpg",
+                                                  "instruction":  "生成首页广告弹窗遮挡功能入口"
+                                              }
+                     }
+                 ]
+}

@@ -1,0 +1,145 @@
+{
+    "version":  "3.0",
+    "description":  "Query到异常注入参数的映射配置（根据人工审核修正：anomaly_mode对齐语义、删除冗余、修正reference_path） [按异常类型拆分: text_overlay]",
+    "last_updated":  "2026-05-08",
+    "anomaly_type":  "text_overlay",
+    "total_queries":  11,
+    "total_mappings":  11,
+    "app_distribution":  {
+                             "视频":  11
+                         },
+    "mappings":  [
+                     {
+                         "query":  "去华为(视频)下载电视剧伏击第2集",
+                         "query_id":  "20eb2330-60a4-43aa-9161-4824af94ae3a",
+                         "app_name":  "视频",
+                         "example_dir":  "injection_demo_03",
+                         "fault_mode":  "下载按钮遮挡",
+                         "fault_mode_key":  "mode_2",
+                         "injection_config":  {
+                                                  "anomaly_mode":  "text_overlay",
+                                                  "instruction":  "在下载按钮区域生成遮挡元素，阻止用户点击下载"
+                                              }
+                     },
+                     {
+                         "query":  "下载谈判官第16集在华为(视频)上",
+                         "query_id":  "52830461-5902-4cf5-90ee-5581e839dd55",
+                         "app_name":  "视频",
+                         "example_dir":  "injection_demo_09",
+                         "fault_mode":  "下载按钮遮挡",
+                         "fault_mode_key":  "mode_2",
+                         "injection_config":  {
+                                                  "anomaly_mode":  "text_overlay",
+                                                  "instruction":  "在下载页面用横幅或浮层遮盖下载按钮区域，阻止用户点击下载"
+                                              }
+                     },
+                     {
+                         "query":  "到华为(视频)上下载电影干柴烈火",
+                         "query_id":  "71ba06e9-f88b-47ac-89fb-f0beac30e761",
+                         "app_name":  "视频",
+                         "example_dir":  "injection_demo_10",
+                         "fault_mode":  "下载按钮遮挡",
+                         "fault_mode_key":  "mode_2",
+                         "injection_config":  {
+                                                  "anomaly_mode":  "text_overlay",
+                                                  "instruction":  "在下载按钮区域生成遮挡元素，阻止用户点击下载"
+                                              }
+                     },
+                     {
+                         "query":  "到华为(视频)下载电视剧老酒馆全集",
+                         "query_id":  "776ffb90-c68d-454a-9c2a-40a5acc86aeb",
+                         "app_name":  "视频",
+                         "example_dir":  "injection_demo_11",
+                         "fault_mode":  "下载按钮遮挡",
+                         "fault_mode_key":  "mode_1",
+                         "injection_config":  {
+                                                  "anomaly_mode":  "text_overlay",
+                                                  "instruction":  "用浮层或横幅遮盖下载按钮区域，阻止下载操作"
+                                              }
+                     },
+                     {
+                         "query":  "使用华为(视频)下载平凡的世界全集",
+                         "query_id":  "a418786c-8a8b-404b-8dc9-449f2c8518ba",
+                         "app_name":  "视频",
+                         "example_dir":  "injection_demo_14",
+                         "fault_mode":  "下载按钮遮挡",
+                         "fault_mode_key":  "mode_2",
+                         "injection_config":  {
+                                                  "anomaly_mode":  "text_overlay",
+                                                  "instruction":  "在下载按钮区域生成遮挡元素，阻止用户点击下载"
+                                              }
+                     },
+                     {
+                         "query":  "在华为(视频)上下载你好生活第三集的第一期",
+                         "query_id":  "bb09ae49-7490-41eb-a3a6-27ead043e298",
+                         "app_name":  "视频",
+                         "example_dir":  "injection_demo_16",
+                         "fault_mode":  "下载按钮遮挡",
+                         "fault_mode_key":  "mode_2",
+                         "injection_config":  {
+                                                  "anomaly_mode":  "text_overlay",
+                                                  "instruction":  "在下载按钮区域生成遮挡元素，阻止用户点击下载"
+                                              }
+                     },
+                     {
+                         "query":  "华为(视频)缓存我的三个母亲第3集",
+                         "query_id":  "bc0bb49f-5ff1-4b13-aecd-41e2686eec5c",
+                         "app_name":  "视频",
+                         "example_dir":  "injection_demo_17",
+                         "fault_mode":  "下载按钮遮挡",
+                         "fault_mode_key":  "mode_2",
+                         "injection_config":  {
+                                                  "anomaly_mode":  "text_overlay",
+                                                  "instruction":  "在下载按钮区域生成遮挡元素，阻止用户点击下载"
+                                              }
+                     },
+                     {
+                         "query":  "去华为(视频)上下载电视剧伏击第1集",
+                         "query_id":  "be2421d0-f04d-4b0d-b21d-28b7ab05c035",
+                         "app_name":  "视频",
+                         "example_dir":  "injection_demo_18",
+                         "fault_mode":  "下载按钮遮挡",
+                         "fault_mode_key":  "mode_2",
+                         "injection_config":  {
+                                                  "anomaly_mode":  "text_overlay",
+                                                  "instruction":  "在下载按钮区域生成遮挡元素，阻止用户点击下载"
+                                              }
+                     },
+                     {
+                         "query":  "到华为(视频)缓存蜡笔小新第八季",
+                         "query_id":  "d51d41d0-460c-4937-b4db-117d8e49aa9c",
+                         "app_name":  "视频",
+                         "example_dir":  "injection_demo_21",
+                         "fault_mode":  "下载按钮遮挡",
+                         "fault_mode_key":  "mode_2",
+                         "injection_config":  {
+                                                  "anomaly_mode":  "text_overlay",
+                                                  "instruction":  "在下载按钮区域生成遮挡元素，阻止用户点击下载"
+                                              }
+                     },
+                     {
+                         "query":  "去华为(视频)缓存电影绿皮书",
+                         "query_id":  "d61ecd58-f16e-428f-8b14-e5d3b0d1cac7",
+                         "app_name":  "视频",
+                         "example_dir":  "injection_demo_22",
+                         "fault_mode":  "下载按钮遮挡",
+                         "fault_mode_key":  "mode_2",
+                         "injection_config":  {
+                                                  "anomaly_mode":  "text_overlay",
+                                                  "instruction":  "在下载按钮区域生成遮挡元素，阻止用户点击下载"
+                                              }
+                     },
+                     {
+                         "query":  "去华为(视频)下载电影家有喜事",
+                         "query_id":  "e0913249-0cb7-47b7-ae72-1ccbee95ecbe",
+                         "app_name":  "视频",
+                         "example_dir":  "injection_demo_24",
+                         "fault_mode":  "下载按钮遮挡",
+                         "fault_mode_key":  "mode_2",
+                         "injection_config":  {
+                                                  "anomaly_mode":  "text_overlay",
+                                                  "instruction":  "在下载按钮区域生成遮挡元素，阻止用户点击下载"
+                                              }
+                     }
+                 ]
+}

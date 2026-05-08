@@ -1,0 +1,28 @@
+{
+    "version":  "3.0",
+    "description":  "Query到异常注入参数的映射配置（根据人工审核修正：anomaly_mode对齐语义、删除冗余、修正reference_path） [按异常类型拆分: area_loading]",
+    "last_updated":  "2026-05-08",
+    "anomaly_type":  "area_loading",
+    "total_queries":  1,
+    "total_mappings":  1,
+    "app_distribution":  {
+                             "铁路12306":  1
+                         },
+    "mappings":  [
+                     {
+                         "query":  "(铁路12306)申请乘车证明",
+                         "query_id":  "c8756129-6ee2-473b-8a46-c8fc88173970",
+                         "app_name":  "铁路12306",
+                         "example_dir":  "injection_demo_20",
+                         "fault_mode":  "加载超时",
+                         "fault_mode_key":  "mode_2",
+                         "injection_config":  {
+                                                  "anomaly_mode":  "area_loading",
+                                                  "gt_category":  "area_loading",
+                                                  "gt_sample":  "哔哩哔哩-北大官方账号页-排序下拉菜单.jpg",
+                                                  "reference_path":  "data/gt-category/area_loading/哔哩哔哩-北大官方账号页-排序下拉菜单.jpg",
+                                                  "instruction":  "模拟页面加载超时异常，显示加载失败或超时状态，而非弹出弹窗"
+                                              }
+                     }
+                 ]
+}

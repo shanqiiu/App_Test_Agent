@@ -1,0 +1,49 @@
+{
+    "version":  "3.0",
+    "description":  "Query到异常注入参数的映射配置（根据人工审核修正：anomaly_mode对齐语义、删除冗余、修正reference_path） [按异常类型拆分: response_delay]",
+    "last_updated":  "2026-05-08",
+    "anomaly_type":  "response_delay",
+    "total_queries":  3,
+    "total_mappings":  3,
+    "app_distribution":  {
+                             "视频":  3
+                         },
+    "mappings":  [
+                     {
+                         "query":  "去华为(视频)上下载电影误杀3",
+                         "query_id":  "3fcb65c1-1188-48f1-9462-b0ec00bcaf0e",
+                         "app_name":  "视频",
+                         "example_dir":  "injection_demo_06",
+                         "fault_mode":  "操作响应延迟",
+                         "fault_mode_key":  "mode_2",
+                         "injection_config":  {
+                                                  "anomaly_mode":  "response_delay",
+                                                  "instruction":  "模拟操作响应延迟，注入点替换为前一帧副本，使连续两帧画面相同，模拟 UI 未响应"
+                                              }
+                     },
+                     {
+                         "query":  "去华为(视频)上缓存下电影长津湖",
+                         "query_id":  "b95299b3-9867-4275-8454-592717d07239",
+                         "app_name":  "视频",
+                         "example_dir":  "injection_demo_15",
+                         "fault_mode":  "操作响应延迟",
+                         "fault_mode_key":  "mode_2",
+                         "injection_config":  {
+                                                  "anomaly_mode":  "response_delay",
+                                                  "instruction":  "模拟操作响应延迟，注入点替换为前一帧副本，使连续两帧画面相同，模拟 UI 未响应"
+                                              }
+                     },
+                     {
+                         "query":  "到华为(视频)缓存电视剧三体最新一集",
+                         "query_id":  "f564a455-1834-4c40-a6cf-8dba277aea83",
+                         "app_name":  "视频",
+                         "example_dir":  "injection_demo_25",
+                         "fault_mode":  "操作响应延迟",
+                         "fault_mode_key":  "mode_2",
+                         "injection_config":  {
+                                                  "anomaly_mode":  "response_delay",
+                                                  "instruction":  "模拟操作响应延迟，注入点替换为前一帧副本，使连续两帧画面相同，模拟 UI 未响应"
+                                              }
+                     }
+                 ]
+}
