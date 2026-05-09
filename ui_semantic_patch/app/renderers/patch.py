@@ -345,19 +345,23 @@ class PatchRenderer(BaseRenderer):
         result_img.paste(dialog_img, (pos_x, pos_y), dialog_img)
 
         # 判断是否需要绘制关闭按钮
-        # 系统级弹窗（权限请求、系统提示、强制通知等）不应有关闭按钮
+        # 系统级弹窗不应有关闭按钮。判断优先级：
+        #   1. meta.json 显式标记 close_button_position=none → 不画
+        #   2. instruction 含系统/权限关键词 → 不画
+        #   3. meta.json force_close_button=true → 强制画（覆盖以上）
+        close_button_pos = meta_features.get('close_button_position', 'none')
+        close_button_style = meta_features.get('close_button_style', 'gray_circle_x')
+
         _no_close_keywords = ['权限', '系统提示', '系统通知', '强制', '必须', 'permission', 'mandatory', 'system prompt']
-        _no_close = any(kw in instruction for kw in _no_close_keywords)
+        _no_close = (close_button_pos == 'none') or any(kw in instruction for kw in _no_close_keywords)
         if meta_features.get('disable_close_button', False):
             _no_close = True
         if meta_features.get('force_close_button', False):
             _no_close = False
 
-        close_button_pos = meta_features.get('close_button_position', 'none')
-        close_button_style = meta_features.get('close_button_style', 'gray_circle_x')
-
         if _no_close:
-            print(f"  ⏭ 系统级弹窗（权限/系统提示），跳过关闭按钮绘制")
+            _no_close_reason = 'meta_none' if (close_button_pos == 'none' and not meta_features.get('force_close_button', False)) else 'system_dialog'
+            print(f"  ⏭ 跳过关闭按钮绘制 (reason={_no_close_reason})")
             close_btn_bbox = None
         else:
             if close_button_pos == 'none':
@@ -405,7 +409,7 @@ class PatchRenderer(BaseRenderer):
         render_info = {
             'close_button': close_btn_bbox,
             'close_button_drawn': close_btn_bbox is not None,
-            'close_button_skipped_reason': 'system_dialog' if _no_close else None,
+            'close_button_skipped_reason': _no_close_reason if _no_close else None,
             'dialog_bounds': {
                 'x': pos_x,
                 'y': pos_y,
