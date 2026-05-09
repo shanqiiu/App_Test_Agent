@@ -160,36 +160,44 @@ class PageClassifier:
 
         self._cache = {}  # 缓存分类结果 key=screenshot_path
 
-    def classify(self, screenshot_path: str, use_cache: bool = True) -> dict:
+    def classify(self, screenshot_path: str, use_cache: bool = True,
+                 prev_page_info: dict = None, step_context: str = "") -> dict:
         """
-        对截图进行页面类型分类
+        对截图进行页面类型分类（支持序列上下文）
 
         Args:
             screenshot_path: 截图文件路径
-            use_cache: 是否使用缓存（同一截图不重复调用 VLM）
+            use_cache: 是否使用缓存（有上下文时不缓存，因为同一帧在不同上下文可能判断不同）
+            prev_page_info: 前一帧的分类结果，用于序列上下文感知
+            step_context: 序列位置描述，如 "第3/8步"
 
         Returns:
             {
                 "app_category": "travel/video/music/sports/social/delivery",
-                "page_type": "travel_route_list/...",  # 类别内页面类型
-                "key_elements": [...],   # 关键元素列表
-                "user_waiting": bool,    # 用户是否在等待
-                "reasoning": "str",      # 判断理由
+                "page_type": "travel_route_list/...",
+                "key_elements": [...],
+                "user_waiting": bool,
+                "reasoning": "str",
+                "content_features": {...},
+                "raw_response": "str"
+            }
                 "raw_response": "str"    # VLM 原始响应（调试用）
             }
         """
         screenshot_path = str(Path(screenshot_path).resolve())
 
-        # 缓存命中
-        if use_cache and screenshot_path in self._cache:
+        # 有上下文时不使用缓存（同一帧在不同序列位置可能判断不同）
+        has_context = bool(prev_page_info or step_context)
+        if use_cache and not has_context and screenshot_path in self._cache:
             cached = self._cache[screenshot_path]
             print(f"  [分类器] 缓存命中: {Path(screenshot_path).name} → {cached.get('app_category', '?')}/{cached.get('page_type', '?')}")
             return cached
 
-        print(f"  [分类器] 分析页面: {Path(screenshot_path).name}")
+        context_label = f" [{step_context}]" if step_context else ""
+        print(f"  [分类器] 分析页面: {Path(screenshot_path).name}{context_label}")
 
-        # 调用 VLM
-        raw_response = self._call_vlm(screenshot_path)
+        # 调用 VLM（注入序列上下文）
+        raw_response = self._call_vlm(screenshot_path, prev_page_info, step_context)
 
         # 解析
         result = self._parse_response(raw_response)
@@ -204,8 +212,9 @@ class PageClassifier:
 
         return result
 
-    def _call_vlm(self, image_path: str, max_retries: int = 3) -> str:
-        """调用 VLM API"""
+    def _call_vlm(self, image_path: str, prev_page_info: dict = None,
+                   step_context: str = "", max_retries: int = 3) -> str:
+        """调用 VLM API（支持序列上下文注入）"""
         headers = {
             'Content-Type': 'application/json',
             'Authorization': f'Bearer {self.api_key}'
@@ -219,6 +228,22 @@ class PageClassifier:
         ext = Path(image_path).suffix.lower()
         mime_map = {'.png': 'image/png', '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg', '.webp': 'image/webp'}
         mime_type = mime_map.get(ext, 'image/png')
+
+        # 构建带序列上下文的 prompt
+        prompt_text = VLM_CLASSIFICATION_PROMPT
+        if prev_page_info or step_context:
+            context_lines = ["\n## 序列上下文（当前截图在操作序列中的位置）"]
+            if step_context:
+                context_lines.append(f"- 当前是序列的第 {step_context}")
+            if prev_page_info:
+                prev_cat = prev_page_info.get("app_category", "?")
+                prev_page = prev_page_info.get("page_type", "?")
+                prev_reason = prev_page_info.get("reasoning", "")
+                context_lines.append(f"- 上一帧页面类型: {prev_cat}/{prev_page}")
+                if prev_reason:
+                    context_lines.append(f"- 上一帧分析: {prev_reason}")
+            context_lines.append("- 请结合序列位置判断当前页面的实际类型（刚切换过来的新页面 vs 停留在原页面）")
+            prompt_text += "\n" + "\n".join(context_lines)
 
         payload = {
             "model": self.model,
@@ -234,7 +259,7 @@ class PageClassifier:
                         },
                         {
                             "type": "text",
-                            "text": VLM_CLASSIFICATION_PROMPT
+                            "text": prompt_text
                         }
                     ]
                 }

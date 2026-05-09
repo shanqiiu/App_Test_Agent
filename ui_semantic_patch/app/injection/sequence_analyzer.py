@@ -103,8 +103,25 @@ class SequenceAnalyzer:
             self._record_step(screenshot_path, step_index, result)
             return result
 
-        # ===== Step 1: VLM 页面分类（v2 两级） =====
-        page_info = self.classifier.classify(str(screenshot_path))
+        # ===== Step 1: VLM 页面分类（v2 两级 + 序列上下文） =====
+        # 获取上一帧的分类结果，作为序列上下文传递给 VLM
+        prev_records = self.history_manager.get_recent_records()
+        prev_info = None
+        if prev_records:
+            last = prev_records[-1]
+            if last.conclusion:
+                prev_info = {
+                    "app_category": last.app_category or "",
+                    "page_type": last.conclusion,
+                    "reasoning": last.think,
+                }
+        step_ctx = f"{step_index + 1}/{total_steps}步"
+
+        page_info = self.classifier.classify(
+            str(screenshot_path),
+            prev_page_info=prev_info,
+            step_context=step_ctx,
+        )
         app_category = page_info.get("app_category", "")
         page_type = page_info.get("page_type", "travel_loading")
         key_elements = page_info.get("key_elements", [])
