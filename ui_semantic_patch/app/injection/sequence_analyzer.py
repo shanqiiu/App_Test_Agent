@@ -140,6 +140,19 @@ class SequenceAnalyzer:
         if best_rule:
             # ===== Step 2.5: 内容验证（精准匹配门禁） =====
             content_ok, content_reason = self._verify_content(page_info, best_rule)
+
+            # 无内容需求的规则（dialog/area_loading/response_delay）：
+            # 仅当已遍历序列后半段或 VLM 确认等待态时才允许注入，
+            # 优先让路给有内容需求的规则（modify_text 等）
+            has_content_req = bool(best_rule.get("content_requirements"))
+            is_late_stage = step_index >= total_steps // 2
+            if not content_ok:
+                pass  # 内容不满足 → 走 SKIP 分支
+            elif not has_content_req and not is_late_stage and not user_waiting:
+                # dialog 类规则在序列前半段且非等待态 → 暂不注入，让路给精准规则
+                content_ok = False
+                content_reason = f"无内容需求的规则({best_rule.get('fault_mode','')})在序列前半段暂不注入，等待精准规则匹配"
+
             if not content_ok:
                 result = {
                     "decision": "SKIP",
