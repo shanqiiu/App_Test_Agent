@@ -1,0 +1,36 @@
+{
+  "uuid": "demo-02-query-001",
+  "close_button": {
+    "x": 586,
+    "y": 2771,
+    "width": 50,
+    "height": 50,
+    "position": "bottom-center"
+  },
+  "dialog_bounds": {
+    "x": 12,
+    "y": 2590,
+    "width": 1199,
+    "height": 166
+  },
+  "screen_size": {
+    "width": 1224,
+    "height": 2776
+  },
+  "instruction": "模拟需要会员登录的权限弹窗",
+  "gt_sample": "瑞幸咖啡-点餐页面-浮动优惠横幅.jpg",
+  "screenshot_source": "D:\\workspace\\projects\\activate\\App_Test_Agent\\ui_semantic_patch\\scripts\\outputs\\injection_demo_02_mode_2\\injection_20260506_143807\\anomaly_generated\\final_20260506_143935.png",
+  "pipeline_meta_source": "D:\\workspace\\projects\\activate\\App_Test_Agent\\ui_semantic_patch\\scripts\\outputs\\injection_demo_02_mode_2\\injection_20260506_143807\\anomaly_generated\\03_pipeline_meta_20260506_143809.json",
+  "pipeline_timestamp": "20260506_143809",
+  "position_method": "fallback",
+  "injection_folder": "injection_20260506_143807",
+  "query": "在(瑞幸咖啡)购买一杯{product}，选择{store_preference}取餐",
+  "app_name": "瑞幸咖啡",
+  "fault_mode": "会员登录弹窗",
+  "fault_mode_key": "mode_2",
+  "query_id": "demo-02-query-001",
+  "anomaly_instruction": "模拟需要会员登录的权限弹窗",
+  "anomaly_mode": "dialog",
+  "matched_rule_id": "search_result_empty",
+  "injection_point": 2
+}

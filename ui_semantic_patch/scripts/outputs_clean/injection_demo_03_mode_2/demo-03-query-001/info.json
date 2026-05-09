@@ -1,0 +1,36 @@
+{
+  "uuid": "demo-03-query-001",
+  "close_button": {
+    "x": 974,
+    "y": 936,
+    "width": 50,
+    "height": 50,
+    "position": "top-right"
+  },
+  "dialog_bounds": {
+    "x": 225,
+    "y": 961,
+    "width": 774,
+    "height": 854
+  },
+  "screen_size": {
+    "width": 1224,
+    "height": 2776
+  },
+  "instruction": "生成首页广告弹窗遮挡功能入口",
+  "gt_sample": "携程旅行-首页-推广弹窗.jpg",
+  "screenshot_source": "D:\\workspace\\projects\\activate\\App_Test_Agent\\ui_semantic_patch\\scripts\\outputs\\injection_demo_03_mode_2\\injection_20260506_143942\\anomaly_generated\\final_20260506_144112.png",
+  "pipeline_meta_source": "D:\\workspace\\projects\\activate\\App_Test_Agent\\ui_semantic_patch\\scripts\\outputs\\injection_demo_03_mode_2\\injection_20260506_143942\\anomaly_generated\\03_pipeline_meta_20260506_143944.json",
+  "pipeline_timestamp": "20260506_143944",
+  "position_method": "fallback",
+  "injection_folder": "injection_20260506_143942",
+  "query": "进入(去哪儿旅行)预订从{origin}到{destination}的机票，出发日期为{departure_date}",
+  "app_name": "去哪儿旅行",
+  "fault_mode": "广告弹窗遮挡",
+  "fault_mode_key": "mode_2",
+  "query_id": "demo-03-query-001",
+  "anomaly_instruction": "生成首页广告弹窗遮挡功能入口",
+  "anomaly_mode": "dialog",
+  "matched_rule_id": "splash_dialog_ad",
+  "injection_point": 2
+}
