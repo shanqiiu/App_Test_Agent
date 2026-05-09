@@ -253,6 +253,12 @@ class TextOverlayRenderer(BaseRenderer):
                 ('按钮' in instruction and ('灰' in instruction or '禁用' in instruction or '不可点击' in instruction))
                 or ('button' in instruction_lower and ('gray' in instruction_lower or 'grey' in instruction_lower or 'disable' in instruction_lower))
             )
+            # 内容名篡改类指令（"误杀3→误杀6"、"长津湖→常津湖"）走 OCR+PIL，
+            # AI 图像编辑裁切范围过大且语义合并后定位不准
+            is_text_tamper = any(kw in instruction for kw in ('改成', '改为', '替换为', '→', '->'))
+            if is_text_tamper:
+                print("  ℹ modify_text_ai 检测到内容名篡改指令，切换至 OCR+PIL 路径")
+                return self.plan_edits(screenshot_path, ui_json, instruction, mode='modify_text_ocr')
             ai_plan = self._plan_modify_text_ai_edits(screenshot_path, ui_json, instruction)
             if ai_plan is not None:
                 # 对“无票 + 按钮灰色禁用”场景优先走 OCR 精定位 + PIL，
