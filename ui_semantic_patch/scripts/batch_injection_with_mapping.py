@@ -164,7 +164,9 @@ def batch_process(
                 task_description=query,
                 min_steps_before_inject=2
             )
-            decision = analyzer.run(screenshots)
+            # 按第一个映射的异常模式强制对齐：规则推荐的模式必须匹配才作为候选
+            _expected_mode = mappings[0].get('injection_config', {}).get('anomaly_mode') if mappings else None
+            decision = analyzer.run(screenshots, expected_anomaly_mode=_expected_mode)
             injection_point = decision.get("injection_point", len(screenshots) // 2)
             print(f"  => 注入点: Step {injection_point}")
         else:

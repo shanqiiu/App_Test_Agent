@@ -63,7 +63,8 @@ class SequenceAnalyzer:
         self,
         screenshot_path: Path,
         step_index: int,
-        total_steps: int
+        total_steps: int,
+        expected_anomaly_mode: str = None,
     ) -> Dict:
         """
         分析单步截图，决策是否注入异常
@@ -177,8 +178,32 @@ class SequenceAnalyzer:
 
             config = self.rule_engine.get_anomaly_config(best_rule)
             match_score = best_rule.get("_match_score", config.get("priority", 0))
-            # 置信度：得分越高置信度越高，归一化到 0-1
             confidence = min(1.0, match_score / 120.0)
+
+            # ===== Step 2.6: 异常模式对齐检查 =====
+            # 规则推荐的异常模式必须与映射配置期望一致，否则跳过
+            if expected_anomaly_mode and config["anomaly_mode"] != expected_anomaly_mode:
+                result = {
+                    "decision": "SKIP",
+                    "anomaly_mode": None,
+                    "instruction": None,
+                    "gt_category": None,
+                    "gt_sample": None,
+                    "app_category": app_category,
+                    "page_type": page_type,
+                    "matched_rule_id": best_rule.get("id"),
+                    "matched_rule": None,
+                    "match_score": 0,
+                    "match_confidence": 0.0,
+                    "vlm_reasoning": page_info.get("reasoning", ""),
+                    "vlm_key_elements": key_elements,
+                    "vlm_user_waiting": user_waiting,
+                    "think": f"app={app_category}, page={page_type}, "
+                             f"规则推荐异常模式={config['anomaly_mode']}, "
+                             f"期望={expected_anomaly_mode} → 不匹配，跳过"
+                }
+                self._record_step(screenshot_path, step_index, result)
+                return result
 
             result = {
                 "decision": "INJECT",
@@ -224,12 +249,14 @@ class SequenceAnalyzer:
         self._record_step(screenshot_path, step_index, result)
         return result
 
-    def run(self, screenshots: List[Path]) -> Dict:
+    def run(self, screenshots: List[Path],
+            expected_anomaly_mode: str = None) -> Dict:
         """
         分析整个截图序列，找到注入点
 
         Args:
             screenshots: 截图路径列表（按时间顺序）
+            expected_anomaly_mode: 映射配置期望的异常模式（如不匹配则跳过该候选）
 
         Returns:
             {
@@ -250,57 +277,74 @@ class SequenceAnalyzer:
         total_steps = len(screenshots)
 
         print(f"\n{'='*60}")
-        print(f"开始语义分析（规则引擎版）")
+        print(f"开始语义分析（全序列遍历 + 对比决策）")
         if self.task_description:
             print(f"任务: {self.task_description}")
         print(f"序列长度: {total_steps} 步")
         print(f"{'='*60}\n")
 
+        candidates = []
+
         for i, screenshot in enumerate(screenshots):
             print(f"\n--- Step {i}/{total_steps-1}: {screenshot.name} ---")
 
-            result = self.analyze_step(screenshot, i, total_steps)
+            result = self.analyze_step(screenshot, i, total_steps,
+                                        expected_anomaly_mode=expected_anomaly_mode)
 
             print(f"  [{result.get('app_category', '?')}/{result.get('page_type', '?')}]")
             print(f"  决策: {result['decision']}")
 
             if result.get("matched_rule_id"):
-                print(f"  匹配规则: {result['matched_rule_id']}")
+                print(f"  匹配规则: {result['matched_rule_id']} "
+                      f"(score={result.get('match_score', 0)}, "
+                      f"conf={result.get('match_confidence', 0)})")
 
             if result["decision"] == "INJECT":
-                print(f"  异常模式: {result['anomaly_mode']}")
-                print(f"  生成指令: {result['instruction']}")
+                result["_step_index"] = i
+                result["_total_steps"] = total_steps
+                candidates.append(result)
 
-                print(f"\n{'='*60}")
-                print(f"✓ 找到注入点: Step {i}")
-                print(f"  APP类别: {result['app_category']}")
-                print(f"  页面类型: {result['page_type']}")
-                print(f"  异常模式: {result['anomaly_mode']}")
-                print(f"  匹配规则: {result['matched_rule_id']}")
-                print(f"  匹配得分: {result.get('match_score', '?')} (置信度: {result.get('match_confidence', '?')})")
-                print(f"  VLM 分类理由: {result.get('vlm_reasoning', '?')}")
-                print(f"{'='*60}\n")
+        # ===== 全序列遍历完毕，对比决策 =====
+        if candidates:
+            best = self._select_best_candidate(candidates, total_steps)
+            i = best["_step_index"]
 
-                return {
-                    "success": True,
-                    "injection_point": i,
-                    "anomaly_mode": result["anomaly_mode"],
-                    "instruction": result["instruction"],
-                    "gt_category": result.get("gt_category", ""),
-                    "gt_sample": result.get("gt_sample", ""),
-                    "fault_mode": result.get("fault_mode", ""),
-                    "app_category": result.get("app_category", ""),
-                    "page_type": result.get("page_type", ""),
-                    "matched_rule_id": result.get("matched_rule_id", ""),
-                    "matched_rule": result.get("matched_rule"),
-                    "match_score": result.get("match_score", 0),
-                    "match_confidence": result.get("match_confidence", 0.0),
-                    "vlm_reasoning": result.get("vlm_reasoning", ""),
-                    "vlm_key_elements": result.get("vlm_key_elements", []),
-                    "vlm_user_waiting": result.get("vlm_user_waiting", False),
-                    "reasoning": result.get("think", ""),
-                    "history": [r.to_dict() for r in self.history_manager.records]
-                }
+            print(f"\n{'='*60}")
+            print(f"✓ 全序列对比完成，选中注入点: Step {i}/{total_steps-1}")
+            if len(candidates) > 1:
+                print(f"  候选注入点: {len(candidates)} 个")
+                for c in sorted(candidates, key=lambda c: c.get('_final_score', 0), reverse=True):
+                    mark = "← 选中" if c is best else ""
+                    print(f"    Step {c['_step_index']}: {c['matched_rule_id']} "
+                          f"(score={c.get('_final_score', '?')}) {mark}")
+            print(f"  APP类别: {best['app_category']}")
+            print(f"  页面类型: {best['page_type']}")
+            print(f"  异常模式: {best['anomaly_mode']}")
+            print(f"  匹配规则: {best['matched_rule_id']}")
+            print(f"  VLM 分类理由: {best.get('vlm_reasoning', '?')}")
+            print(f"{'='*60}\n")
+
+            return {
+                "success": True,
+                "injection_point": i,
+                "anomaly_mode": best["anomaly_mode"],
+                "instruction": best["instruction"],
+                "gt_category": best.get("gt_category", ""),
+                "gt_sample": best.get("gt_sample", ""),
+                "fault_mode": best.get("fault_mode", ""),
+                "app_category": best.get("app_category", ""),
+                "page_type": best.get("page_type", ""),
+                "matched_rule_id": best.get("matched_rule_id", ""),
+                "matched_rule": best.get("matched_rule"),
+                "match_score": best.get("match_score", 0),
+                "match_confidence": best.get("match_confidence", 0.0),
+                "vlm_reasoning": best.get("vlm_reasoning", ""),
+                "vlm_key_elements": best.get("vlm_key_elements", []),
+                "vlm_user_waiting": best.get("vlm_user_waiting", False),
+                "reasoning": best.get("think", ""),
+                "candidates_count": len(candidates),
+                "history": [r.to_dict() for r in self.history_manager.records]
+            }
 
         # 遍历完成未找到注入点 → 使用 fallback
         fallback = self.rule_engine.get_fallback_config()
@@ -342,6 +386,48 @@ class SequenceAnalyzer:
             confidence=result.get("match_confidence", 0.0),
         )
         self.history_manager.add_record(record)
+
+    def _select_best_candidate(self, candidates: List[Dict],
+                                total_steps: int) -> Dict:
+        """从多个候选注入点中选择最优。
+
+        评分维度：
+        - match_score (规则匹配得分, 0-120)
+        - content_bonus: 有内容验证通过的规则 +15（精准匹配优先）
+        - position_bonus: 序列中后部 +5（避免过早注入）
+        - waiting_bonus: 用户等待态 +10
+        - semantic_kw_bonus: 语义关键词匹配数 * 3
+
+        返回得分最高的候选
+        """
+        for c in candidates:
+            score = c.get("match_score", 0)
+
+            # 内容验证通过的规则优先
+            rule = c.get("matched_rule", {})
+            if rule and rule.get("content_requirements"):
+                score += 15
+
+            # 序列位置：后半段 +5，后 1/3 额外 +3
+            pos = c.get("_step_index", 0)
+            if pos >= total_steps // 2:
+                score += 5
+            if pos >= total_steps * 2 // 3:
+                score += 3
+
+            # 用户等待态
+            if c.get("vlm_user_waiting"):
+                score += 10
+
+            # 语义关键词匹配加分（_verify_content 中匹配到的）
+            think = c.get("think", "")
+            if "语义关键词不匹配" not in think and "内容验证通过" in think:
+                score += 3  # 内容验证通过的文字确认
+
+            c["_final_score"] = score
+
+        candidates.sort(key=lambda c: c.get("_final_score", 0), reverse=True)
+        return candidates[0]
 
     def _verify_content(self, page_info: Dict, rule: Dict) -> tuple:
         """验证页面内容是否满足规则的语义需求
