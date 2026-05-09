@@ -346,9 +346,12 @@ class SequenceAnalyzer:
     def _verify_content(self, page_info: Dict, rule: Dict) -> tuple:
         """验证页面内容是否满足规则的语义需求
 
-        只有 modify_text / modify_text_ai / text_overlay / content_duplicate
-        类规则需要内容验证 —— 它们修改的是页面上的具体内容，
-        必须确认目标内容真实存在。
+        两层验证：
+        1. 通用内容特征（has_price/has_button 等）— 快速过滤
+        2. 语义关键词匹配（key_elements + reasoning）— 精准确认
+
+        modify_text_ai / modify_text 规则额外要求 VLM 提取的关键元素
+        中至少出现 1 个与规则语义相关的词。
 
         Returns:
             (is_ok, reason)
@@ -358,21 +361,86 @@ class SequenceAnalyzer:
             return True, ""  # dialog/area_loading/response_delay 无需验证
 
         features = page_info.get("content_features", {})
-        if not features:
-            # VLM 未返回 content_features（旧版 prompt 或解析失败），宽容放行
-            return True, "VLM 未提供内容特征，放行"
+        key_elements = [e.lower() for e in page_info.get("key_elements", [])]
+        reasoning = page_info.get("reasoning", "").lower()
+        anomaly_mode = rule.get("anomaly_mode", "")
+        fault_mode = rule.get("fault_mode", "")
+        instruction_tmpl = rule.get("instruction_template", "")
 
-        failed = []
-        for key, required in requirements.items():
-            if key in ("desc",):
-                continue
-            if required and not features.get(key):
-                failed.append(key)
+        # ===== 第一层：通用特征检查 =====
+        if features:
+            failed = []
+            for key, required in requirements.items():
+                if key in ("desc", "semantic_keywords", "min_keyword_match"):
+                    continue
+                if required and not features.get(key):
+                    failed.append(key)
+            if failed:
+                desc = requirements.get("desc", "")
+                return False, f"缺少内容特征: {failed} ({desc})"
 
-        if failed:
-            desc = requirements.get("desc", "")
-            return False, f"缺少内容特征: {failed} ({desc})"
-        return True, f"内容验证通过 ({requirements.get('desc', '')})"
+        # ===== 第二层：语义关键词匹配（modify_text/modify_text_ai 专属） =====
+        if anomaly_mode in ("modify_text", "modify_text_ai", "modify_text_ocr",
+                            "text_overlay", "content_duplicate"):
+            # 从规则中提取语义关键词
+            semantic_kw = requirements.get("semantic_keywords", [])
+            if not semantic_kw:
+                semantic_kw = self._derive_keywords(anomaly_mode, fault_mode,
+                                                     instruction_tmpl)
+            min_match = requirements.get("min_keyword_match", 1)
+
+            if semantic_kw:
+                # 在 key_elements + reasoning 中匹配
+                match_count = 0
+                matched_words = []
+                for kw in semantic_kw:
+                    kw_lower = kw.lower()
+                    if any(kw_lower in elem for elem in key_elements):
+                        match_count += 1
+                        matched_words.append(kw)
+                    elif kw_lower in reasoning:
+                        match_count += 1
+                        matched_words.append(kw)
+
+                if match_count < min_match:
+                    return False, (
+                        f"语义关键词不匹配: 需要≥{min_match}个 {semantic_kw}, "
+                        f"实际匹配 {match_count} 个 {matched_words}, "
+                        f"VLM 关键元素: {key_elements[:5]}"
+                    )
+
+        desc = requirements.get("desc", "")
+        return True, f"内容验证通过 ({desc})"
+
+    def _derive_keywords(self, anomaly_mode: str, fault_mode: str,
+                         instruction_tmpl: str) -> list:
+        """从规则语义中推导期望出现的内容关键词"""
+        # 按异常模式分类
+        mode_keywords = {
+            "modify_text":    ["价格", "金额", "¥", "元", "票价", "总价", "合计", "优惠"],
+            "modify_text_ai": ["按钮", "文字", "名称", "标题", "勾选", "勾选框", "置灰", "选集"],
+            "modify_text_ocr":["按钮", "文字", "名称", "标题"],
+            "text_overlay":   ["按钮", "入口", "下载", "购买", "提交", "确认"],
+            "content_duplicate": ["列表", "卡片", "条目", "选项", "选集"],
+        }
+        keywords = list(mode_keywords.get(anomaly_mode, []))
+
+        # 从 fault_mode 中提取额外关键词
+        fault_kw = {
+            "价格": ["价格", "金额", "¥", "元"],
+            "篡改": ["名称", "标题", "文字"],
+            "置灰": ["勾选", "选框", "按钮"],
+            "遮挡": ["按钮", "下载", "入口"],
+            "重复": ["条目", "列表", "卡片"],
+            "延迟": ["加载", "等待"],
+            "售罄": ["售罄", "缺货", "无票"],
+            "无票": ["无票", "售罄", "余票"],
+        }
+        for k, v in fault_kw.items():
+            if k in fault_mode or k in instruction_tmpl:
+                keywords.extend(v)
+
+        return list(set(keywords))  # 去重
 
     def reset(self) -> None:
         """重置分析器状态"""

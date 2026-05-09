@@ -2167,9 +2167,9 @@ class TextOverlayRenderer(BaseRenderer):
 
             print(f"    [AI编辑] 发送 {len(text_changes)} 处文字修改请求...")
 
-            # 调用图像编辑模型
-            from app.utils.semantic_dialog_generator import generate_image_dashscope
-            result_img = generate_image_dashscope(
+            # 调用图像生成后端（优先本地服务 LOCAL_IMAGE_API_URL）
+            from app.utils.semantic_dialog_generator import generate_image
+            result_img = generate_image(
                 prompt=edit_prompt,
                 size=f"{crop_w}*{crop_h}",
                 reference_image_path=temp_path,

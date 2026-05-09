@@ -93,7 +93,14 @@
       "content_requirements": {
         "has_button": true,
         "has_form_input": true,
-        "desc": "页面需包含查询按钮和输入框"
+        "desc": "页面需包含查询按钮和输入框",
+        "semantic_keywords": [
+          "查询",
+          "搜索",
+          "按钮",
+          "日期"
+        ],
+        "min_keyword_match": 1
       }
     },
     {
@@ -111,7 +118,17 @@
       "content_requirements": {
         "has_price": true,
         "has_list_items": true,
-        "desc": "页面需包含具体航班/车次价格信息"
+        "desc": "页面需包含具体航班/车次价格信息",
+        "semantic_keywords": [
+          "价格",
+          "¥",
+          "元",
+          "航班",
+          "车次",
+          "经济舱",
+          "商务舱"
+        ],
+        "min_keyword_match": 1
       }
     },
     {
@@ -129,7 +146,14 @@
       "content_requirements": {
         "has_list_items": true,
         "has_text_content": true,
-        "desc": "页面需包含车次列表和余票信息"
+        "desc": "页面需包含车次列表和余票信息",
+        "semantic_keywords": [
+          "车次",
+          "余票",
+          "无票",
+          "售罄"
+        ],
+        "min_keyword_match": 1
       }
     },
     {
@@ -161,7 +185,15 @@
       "content_requirements": {
         "has_price": true,
         "has_form_input": true,
-        "desc": "页面需包含票价和增值服务价格"
+        "desc": "页面需包含票价和增值服务价格",
+        "semantic_keywords": [
+          "保险",
+          "行李",
+          "总价",
+          "¥",
+          "增值"
+        ],
+        "min_keyword_match": 1
       }
     },
     {
@@ -238,7 +270,15 @@
       "priority": 90,
       "content_requirements": {
         "has_text_content": true,
-        "desc": "页面需包含影视名称文字内容"
+        "desc": "页面需包含影视名称文字内容",
+        "semantic_keywords": [
+          "名称",
+          "标题",
+          "主演",
+          "导演",
+          "简介"
+        ],
+        "min_keyword_match": 1
       }
     },
     {
@@ -269,7 +309,14 @@
       "priority": 85,
       "content_requirements": {
         "has_list_items": true,
-        "desc": "页面需包含选集列表条目"
+        "desc": "页面需包含选集列表条目",
+        "semantic_keywords": [
+          "第",
+          "集",
+          "选集",
+          "勾选"
+        ],
+        "min_keyword_match": 1
       }
     },
     {
@@ -287,7 +334,15 @@
       "content_requirements": {
         "has_list_items": true,
         "has_button": true,
-        "desc": "页面需包含选集勾选框"
+        "desc": "页面需包含选集勾选框",
+        "semantic_keywords": [
+          "第",
+          "集",
+          "勾选",
+          "选框",
+          "下载"
+        ],
+        "min_keyword_match": 1
       }
     },
     {
@@ -304,7 +359,14 @@
       "priority": 95,
       "content_requirements": {
         "has_button": true,
-        "desc": "页面需包含下载/缓存按钮"
+        "desc": "页面需包含下载/缓存按钮",
+        "semantic_keywords": [
+          "下载",
+          "缓存",
+          "清晰度",
+          "存储"
+        ],
+        "min_keyword_match": 1
       }
     },
     {
@@ -393,7 +455,14 @@
       "priority": 80,
       "content_requirements": {
         "has_list_items": true,
-        "desc": "页面需包含曲目列表条目"
+        "desc": "页面需包含曲目列表条目",
+        "semantic_keywords": [
+          "曲目",
+          "歌曲",
+          "歌单",
+          "播放"
+        ],
+        "min_keyword_match": 1
       }
     },
     {
@@ -410,7 +479,13 @@
       "priority": 85,
       "content_requirements": {
         "has_button": true,
-        "desc": "页面需包含下载按钮"
+        "desc": "页面需包含下载按钮",
+        "semantic_keywords": [
+          "下载",
+          "音质",
+          "收藏"
+        ],
+        "min_keyword_match": 1
       }
     },
     {
@@ -440,7 +515,13 @@
       "priority": 75,
       "content_requirements": {
         "has_text_content": true,
-        "desc": "页面需包含歌词文字内容"
+        "desc": "页面需包含歌词文字内容",
+        "semantic_keywords": [
+          "歌词",
+          "逐行",
+          "高亮"
+        ],
+        "min_keyword_match": 1
       }
     },
     {
@@ -498,7 +579,14 @@
       "priority": 75,
       "content_requirements": {
         "has_list_items": true,
-        "desc": "页面需包含赛事列表条目"
+        "desc": "页面需包含赛事列表条目",
+        "semantic_keywords": [
+          "赛事",
+          "联赛",
+          "比分",
+          "日期"
+        ],
+        "min_keyword_match": 1
       }
     },
     {
@@ -541,7 +629,13 @@
       "priority": 70,
       "content_requirements": {
         "has_list_items": true,
-        "desc": "页面需包含帖子/评论列表"
+        "desc": "页面需包含帖子/评论列表",
+        "semantic_keywords": [
+          "评论",
+          "帖子",
+          "回复"
+        ],
+        "min_keyword_match": 1
       }
     },
     {
@@ -571,7 +665,14 @@
       "priority": 80,
       "content_requirements": {
         "has_list_items": true,
-        "desc": "页面需包含笔记卡片列表"
+        "desc": "页面需包含笔记卡片列表",
+        "semantic_keywords": [
+          "笔记",
+          "卡片",
+          "推荐",
+          "关注"
+        ],
+        "min_keyword_match": 1
       }
     },
     {
@@ -588,7 +689,14 @@
       "priority": 75,
       "content_requirements": {
         "has_text_content": true,
-        "desc": "页面需包含正文文字内容"
+        "desc": "页面需包含正文文字内容",
+        "semantic_keywords": [
+          "正文",
+          "文字",
+          "笔记",
+          "内容"
+        ],
+        "min_keyword_match": 1
       }
     },
     {
@@ -605,7 +713,14 @@
       "priority": 85,
       "content_requirements": {
         "has_button": true,
-        "desc": "页面需包含发布按钮"
+        "desc": "页面需包含发布按钮",
+        "semantic_keywords": [
+          "发布",
+          "编辑",
+          "图片",
+          "话题"
+        ],
+        "min_keyword_match": 1
       }
     },
     {
@@ -640,7 +755,14 @@
       "priority": 80,
       "content_requirements": {
         "has_price": true,
-        "desc": "页面需包含商品价格信息"
+        "desc": "页面需包含商品价格信息",
+        "semantic_keywords": [
+          "价格",
+          "¥",
+          "元",
+          "商品"
+        ],
+        "min_keyword_match": 1
       }
     },
     {
@@ -713,7 +835,15 @@
       "content_requirements": {
         "has_price": true,
         "has_list_items": true,
-        "desc": "页面需包含商品价格列表"
+        "desc": "页面需包含商品价格列表",
+        "semantic_keywords": [
+          "价格",
+          "¥",
+          "元",
+          "月售",
+          "评分"
+        ],
+        "min_keyword_match": 1
       }
     },
     {
@@ -744,7 +874,14 @@
       "priority": 70,
       "content_requirements": {
         "has_list_items": true,
-        "desc": "页面需包含规格选项列表"
+        "desc": "页面需包含规格选项列表",
+        "semantic_keywords": [
+          "温度",
+          "甜度",
+          "规格",
+          "配料"
+        ],
+        "min_keyword_match": 1
       }
     },
     {
@@ -761,7 +898,15 @@
       "priority": 90,
       "content_requirements": {
         "has_price": true,
-        "desc": "页面需包含合计金额"
+        "desc": "页面需包含合计金额",
+        "semantic_keywords": [
+          "合计",
+          "优惠",
+          "配送费",
+          "¥",
+          "元"
+        ],
+        "min_keyword_match": 1
       }
     },
     {
