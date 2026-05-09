@@ -136,7 +136,17 @@ class SequenceAnalyzer:
             user_waiting=user_waiting
         )
 
-        best_rule = self.rule_engine.select_best(matched)
+        # 若有期望的异常模式，优先从匹配规则中挑选对齐的（而非简单取最高分）
+        if expected_anomaly_mode and matched:
+            aligned = [r for r in matched
+                       if r.get("anomaly_mode") == expected_anomaly_mode]
+            if aligned:
+                best_rule = self.rule_engine.select_best(aligned)
+            else:
+                # 无对齐规则 → 记录但跳过整帧（不拿不匹配的最高分规则充数）
+                best_rule = None
+        else:
+            best_rule = self.rule_engine.select_best(matched)
 
         if best_rule:
             # ===== Step 2.5: 内容验证（精准匹配门禁） =====
@@ -180,31 +190,6 @@ class SequenceAnalyzer:
             match_score = best_rule.get("_match_score", config.get("priority", 0))
             confidence = min(1.0, match_score / 120.0)
 
-            # ===== Step 2.6: 异常模式对齐检查 =====
-            # 规则推荐的异常模式必须与映射配置期望一致，否则跳过
-            if expected_anomaly_mode and config["anomaly_mode"] != expected_anomaly_mode:
-                result = {
-                    "decision": "SKIP",
-                    "anomaly_mode": None,
-                    "instruction": None,
-                    "gt_category": None,
-                    "gt_sample": None,
-                    "app_category": app_category,
-                    "page_type": page_type,
-                    "matched_rule_id": best_rule.get("id"),
-                    "matched_rule": None,
-                    "match_score": 0,
-                    "match_confidence": 0.0,
-                    "vlm_reasoning": page_info.get("reasoning", ""),
-                    "vlm_key_elements": key_elements,
-                    "vlm_user_waiting": user_waiting,
-                    "think": f"app={app_category}, page={page_type}, "
-                             f"规则推荐异常模式={config['anomaly_mode']}, "
-                             f"期望={expected_anomaly_mode} → 不匹配，跳过"
-                }
-                self._record_step(screenshot_path, step_index, result, page_info)
-                return result
-
             result = {
                 "decision": "INJECT",
                 "anomaly_mode": config["anomaly_mode"],
@@ -228,6 +213,12 @@ class SequenceAnalyzer:
                          f"(score={match_score}, conf={confidence:.2f})"
             }
         else:
+            # 无对齐规则时记录原因
+            if expected_anomaly_mode and matched:
+                modes = list(set(r.get("anomaly_mode", "?") for r in matched))
+                skip_reason = (f"规则存在但异常模式不匹配: 可用={modes}, 期望={expected_anomaly_mode}")
+            else:
+                skip_reason = "无匹配规则"
             result = {
                 "decision": "SKIP",
                 "anomaly_mode": None,
@@ -243,7 +234,7 @@ class SequenceAnalyzer:
                 "vlm_reasoning": page_info.get("reasoning", ""),
                 "vlm_key_elements": key_elements,
                 "vlm_user_waiting": user_waiting,
-                "think": f"app={app_category}, page={page_type}, 无匹配规则"
+                "think": f"app={app_category}, page={page_type}, {skip_reason}"
             }
 
         self._record_step(screenshot_path, step_index, result)
