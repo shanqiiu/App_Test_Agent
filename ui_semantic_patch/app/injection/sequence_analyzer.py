@@ -122,6 +122,10 @@ class SequenceAnalyzer:
 
         if best_rule:
             config = self.rule_engine.get_anomaly_config(best_rule)
+            match_score = best_rule.get("_match_score", config.get("priority", 0))
+            # 置信度：得分越高置信度越高，归一化到 0-1
+            confidence = min(1.0, match_score / 120.0)
+
             result = {
                 "decision": "INJECT",
                 "anomaly_mode": config["anomaly_mode"],
@@ -132,9 +136,17 @@ class SequenceAnalyzer:
                 "app_category": app_category,
                 "page_type": page_type,
                 "matched_rule_id": config["matched_rule_id"],
+                "matched_rule": {k: v for k, v in best_rule.items()
+                                 if not k.startswith("_")},
+                "match_score": match_score,
+                "match_confidence": round(confidence, 2),
+                "vlm_reasoning": page_info.get("reasoning", ""),
+                "vlm_key_elements": key_elements,
+                "vlm_user_waiting": user_waiting,
                 "think": f"app={app_category}, page={page_type}, "
                          f"等待={user_waiting}, "
-                         f"匹配规则={config['matched_rule_id']}"
+                         f"匹配规则={config['matched_rule_id']} "
+                         f"(score={match_score}, conf={confidence:.2f})"
             }
         else:
             result = {
@@ -146,6 +158,12 @@ class SequenceAnalyzer:
                 "app_category": app_category,
                 "page_type": page_type,
                 "matched_rule_id": None,
+                "matched_rule": None,
+                "match_score": 0,
+                "match_confidence": 0.0,
+                "vlm_reasoning": page_info.get("reasoning", ""),
+                "vlm_key_elements": key_elements,
+                "vlm_user_waiting": user_waiting,
                 "think": f"app={app_category}, page={page_type}, 无匹配规则"
             }
 
@@ -205,6 +223,8 @@ class SequenceAnalyzer:
                 print(f"  页面类型: {result['page_type']}")
                 print(f"  异常模式: {result['anomaly_mode']}")
                 print(f"  匹配规则: {result['matched_rule_id']}")
+                print(f"  匹配得分: {result.get('match_score', '?')} (置信度: {result.get('match_confidence', '?')})")
+                print(f"  VLM 分类理由: {result.get('vlm_reasoning', '?')}")
                 print(f"{'='*60}\n")
 
                 return {
@@ -218,6 +238,12 @@ class SequenceAnalyzer:
                     "app_category": result.get("app_category", ""),
                     "page_type": result.get("page_type", ""),
                     "matched_rule_id": result.get("matched_rule_id", ""),
+                    "matched_rule": result.get("matched_rule"),
+                    "match_score": result.get("match_score", 0),
+                    "match_confidence": result.get("match_confidence", 0.0),
+                    "vlm_reasoning": result.get("vlm_reasoning", ""),
+                    "vlm_key_elements": result.get("vlm_key_elements", []),
+                    "vlm_user_waiting": result.get("vlm_user_waiting", False),
                     "reasoning": result.get("think", ""),
                     "history": [r.to_dict() for r in self.history_manager.records]
                 }
@@ -258,7 +284,8 @@ class SequenceAnalyzer:
             anomaly_type=result.get("anomaly_mode"),
             instruction=result.get("instruction"),
             app_category=result.get("app_category", ""),
-            conclusion=result.get("page_type", "")
+            conclusion=result.get("page_type", ""),
+            confidence=result.get("match_confidence", 0.0),
         )
         self.history_manager.add_record(record)
 
