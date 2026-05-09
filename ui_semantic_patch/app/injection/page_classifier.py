@@ -98,13 +98,27 @@ VLM_CLASSIFICATION_PROMPT = """
 ## 用户等待状态
 用户当前是否在等待某个操作结果？回答 true/false。
 
+## 页面内容特征（对以下每项回答 yes/no）
+- has_price: 页面上是否有可见的具体价格/金额数字（如 ¥328、99元）？
+- has_button: 页面上是否有可操作的按钮（预订、购买、下载、提交等）？
+- has_list_items: 页面是否包含多项可选的列表条目（如航班卡片、商品卡片、剧集列表）？
+- has_form_input: 页面是否有需要用户填写的输入框/选择器（日期、乘客、规格等）？
+- has_text_content: 页面是否有明显的文字标题/名称内容（如电影名、航班号、商品名）？
+
 ## 输出格式（仅返回 JSON，不要其他内容）
 {
   "app_category": "travel",
   "page_type": "travel_route_list",
   "key_elements": ["航班卡片", "价格标签", "筛选按钮"],
   "user_waiting": false,
-  "reasoning": "展示航班搜索结果列表，含价格和余票信息"
+  "reasoning": "展示航班搜索结果列表，含价格和余票信息",
+  "content_features": {
+    "has_price": true,
+    "has_button": true,
+    "has_list_items": true,
+    "has_form_input": false,
+    "has_text_content": true
+  }
 }
 """
 
@@ -285,7 +299,8 @@ class PageClassifier:
             "page_type": "travel_loading",
             "key_elements": [],
             "user_waiting": False,
-            "reasoning": "解析失败，使用默认值"
+            "reasoning": "解析失败，使用默认值",
+            "content_features": {}
         }
 
         try:
@@ -304,7 +319,6 @@ class PageClassifier:
             page_type = data.get("page_type", "").strip().lower()
             valid_types = VALID_PAGE_TYPES.get(app_category, set())
             if page_type not in valid_types:
-                # 尝试模糊匹配：取第一个有效的
                 page_type = next(iter(valid_types), "travel_loading")
 
             return {
@@ -312,7 +326,8 @@ class PageClassifier:
                 "page_type": page_type,
                 "key_elements": data.get("key_elements", []),
                 "user_waiting": bool(data.get("user_waiting", False)),
-                "reasoning": data.get("reasoning", "")
+                "reasoning": data.get("reasoning", ""),
+                "content_features": data.get("content_features", {}),
             }
 
         except (json.JSONDecodeError, KeyError, ValueError) as e:

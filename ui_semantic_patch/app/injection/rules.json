@@ -2,18 +2,62 @@
   "version": "2.0",
   "description": "APP类别 × 页面类型 → 异常模式映射规则表（解耦版，6 类别 45 条规则）",
   "app_categories": {
-    "travel":   {"name": "出行预订", "apps": ["12306", "携程", "去哪儿旅行"], "description": "机票、火车票、酒店预订"},
-    "video":    {"name": "长视频",   "apps": ["腾讯视频"], "description": "电视剧、电影、综艺、动漫"},
-    "music":    {"name": "音乐音频", "apps": ["QQ音乐"], "description": "歌曲、歌单、播放器、歌词"},
-    "sports":   {"name": "体育直播", "apps": ["直播吧"], "description": "赛事直播、数据统计、社区讨论"},
-    "social":   {"name": "内容社区", "apps": ["小红书"], "description": "笔记、图文、UGC、商城"},
-    "delivery": {"name": "即时配送", "apps": ["美团", "饿了么", "京东外卖"], "description": "外卖、生鲜、跑腿、即时配送"}
+    "travel": {
+      "name": "出行预订",
+      "apps": [
+        "12306",
+        "携程",
+        "去哪儿旅行"
+      ],
+      "description": "机票、火车票、酒店预订"
+    },
+    "video": {
+      "name": "长视频",
+      "apps": [
+        "腾讯视频"
+      ],
+      "description": "电视剧、电影、综艺、动漫"
+    },
+    "music": {
+      "name": "音乐音频",
+      "apps": [
+        "QQ音乐"
+      ],
+      "description": "歌曲、歌单、播放器、歌词"
+    },
+    "sports": {
+      "name": "体育直播",
+      "apps": [
+        "直播吧"
+      ],
+      "description": "赛事直播、数据统计、社区讨论"
+    },
+    "social": {
+      "name": "内容社区",
+      "apps": [
+        "小红书"
+      ],
+      "description": "笔记、图文、UGC、商城"
+    },
+    "delivery": {
+      "name": "即时配送",
+      "apps": [
+        "美团",
+        "饿了么",
+        "京东外卖"
+      ],
+      "description": "外卖、生鲜、跑腿、即时配送"
+    }
   },
   "rules": [
     {
       "id": "travel_home_ad",
-      "app_categories": ["travel"],
-      "page_types": ["travel_home"],
+      "app_categories": [
+        "travel"
+      ],
+      "page_types": [
+        "travel_home"
+      ],
       "anomaly_mode": "dialog",
       "fault_mode": "弹窗广告",
       "instruction_template": "在首页生成广告弹窗遮挡功能入口",
@@ -22,8 +66,12 @@
     },
     {
       "id": "travel_home_permission",
-      "app_categories": ["travel"],
-      "page_types": ["travel_home"],
+      "app_categories": [
+        "travel"
+      ],
+      "page_types": [
+        "travel_home"
+      ],
       "anomaly_mode": "dialog",
       "fault_mode": "权限请求弹窗",
       "instruction_template": "模拟定位权限请求弹窗",
@@ -32,35 +80,66 @@
     },
     {
       "id": "travel_search_btn_disabled",
-      "app_categories": ["travel"],
-      "page_types": ["travel_search"],
+      "app_categories": [
+        "travel"
+      ],
+      "page_types": [
+        "travel_search"
+      ],
       "anomaly_mode": "modify_text_ai",
       "fault_mode": "查询按钮置灰",
       "instruction_template": "将查询按钮置灰，显示为不可点击状态",
-      "priority": 80
+      "priority": 80,
+      "content_requirements": {
+        "has_button": true,
+        "has_form_input": true,
+        "desc": "页面需包含查询按钮和输入框"
+      }
     },
     {
       "id": "travel_route_price_error",
-      "app_categories": ["travel"],
-      "page_types": ["travel_route_list"],
+      "app_categories": [
+        "travel"
+      ],
+      "page_types": [
+        "travel_route_list"
+      ],
       "anomaly_mode": "modify_text",
       "fault_mode": "价格逻辑错误",
       "instruction_template": "修改路线结果中的价格数字，制造价格逻辑矛盾",
-      "priority": 90
+      "priority": 90,
+      "content_requirements": {
+        "has_price": true,
+        "has_list_items": true,
+        "desc": "页面需包含具体航班/车次价格信息"
+      }
     },
     {
       "id": "travel_route_no_ticket",
-      "app_categories": ["travel"],
-      "page_types": ["travel_route_list"],
+      "app_categories": [
+        "travel"
+      ],
+      "page_types": [
+        "travel_route_list"
+      ],
       "anomaly_mode": "modify_text",
       "fault_mode": "无票状态提示",
       "instruction_template": "将路线结果显示为无票/售罄状态",
-      "priority": 85
+      "priority": 85,
+      "content_requirements": {
+        "has_list_items": true,
+        "has_text_content": true,
+        "desc": "页面需包含车次列表和余票信息"
+      }
     },
     {
       "id": "travel_detail_prompt",
-      "app_categories": ["travel"],
-      "page_types": ["travel_detail"],
+      "app_categories": [
+        "travel"
+      ],
+      "page_types": [
+        "travel_detail"
+      ],
       "anomaly_mode": "dialog",
       "fault_mode": "系统提示弹窗",
       "instruction_template": "模拟系统提示弹窗",
@@ -69,17 +148,30 @@
     },
     {
       "id": "travel_booking_price",
-      "app_categories": ["travel"],
-      "page_types": ["travel_booking"],
+      "app_categories": [
+        "travel"
+      ],
+      "page_types": [
+        "travel_booking"
+      ],
       "anomaly_mode": "modify_text",
       "fault_mode": "增值服务总价异常",
       "instruction_template": "修改增值服务价格，使含保险/行李的总价低于裸票价",
-      "priority": 80
+      "priority": 80,
+      "content_requirements": {
+        "has_price": true,
+        "has_form_input": true,
+        "desc": "页面需包含票价和增值服务价格"
+      }
     },
     {
       "id": "travel_payment_timeout",
-      "app_categories": ["travel"],
-      "page_types": ["travel_payment"],
+      "app_categories": [
+        "travel"
+      ],
+      "page_types": [
+        "travel_payment"
+      ],
       "anomaly_mode": "dialog",
       "fault_mode": "支付超时弹窗",
       "instruction_template": "模拟支付超时的系统提示弹窗",
@@ -89,8 +181,12 @@
     },
     {
       "id": "travel_loading_timeout",
-      "app_categories": ["travel"],
-      "page_types": ["travel_loading"],
+      "app_categories": [
+        "travel"
+      ],
+      "page_types": [
+        "travel_loading"
+      ],
       "anomaly_mode": "area_loading",
       "fault_mode": "加载超时",
       "instruction_template": "模拟页面加载超时，显示加载失败状态",
@@ -98,8 +194,12 @@
     },
     {
       "id": "video_home_ad",
-      "app_categories": ["video"],
-      "page_types": ["video_home"],
+      "app_categories": [
+        "video"
+      ],
+      "page_types": [
+        "video_home"
+      ],
       "anomaly_mode": "dialog",
       "fault_mode": "弹窗广告",
       "instruction_template": "在首页生成广告弹窗遮挡功能入口",
@@ -108,26 +208,47 @@
     },
     {
       "id": "video_search_empty",
-      "app_categories": ["video"],
-      "page_types": ["video_search"],
+      "app_categories": [
+        "video"
+      ],
+      "page_types": [
+        "video_search"
+      ],
       "anomaly_mode": "modify_text",
       "fault_mode": "搜索无结果",
       "instruction_template": "将搜索结果改为「未找到相关内容」状态",
-      "priority": 75
+      "priority": 75,
+      "content_requirements": {
+        "has_text_content": true,
+        "has_button": true,
+        "desc": "页面需包含搜索框和结果列表"
+      }
     },
     {
       "id": "video_content_name_tamper",
-      "app_categories": ["video"],
-      "page_types": ["video_content_detail"],
+      "app_categories": [
+        "video"
+      ],
+      "page_types": [
+        "video_content_detail"
+      ],
       "anomaly_mode": "modify_text_ai",
       "fault_mode": "内容名篡改",
       "instruction_template": "将内容详情页中的影视名称替换为相似错误名称",
-      "priority": 90
+      "priority": 90,
+      "content_requirements": {
+        "has_text_content": true,
+        "desc": "页面需包含影视名称文字内容"
+      }
     },
     {
       "id": "video_content_permission",
-      "app_categories": ["video"],
-      "page_types": ["video_content_detail"],
+      "app_categories": [
+        "video"
+      ],
+      "page_types": [
+        "video_content_detail"
+      ],
       "anomaly_mode": "dialog",
       "fault_mode": "权限限制弹窗",
       "instruction_template": "生成权限限制弹窗，提示需要会员或特定权限",
@@ -136,35 +257,64 @@
     },
     {
       "id": "video_episode_duplicate",
-      "app_categories": ["video"],
-      "page_types": ["video_episode_select"],
+      "app_categories": [
+        "video"
+      ],
+      "page_types": [
+        "video_episode_select"
+      ],
       "anomaly_mode": "content_duplicate",
       "fault_mode": "选集重复",
       "instruction_template": "在选集面板中复制已有选集条目，制造内容重复异常",
-      "priority": 85
+      "priority": 85,
+      "content_requirements": {
+        "has_list_items": true,
+        "desc": "页面需包含选集列表条目"
+      }
     },
     {
       "id": "video_episode_disabled",
-      "app_categories": ["video"],
-      "page_types": ["video_episode_select"],
+      "app_categories": [
+        "video"
+      ],
+      "page_types": [
+        "video_episode_select"
+      ],
       "anomaly_mode": "modify_text_ai",
       "fault_mode": "选集置灰",
       "instruction_template": "将选集列表中指定集数的勾选框置灰，模拟权限限制",
-      "priority": 80
+      "priority": 80,
+      "content_requirements": {
+        "has_list_items": true,
+        "has_button": true,
+        "desc": "页面需包含选集勾选框"
+      }
     },
     {
       "id": "video_download_blocked",
-      "app_categories": ["video"],
-      "page_types": ["video_download"],
+      "app_categories": [
+        "video"
+      ],
+      "page_types": [
+        "video_download"
+      ],
       "anomaly_mode": "text_overlay",
       "fault_mode": "下载按钮遮挡",
       "instruction_template": "在下载按钮区域生成遮挡元素，阻止用户点击下载",
-      "priority": 95
+      "priority": 95,
+      "content_requirements": {
+        "has_button": true,
+        "desc": "页面需包含下载/缓存按钮"
+      }
     },
     {
       "id": "video_player_delay",
-      "app_categories": ["video"],
-      "page_types": ["video_player"],
+      "app_categories": [
+        "video"
+      ],
+      "page_types": [
+        "video_player"
+      ],
       "anomaly_mode": "response_delay",
       "fault_mode": "播放响应延迟",
       "instruction_template": "模拟播放器操作无响应，UI 卡顿未更新",
@@ -172,8 +322,12 @@
     },
     {
       "id": "video_profile_member",
-      "app_categories": ["video"],
-      "page_types": ["video_profile"],
+      "app_categories": [
+        "video"
+      ],
+      "page_types": [
+        "video_profile"
+      ],
       "anomaly_mode": "dialog",
       "fault_mode": "会员弹窗",
       "instruction_template": "模拟需要登录会员的权限弹窗",
@@ -182,8 +336,12 @@
     },
     {
       "id": "video_loading_timeout",
-      "app_categories": ["video"],
-      "page_types": ["video_loading"],
+      "app_categories": [
+        "video"
+      ],
+      "page_types": [
+        "video_loading"
+      ],
       "anomaly_mode": "area_loading",
       "fault_mode": "加载超时",
       "instruction_template": "模拟视频缓冲或列表加载超时",
@@ -191,8 +349,12 @@
     },
     {
       "id": "music_home_ad",
-      "app_categories": ["music"],
-      "page_types": ["music_home"],
+      "app_categories": [
+        "music"
+      ],
+      "page_types": [
+        "music_home"
+      ],
       "anomaly_mode": "dialog",
       "fault_mode": "弹窗广告",
       "instruction_template": "在首页生成广告弹窗遮挡功能入口",
@@ -201,35 +363,64 @@
     },
     {
       "id": "music_search_empty",
-      "app_categories": ["music"],
-      "page_types": ["music_search"],
+      "app_categories": [
+        "music"
+      ],
+      "page_types": [
+        "music_search"
+      ],
       "anomaly_mode": "modify_text",
       "fault_mode": "搜索无结果",
       "instruction_template": "将搜索结果改为「未找到相关歌曲」状态",
-      "priority": 75
+      "priority": 75,
+      "content_requirements": {
+        "has_text_content": true,
+        "has_button": true,
+        "desc": "页面需包含搜索框和结果"
+      }
     },
     {
       "id": "music_album_duplicate",
-      "app_categories": ["music"],
-      "page_types": ["music_album_detail"],
+      "app_categories": [
+        "music"
+      ],
+      "page_types": [
+        "music_album_detail"
+      ],
       "anomaly_mode": "content_duplicate",
       "fault_mode": "曲目列表重复",
       "instruction_template": "在专辑/歌单中复制已有曲目条目，制造内容重复",
-      "priority": 80
+      "priority": 80,
+      "content_requirements": {
+        "has_list_items": true,
+        "desc": "页面需包含曲目列表条目"
+      }
     },
     {
       "id": "music_album_download_blocked",
-      "app_categories": ["music"],
-      "page_types": ["music_album_detail"],
+      "app_categories": [
+        "music"
+      ],
+      "page_types": [
+        "music_album_detail"
+      ],
       "anomaly_mode": "text_overlay",
       "fault_mode": "下载按钮遮挡",
       "instruction_template": "在下载按钮区域生成遮挡元素，阻止用户点击下载",
-      "priority": 85
+      "priority": 85,
+      "content_requirements": {
+        "has_button": true,
+        "desc": "页面需包含下载按钮"
+      }
     },
     {
       "id": "music_player_delay",
-      "app_categories": ["music"],
-      "page_types": ["music_player"],
+      "app_categories": [
+        "music"
+      ],
+      "page_types": [
+        "music_player"
+      ],
       "anomaly_mode": "response_delay",
       "fault_mode": "播放响应延迟",
       "instruction_template": "模拟播放器操作无响应，UI 卡顿未更新",
@@ -237,17 +428,29 @@
     },
     {
       "id": "music_lyrics_error",
-      "app_categories": ["music"],
-      "page_types": ["music_lyrics"],
+      "app_categories": [
+        "music"
+      ],
+      "page_types": [
+        "music_lyrics"
+      ],
       "anomaly_mode": "content_duplicate",
       "fault_mode": "歌词错位",
       "instruction_template": "在歌词页面制造歌词行重叠或错位异常",
-      "priority": 75
+      "priority": 75,
+      "content_requirements": {
+        "has_text_content": true,
+        "desc": "页面需包含歌词文字内容"
+      }
     },
     {
       "id": "music_profile_login",
-      "app_categories": ["music"],
-      "page_types": ["music_profile"],
+      "app_categories": [
+        "music"
+      ],
+      "page_types": [
+        "music_profile"
+      ],
       "anomaly_mode": "dialog",
       "fault_mode": "登录弹窗",
       "instruction_template": "模拟需要登录的权限弹窗",
@@ -256,8 +459,12 @@
     },
     {
       "id": "music_loading_timeout",
-      "app_categories": ["music"],
-      "page_types": ["music_loading"],
+      "app_categories": [
+        "music"
+      ],
+      "page_types": [
+        "music_loading"
+      ],
       "anomaly_mode": "area_loading",
       "fault_mode": "加载超时",
       "instruction_template": "模拟歌曲缓冲或列表加载超时",
@@ -265,8 +472,12 @@
     },
     {
       "id": "sports_home_ad",
-      "app_categories": ["sports"],
-      "page_types": ["sports_home"],
+      "app_categories": [
+        "sports"
+      ],
+      "page_types": [
+        "sports_home"
+      ],
       "anomaly_mode": "dialog",
       "fault_mode": "弹窗广告",
       "instruction_template": "在首页生成广告弹窗遮挡功能入口",
@@ -275,17 +486,29 @@
     },
     {
       "id": "sports_schedule_duplicate",
-      "app_categories": ["sports"],
-      "page_types": ["sports_schedule"],
+      "app_categories": [
+        "sports"
+      ],
+      "page_types": [
+        "sports_schedule"
+      ],
       "anomaly_mode": "content_duplicate",
       "fault_mode": "赛事列表重复",
       "instruction_template": "在赛事日程中复制已有赛事条目，制造内容重复",
-      "priority": 75
+      "priority": 75,
+      "content_requirements": {
+        "has_list_items": true,
+        "desc": "页面需包含赛事列表条目"
+      }
     },
     {
       "id": "sports_live_delay",
-      "app_categories": ["sports"],
-      "page_types": ["sports_live"],
+      "app_categories": [
+        "sports"
+      ],
+      "page_types": [
+        "sports_live"
+      ],
       "anomaly_mode": "response_delay",
       "fault_mode": "直播卡顿",
       "instruction_template": "模拟直播页面卡顿，画面冻结未更新",
@@ -293,8 +516,12 @@
     },
     {
       "id": "sports_data_fail",
-      "app_categories": ["sports"],
-      "page_types": ["sports_data"],
+      "app_categories": [
+        "sports"
+      ],
+      "page_types": [
+        "sports_data"
+      ],
       "anomaly_mode": "area_loading",
       "fault_mode": "数据加载失败",
       "instruction_template": "模拟技术统计/数据页面加载失败状态",
@@ -302,17 +529,29 @@
     },
     {
       "id": "sports_community_dup",
-      "app_categories": ["sports"],
-      "page_types": ["sports_community"],
+      "app_categories": [
+        "sports"
+      ],
+      "page_types": [
+        "sports_community"
+      ],
       "anomaly_mode": "content_duplicate",
       "fault_mode": "评论内容重复",
       "instruction_template": "在社区讨论中制造评论或帖子内容重复异常",
-      "priority": 70
+      "priority": 70,
+      "content_requirements": {
+        "has_list_items": true,
+        "desc": "页面需包含帖子/评论列表"
+      }
     },
     {
       "id": "sports_loading_timeout",
-      "app_categories": ["sports"],
-      "page_types": ["sports_loading"],
+      "app_categories": [
+        "sports"
+      ],
+      "page_types": [
+        "sports_loading"
+      ],
       "anomaly_mode": "area_loading",
       "fault_mode": "加载超时",
       "instruction_template": "模拟直播加载或数据刷新超时",
@@ -320,53 +559,98 @@
     },
     {
       "id": "social_feed_duplicate",
-      "app_categories": ["social"],
-      "page_types": ["social_feed"],
+      "app_categories": [
+        "social"
+      ],
+      "page_types": [
+        "social_feed"
+      ],
       "anomaly_mode": "content_duplicate",
       "fault_mode": "内容流重复",
       "instruction_template": "在信息流中复制已有笔记卡片，制造内容重复异常",
-      "priority": 80
+      "priority": 80,
+      "content_requirements": {
+        "has_list_items": true,
+        "desc": "页面需包含笔记卡片列表"
+      }
     },
     {
       "id": "social_note_text_blocked",
-      "app_categories": ["social"],
-      "page_types": ["social_note_detail"],
+      "app_categories": [
+        "social"
+      ],
+      "page_types": [
+        "social_note_detail"
+      ],
       "anomaly_mode": "text_overlay",
       "fault_mode": "正文被遮挡",
       "instruction_template": "在笔记详情页正文区域生成遮挡元素",
-      "priority": 75
+      "priority": 75,
+      "content_requirements": {
+        "has_text_content": true,
+        "desc": "页面需包含正文文字内容"
+      }
     },
     {
       "id": "social_post_btn_disabled",
-      "app_categories": ["social"],
-      "page_types": ["social_post_create"],
+      "app_categories": [
+        "social"
+      ],
+      "page_types": [
+        "social_post_create"
+      ],
       "anomaly_mode": "modify_text_ai",
       "fault_mode": "发布按钮置灰",
       "instruction_template": "将发布按钮置灰，显示为不可点击状态",
-      "priority": 85
+      "priority": 85,
+      "content_requirements": {
+        "has_button": true,
+        "desc": "页面需包含发布按钮"
+      }
     },
     {
       "id": "social_search_empty",
-      "app_categories": ["social"],
-      "page_types": ["social_search"],
+      "app_categories": [
+        "social"
+      ],
+      "page_types": [
+        "social_search"
+      ],
       "anomaly_mode": "modify_text",
       "fault_mode": "搜索无结果",
       "instruction_template": "将搜索结果改为「未找到相关内容」",
-      "priority": 75
+      "priority": 75,
+      "content_requirements": {
+        "has_text_content": true,
+        "has_button": true,
+        "desc": "页面需包含搜索框"
+      }
     },
     {
       "id": "social_shop_price_error",
-      "app_categories": ["social"],
-      "page_types": ["social_shop"],
+      "app_categories": [
+        "social"
+      ],
+      "page_types": [
+        "social_shop"
+      ],
       "anomaly_mode": "modify_text",
       "fault_mode": "商品价格异常",
       "instruction_template": "修改商城商品价格数字，制造价格错误",
-      "priority": 80
+      "priority": 80,
+      "content_requirements": {
+        "has_price": true,
+        "desc": "页面需包含商品价格信息"
+      }
     },
     {
       "id": "social_profile_login",
-      "app_categories": ["social"],
-      "page_types": ["social_profile"],
+      "app_categories": [
+        "social"
+      ],
+      "page_types": [
+        "social_profile"
+      ],
       "anomaly_mode": "dialog",
       "fault_mode": "登录弹窗",
       "instruction_template": "模拟需要登录的权限弹窗",
@@ -375,8 +659,12 @@
     },
     {
       "id": "social_loading_timeout",
-      "app_categories": ["social"],
-      "page_types": ["social_loading"],
+      "app_categories": [
+        "social"
+      ],
+      "page_types": [
+        "social_loading"
+      ],
       "anomaly_mode": "area_loading",
       "fault_mode": "加载超时",
       "instruction_template": "模拟内容刷新或图片加载超时",
@@ -384,8 +672,12 @@
     },
     {
       "id": "delivery_home_ad",
-      "app_categories": ["delivery"],
-      "page_types": ["delivery_home"],
+      "app_categories": [
+        "delivery"
+      ],
+      "page_types": [
+        "delivery_home"
+      ],
       "anomaly_mode": "dialog",
       "fault_mode": "弹窗广告",
       "instruction_template": "在首页生成广告弹窗遮挡功能入口",
@@ -394,8 +686,12 @@
     },
     {
       "id": "delivery_home_coupon",
-      "app_categories": ["delivery"],
-      "page_types": ["delivery_home"],
+      "app_categories": [
+        "delivery"
+      ],
+      "page_types": [
+        "delivery_home"
+      ],
       "anomaly_mode": "dialog",
       "fault_mode": "优惠券弹窗",
       "instruction_template": "在页面生成优惠券领取弹窗",
@@ -404,17 +700,30 @@
     },
     {
       "id": "delivery_menu_price_error",
-      "app_categories": ["delivery"],
-      "page_types": ["delivery_menu"],
+      "app_categories": [
+        "delivery"
+      ],
+      "page_types": [
+        "delivery_menu"
+      ],
       "anomaly_mode": "modify_text",
       "fault_mode": "商品价格异常",
       "instruction_template": "修改菜单中的商品价格数字，制造价格错误",
-      "priority": 85
+      "priority": 85,
+      "content_requirements": {
+        "has_price": true,
+        "has_list_items": true,
+        "desc": "页面需包含商品价格列表"
+      }
     },
     {
       "id": "delivery_menu_sold_out",
-      "app_categories": ["delivery"],
-      "page_types": ["delivery_menu"],
+      "app_categories": [
+        "delivery"
+      ],
+      "page_types": [
+        "delivery_menu"
+      ],
       "anomaly_mode": "dialog",
       "fault_mode": "商品售罄弹窗",
       "instruction_template": "模拟商品售罄的系统提示弹窗",
@@ -423,26 +732,46 @@
     },
     {
       "id": "delivery_config_conflict",
-      "app_categories": ["delivery"],
-      "page_types": ["delivery_item_config"],
+      "app_categories": [
+        "delivery"
+      ],
+      "page_types": [
+        "delivery_item_config"
+      ],
       "anomaly_mode": "content_duplicate",
       "fault_mode": "规格冲突",
       "instruction_template": "制造规格选项冲突异常",
-      "priority": 70
+      "priority": 70,
+      "content_requirements": {
+        "has_list_items": true,
+        "desc": "页面需包含规格选项列表"
+      }
     },
     {
       "id": "delivery_cart_price_error",
-      "app_categories": ["delivery"],
-      "page_types": ["delivery_cart"],
+      "app_categories": [
+        "delivery"
+      ],
+      "page_types": [
+        "delivery_cart"
+      ],
       "anomaly_mode": "modify_text",
       "fault_mode": "下单价格错误",
       "instruction_template": "修改下单页的合计金额，使总价与实际明细不一致",
-      "priority": 90
+      "priority": 90,
+      "content_requirements": {
+        "has_price": true,
+        "desc": "页面需包含合计金额"
+      }
     },
     {
       "id": "delivery_payment_timeout",
-      "app_categories": ["delivery"],
-      "page_types": ["delivery_payment"],
+      "app_categories": [
+        "delivery"
+      ],
+      "page_types": [
+        "delivery_payment"
+      ],
       "anomaly_mode": "dialog",
       "fault_mode": "支付超时弹窗",
       "instruction_template": "模拟支付超时的系统提示弹窗",
@@ -452,8 +781,12 @@
     },
     {
       "id": "delivery_tracking_stuck",
-      "app_categories": ["delivery"],
-      "page_types": ["delivery_tracking"],
+      "app_categories": [
+        "delivery"
+      ],
+      "page_types": [
+        "delivery_tracking"
+      ],
       "anomaly_mode": "response_delay",
       "fault_mode": "配送状态卡死",
       "instruction_template": "模拟配送跟踪页面状态卡死不更新",

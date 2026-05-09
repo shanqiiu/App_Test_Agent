@@ -121,6 +121,30 @@ class SequenceAnalyzer:
         best_rule = self.rule_engine.select_best(matched)
 
         if best_rule:
+            # ===== Step 2.5: 内容验证（精准匹配门禁） =====
+            content_ok, content_reason = self._verify_content(page_info, best_rule)
+            if not content_ok:
+                result = {
+                    "decision": "SKIP",
+                    "anomaly_mode": None,
+                    "instruction": None,
+                    "gt_category": None,
+                    "gt_sample": None,
+                    "app_category": app_category,
+                    "page_type": page_type,
+                    "matched_rule_id": best_rule.get("id"),
+                    "matched_rule": None,
+                    "match_score": 0,
+                    "match_confidence": 0.0,
+                    "vlm_reasoning": page_info.get("reasoning", ""),
+                    "vlm_key_elements": key_elements,
+                    "vlm_user_waiting": user_waiting,
+                    "think": f"app={app_category}, page={page_type}, "
+                             f"规则匹配但内容不满足: {content_reason}"
+                }
+                self._record_step(screenshot_path, step_index, result)
+                return result
+
             config = self.rule_engine.get_anomaly_config(best_rule)
             match_score = best_rule.get("_match_score", config.get("priority", 0))
             # 置信度：得分越高置信度越高，归一化到 0-1
@@ -288,6 +312,37 @@ class SequenceAnalyzer:
             confidence=result.get("match_confidence", 0.0),
         )
         self.history_manager.add_record(record)
+
+    def _verify_content(self, page_info: Dict, rule: Dict) -> tuple:
+        """验证页面内容是否满足规则的语义需求
+
+        只有 modify_text / modify_text_ai / text_overlay / content_duplicate
+        类规则需要内容验证 —— 它们修改的是页面上的具体内容，
+        必须确认目标内容真实存在。
+
+        Returns:
+            (is_ok, reason)
+        """
+        requirements = rule.get("content_requirements")
+        if not requirements:
+            return True, ""  # dialog/area_loading/response_delay 无需验证
+
+        features = page_info.get("content_features", {})
+        if not features:
+            # VLM 未返回 content_features（旧版 prompt 或解析失败），宽容放行
+            return True, "VLM 未提供内容特征，放行"
+
+        failed = []
+        for key, required in requirements.items():
+            if key in ("desc",):
+                continue
+            if required and not features.get(key):
+                failed.append(key)
+
+        if failed:
+            desc = requirements.get("desc", "")
+            return False, f"缺少内容特征: {failed} ({desc})"
+        return True, f"内容验证通过 ({requirements.get('desc', '')})"
 
     def reset(self) -> None:
         """重置分析器状态"""
