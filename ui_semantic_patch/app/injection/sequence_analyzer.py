@@ -173,7 +173,7 @@ class SequenceAnalyzer:
                     "think": f"app={app_category}, page={page_type}, "
                              f"规则匹配但内容不满足: {content_reason}"
                 }
-                self._record_step(screenshot_path, step_index, result)
+                self._record_step(screenshot_path, step_index, result, page_info)
                 return result
 
             config = self.rule_engine.get_anomaly_config(best_rule)
@@ -202,7 +202,7 @@ class SequenceAnalyzer:
                              f"规则推荐异常模式={config['anomaly_mode']}, "
                              f"期望={expected_anomaly_mode} → 不匹配，跳过"
                 }
-                self._record_step(screenshot_path, step_index, result)
+                self._record_step(screenshot_path, step_index, result, page_info)
                 return result
 
             result = {
@@ -372,8 +372,12 @@ class SequenceAnalyzer:
             "history": [r.to_dict() for r in self.history_manager.records]
         }
 
-    def _record_step(self, screenshot_path: Path, step_index: int, result: Dict):
+    def _record_step(self, screenshot_path: Path, step_index: int, result: Dict,
+                      page_info: Dict = None):
         """记录分析步骤到历史"""
+        context = {}
+        if page_info:
+            context = self._build_vlm_context(page_info)
         record = StepRecord(
             step_index=step_index,
             screenshot_path=str(screenshot_path),
@@ -384,8 +388,18 @@ class SequenceAnalyzer:
             app_category=result.get("app_category", ""),
             conclusion=result.get("page_type", ""),
             confidence=result.get("match_confidence", 0.0),
+            context=context,
         )
         self.history_manager.add_record(record)
+
+    def _build_vlm_context(self, page_info: Dict) -> Dict:
+        """从 VLM 分类结果中提取调试上下文"""
+        return {
+            "vlm_reasoning": page_info.get("reasoning", ""),
+            "vlm_key_elements": page_info.get("key_elements", []),
+            "vlm_content_features": page_info.get("content_features", {}),
+            "vlm_user_waiting": page_info.get("user_waiting", False),
+        }
 
     def _select_best_candidate(self, candidates: List[Dict],
                                 total_steps: int) -> Dict:
