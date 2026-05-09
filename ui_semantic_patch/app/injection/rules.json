@@ -157,6 +157,22 @@
       }
     },
     {
+      "id": "travel_route_btn_disabled",
+      "app_categories": ["travel"],
+      "page_types": ["travel_route_list", "travel_booking"],
+      "anomaly_mode": "modify_text_ai",
+      "fault_mode": "按钮置灰",
+      "instruction_template": "将页面中的操作按钮置灰，显示为不可点击状态",
+      "priority": 85,
+      "content_requirements": {
+        "has_button": true,
+        "has_list_items": true,
+        "desc": "页面需包含航班列表和可操作按钮（预订/订阅/购买）",
+        "semantic_keywords": ["预订", "购买", "订阅", "¥", "航班", "经济舱"],
+        "min_keyword_match": 1
+      }
+    },
+    {
       "id": "travel_detail_prompt",
       "app_categories": [
         "travel"
