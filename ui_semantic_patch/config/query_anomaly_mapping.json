@@ -1,17 +1,21 @@
 {
-  "version": "2.0",
-  "description": "Query到异常注入参数的完整映射配置（基于data/examples目录数据）",
-  "last_updated": "2026-04-30",
+  "version": "2.1",
+  "description": "Query到异常注入参数的完整映射配置（基于data/examples目录数据，v2.1 优化 reference_path 对齐 APP 归属）",
+  "last_updated": "2026-05-08",
+  "changelog": [
+    "v2.1: 修复 reference_path 与 APP 的对应关系（铁路12306无票提示不再引用携程参考图），统一 instruction 措辞，更新统计",
+    "v2.0: 基于data/examples目录数据"
+  ],
   "statistics": {
     "total_queries": 3,
-    "total_fault_modes": 6,
-    "category_distribution": {
+    "total_mappings": 6,
+    "by_anomaly_mode": {
       "dialog": 6
     },
     "app_distribution": {
-      "铁路12306": 1,
-      "瑞幸咖啡": 1,
-      "去哪儿旅行": 1
+      "铁路12306": 2,
+      "瑞幸咖啡": 2,
+      "去哪儿旅行": 2
     }
   },
   "mappings": [
@@ -27,7 +31,7 @@
         "gt_category": "dialog",
         "gt_sample": "铁路12306-首页-通知权限弹窗.jpg",
         "reference_path": "data/gt-category/dialog/铁路12306-首页-通知权限弹窗.jpg",
-        "instruction": "在首页生成广告弹窗遮挡查询功能"
+        "instruction": "在首页生成广告弹窗遮挡查询功能入口"
       }
     },
     {
@@ -40,8 +44,8 @@
       "injection_config": {
         "anomaly_mode": "dialog",
         "gt_category": "dialog",
-        "gt_sample": "携程旅行-机票页面-新客福利弹窗.jpg",
-        "reference_path": "data/gt-category/dialog/携程旅行-机票页面-新客福利弹窗.jpg",
+        "gt_sample": "铁路12306-首页-通知权限弹窗.jpg",
+        "reference_path": "data/gt-category/dialog/铁路12306-首页-通知权限弹窗.jpg",
         "instruction": "模拟查询结果无票的系统提示弹窗"
       }
     },
@@ -100,8 +104,8 @@
       "injection_config": {
         "anomaly_mode": "dialog",
         "gt_category": "dialog",
-        "gt_sample": "携程旅行-首页-推广弹窗.jpg",
-        "reference_path": "data/gt-category/dialog/携程旅行-首页-推广弹窗.jpg",
+        "gt_sample": "去哪儿旅行-首页-位置权限弹窗.jpg",
+        "reference_path": "data/gt-category/dialog/去哪儿旅行-首页-位置权限弹窗.jpg",
         "instruction": "生成首页广告弹窗遮挡功能入口"
       }
     }

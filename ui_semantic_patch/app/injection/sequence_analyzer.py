@@ -95,6 +95,7 @@ class SequenceAnalyzer:
                 "instruction": None,
                 "gt_category": None,
                 "gt_sample": None,
+                "app_category": "",
                 "page_type": "",
                 "matched_rule_id": None,
                 "think": f"前 {self.min_steps_before_inject} 步强制跳过"
@@ -102,17 +103,17 @@ class SequenceAnalyzer:
             self._record_step(screenshot_path, step_index, result)
             return result
 
-        # ===== Step 1: VLM 页面分类 =====
+        # ===== Step 1: VLM 页面分类（v2 两级） =====
         page_info = self.classifier.classify(str(screenshot_path))
-        page_type = page_info.get("page_type", "J")
-        page_type_name = page_info.get("page_type_name", "未知")
+        app_category = page_info.get("app_category", "")
+        page_type = page_info.get("page_type", "travel_loading")
         key_elements = page_info.get("key_elements", [])
         user_waiting = page_info.get("user_waiting", False)
 
         # ===== Step 2: 规则匹配 =====
         matched = self.rule_engine.match(
+            app_category=app_category,
             page_type=page_type,
-            page_type_name=page_type_name,
             key_elements=key_elements,
             user_waiting=user_waiting
         )
@@ -128,9 +129,10 @@ class SequenceAnalyzer:
                 "gt_category": config["gt_category"],
                 "gt_sample": config["gt_sample"],
                 "fault_mode": config["fault_mode"],
-                "page_type": page_type_name,
+                "app_category": app_category,
+                "page_type": page_type,
                 "matched_rule_id": config["matched_rule_id"],
-                "think": f"页面类型={page_type_name}, "
+                "think": f"app={app_category}, page={page_type}, "
                          f"等待={user_waiting}, "
                          f"匹配规则={config['matched_rule_id']}"
             }
@@ -141,9 +143,10 @@ class SequenceAnalyzer:
                 "instruction": None,
                 "gt_category": None,
                 "gt_sample": None,
-                "page_type": page_type_name,
+                "app_category": app_category,
+                "page_type": page_type,
                 "matched_rule_id": None,
-                "think": f"页面类型={page_type_name}, 无匹配规则"
+                "think": f"app={app_category}, page={page_type}, 无匹配规则"
             }
 
         self._record_step(screenshot_path, step_index, result)
@@ -186,7 +189,7 @@ class SequenceAnalyzer:
 
             result = self.analyze_step(screenshot, i, total_steps)
 
-            print(f"  页面类型: {result.get('page_type', '?')}")
+            print(f"  [{result.get('app_category', '?')}/{result.get('page_type', '?')}]")
             print(f"  决策: {result['decision']}")
 
             if result.get("matched_rule_id"):
@@ -198,6 +201,7 @@ class SequenceAnalyzer:
 
                 print(f"\n{'='*60}")
                 print(f"✓ 找到注入点: Step {i}")
+                print(f"  APP类别: {result['app_category']}")
                 print(f"  页面类型: {result['page_type']}")
                 print(f"  异常模式: {result['anomaly_mode']}")
                 print(f"  匹配规则: {result['matched_rule_id']}")
@@ -211,6 +215,7 @@ class SequenceAnalyzer:
                     "gt_category": result.get("gt_category", ""),
                     "gt_sample": result.get("gt_sample", ""),
                     "fault_mode": result.get("fault_mode", ""),
+                    "app_category": result.get("app_category", ""),
                     "page_type": result.get("page_type", ""),
                     "matched_rule_id": result.get("matched_rule_id", ""),
                     "reasoning": result.get("think", ""),
@@ -236,6 +241,7 @@ class SequenceAnalyzer:
             "gt_category": fallback.get("gt_category", ""),
             "gt_sample": fallback.get("gt_sample", ""),
             "fault_mode": fallback.get("fault_mode", "通用异常"),
+            "app_category": "fallback",
             "page_type": "fallback",
             "matched_rule_id": "fallback",
             "reasoning": "遍历完整个序列，无规则匹配，使用 fallback 配置",
@@ -251,6 +257,7 @@ class SequenceAnalyzer:
             decision=result["decision"],
             anomaly_type=result.get("anomaly_mode"),
             instruction=result.get("instruction"),
+            app_category=result.get("app_category", ""),
             conclusion=result.get("page_type", "")
         )
         self.history_manager.add_record(record)

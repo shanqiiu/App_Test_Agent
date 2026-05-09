@@ -344,15 +344,26 @@ class PatchRenderer(BaseRenderer):
         # 粘贴弹窗
         result_img.paste(dialog_img, (pos_x, pos_y), dialog_img)
 
-        # 关闭按钮（异常测试场景必须有关闭按钮，Agent 需要识别并操作它）
-        # 始终由代码绘制，不依赖 AI 模型生成（AI 不会可靠地画关闭按钮）
+        # 判断是否需要绘制关闭按钮
+        # 系统级弹窗（权限请求、系统提示、强制通知等）不应有关闭按钮
+        _no_close_keywords = ['权限', '系统提示', '系统通知', '强制', '必须', 'permission', 'mandatory', 'system prompt']
+        _no_close = any(kw in instruction for kw in _no_close_keywords)
+        if meta_features.get('disable_close_button', False):
+            _no_close = True
+        if meta_features.get('force_close_button', False):
+            _no_close = False
+
         close_button_pos = meta_features.get('close_button_position', 'none')
         close_button_style = meta_features.get('close_button_style', 'gray_circle_x')
-        if close_button_pos == 'none':
-            close_button_pos = 'bottom-center'
-            close_button_style = 'gray_circle_x'
-            print(f"  ℹ meta 未指定关闭按钮位置，使用默认: {close_button_pos}")
-        if True:  # 始终绘制关闭按钮
+
+        if _no_close:
+            print(f"  ⏭ 系统级弹窗（权限/系统提示），跳过关闭按钮绘制")
+            close_btn_bbox = None
+        else:
+            if close_button_pos == 'none':
+                close_button_pos = 'bottom-center'
+                close_button_style = 'gray_circle_x'
+                print(f"  ℹ meta 未指定关闭按钮位置，使用默认: {close_button_pos}")
             button_size = max(36, min(50, dialog_width // 14))
             if close_button_pos == 'bottom-center':
                 btn_x = pos_x + dialog_width // 2 - button_size // 2
@@ -390,12 +401,11 @@ class PatchRenderer(BaseRenderer):
             }
             print(f"  ✓ 关闭按钮: {close_button_pos} → ({btn_x}, {btn_y}), {button_size}px")
 
-        else:
-            close_btn_bbox = None
-
         # 收集渲染信息用于人工校验
         render_info = {
             'close_button': close_btn_bbox,
+            'close_button_drawn': close_btn_bbox is not None,
+            'close_button_skipped_reason': 'system_dialog' if _no_close else None,
             'dialog_bounds': {
                 'x': pos_x,
                 'y': pos_y,

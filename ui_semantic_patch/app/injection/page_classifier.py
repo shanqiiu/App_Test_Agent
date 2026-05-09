@@ -1,11 +1,10 @@
 """
-页面类型分类器
+页面类型分类器（v2 — 两级分类）
 
-使用 VLM 将截图分类为预定义的页面类型（封闭式分类），
-替代旧方案中 VLM 做开放决策的不稳定方式。
+使用 VLM 将截图分类为 (APP类别, 页面类型) 两级封闭式分类。
 
-VLM 仅负责：页面类型分类 + 关键元素提取
-规则引擎负责：基于分类结果做确定性匹配
+VLM 职责：app_category + page_type + 关键元素提取
+规则引擎：基于 (app_category, page_type) 双维度确定性匹配
 """
 
 import json
@@ -18,38 +17,94 @@ from pathlib import Path
 from typing import Optional
 
 
-# VLM 页面分类提示词
+# VLM 两级分类提示词（v2）
 VLM_CLASSIFICATION_PROMPT = """
-分析这张 App 界面截图，回答以下问题。
+分析这张 App 界面截图，进行两级分类。
 
-### 页面类型（单选，必须选最接近的）：
-A. 启动页/开屏页 — 应用启动画面、品牌展示、开屏广告
-B. 首页/主页面 — 应用主界面、tab导航页、功能入口页
-C. 搜索/筛选页 — 搜索框、筛选条件、日期选择、参数输入
-D. 列表/结果页 — 商品列表、搜索结果、订单列表、信息流
-E. 详情展示页 — 商品详情、信息详情、图片展示
-F. 表单填写页 — 输入框、表单填写、信息录入、文本编辑
-G. 支付/确认页 — 支付确认、订单确认、提交订单
-H. 个人中心/设置 — 我的页面、设置页、个人资料
-I. 加载/等待页 — 加载动画、进度条、等待状态
-J. 其他 — 不属于以上任何类型
+## 第一级：APP 类别（单选）
+1. travel   — 出行预订：机票、火车票、酒店、打车（如 12306、携程、去哪儿）
+2. video    — 长视频：电视剧、电影、综艺、动漫（如 腾讯视频、爱奇艺）
+3. music    — 音乐音频：歌曲、歌单、播放器、歌词（如 QQ音乐、网易云）
+4. sports   — 体育直播：赛事、比分、直播、数据统计（如 直播吧、懂球帝）
+5. social   — 内容社区：笔记、图文、UGC、商城（如 小红书、抖音）
+6. delivery — 即时配送：外卖、生鲜、跑腿（如 美团、饿了么）
 
-### 关键元素
-当前页面上有哪些可交互的关键元素？
-列出按钮、输入框、列表等，如：查询按钮、出发日期选择、搜索框
+## 第二级：页面类型（从所选类别中单选）
 
-### 用户等待状态
-用户当前是否在等待某个操作的结果？
-（如：等待搜索完成、等待支付结果、等待页面加载）
-回答 true 或 false。
+### travel（出行预订）
+- travel_home: 出行首页（搜索入口、功能icon、活动banner）
+- travel_search: 搜索筛选页（城市选择、日期日历、舱位座型）
+- travel_route_list: 路线结果页（航班/车次卡片、价格、余票）
+- travel_detail: 班次详情页（经停信息、舱位详情、退改规则）
+- travel_booking: 预订下单页（乘客信息、保险、增值服务）
+- travel_payment: 支付确认页（支付方式、金额汇总、倒计时）
+- travel_order: 订单管理页（订单列表、出票状态）
+- travel_member: 会员/个人页（里程、优惠券、常用乘客）
+- travel_loading: 加载等待（搜索等待、提交等待）
 
-### 输出格式（仅返回 JSON，不要其他内容）
+### video（长视频）
+- video_home: 视频首页（推荐流、分类tab、热播banner）
+- video_search: 搜索页（搜索框、历史、分类标签）
+- video_content_detail: 内容详情页（封面、简介、演职员、推荐）
+- video_episode_select: 选集面板（剧集列表、勾选框、清晰度）
+- video_download: 下载管理页（下载列表、缓存进度）
+- video_player: 播放器（播放画面、进度条、弹幕）
+- video_profile: 个人中心（观看历史、收藏、会员）
+- video_loading: 加载等待（视频缓冲、列表加载）
+
+### music（音乐音频）
+- music_home: 音乐首页（推荐、歌单、新歌速递）
+- music_search: 搜索页（搜索框、热搜、分类）
+- music_album_detail: 专辑/歌单详情（封面、曲目列表、收藏）
+- music_player: 播放器（专辑封面、歌词、进度条）
+- music_lyrics: 歌词页（全屏歌词、逐行高亮）
+- music_download: 下载管理（已下载列表、音质选择）
+- music_profile: 个人中心（我喜欢、最近播放、歌单）
+- music_loading: 加载等待（歌曲缓冲、列表加载）
+
+### sports（体育直播）
+- sports_home: 赛事首页（今日赛事、热门联赛、比分速览）
+- sports_schedule: 赛事日程（按日期/联赛的赛事列表）
+- sports_live: 直播页面（视频流、实时比分、事件时间轴）
+- sports_data: 数据统计（技术统计、阵容、交锋记录）
+- sports_community: 社区讨论（帖子列表、评论区）
+- sports_profile: 个人中心（关注球队、预约、设置）
+- sports_loading: 加载等待（直播加载、数据刷新）
+
+### social（内容社区）
+- social_feed: 内容流（双列/单列笔记、推荐/关注）
+- social_note_detail: 笔记详情（图文/视频、标签、评论区）
+- social_post_create: 发布编辑（图片选择、文字编辑、话题）
+- social_search: 搜索发现（搜索框、热门话题）
+- social_shop: 商城（商品列表、详情、购物车）
+- social_message: 消息/聊天（私信列表、对话）
+- social_profile: 个人主页（头像、笔记列表、收藏）
+- social_loading: 加载等待（内容刷新、图片加载）
+
+### delivery（即时配送）
+- delivery_home: 配送首页（推荐商家、分类入口、banner）
+- delivery_shop_list: 商家列表（评分/距离排序的商家卡片）
+- delivery_menu: 菜单/商品页（分类tab、商品列表、价格）
+- delivery_item_config: 规格配置（温度/甜度/配料/份量）
+- delivery_cart: 下单确认（已选商品、优惠券、合计）
+- delivery_payment: 支付确认（支付方式、倒计时）
+- delivery_tracking: 配送跟踪（实时地图、骑手位置、预计送达）
+- delivery_profile: 个人中心（地址管理、收藏、订单）
+- delivery_loading: 加载等待（商家加载、支付等待）
+
+## 关键元素
+列出当前页面上可交互的关键元素（按钮、输入框、列表等）。
+
+## 用户等待状态
+用户当前是否在等待某个操作结果？回答 true/false。
+
+## 输出格式（仅返回 JSON，不要其他内容）
 {
-  "page_type": "A",  // A/B/C/D/E/F/G/H/I/J
-  "page_type_name": "首页/主页面",
-  "key_elements": ["元素1", "元素2"],
+  "app_category": "travel",
+  "page_type": "travel_route_list",
+  "key_elements": ["航班卡片", "价格标签", "筛选按钮"],
   "user_waiting": false,
-  "reasoning": "简要判断理由（一句话）"
+  "reasoning": "展示航班搜索结果列表，含价格和余票信息"
 }
 """
 
@@ -101,8 +156,8 @@ class PageClassifier:
 
         Returns:
             {
-                "page_type": "A-J",     # 页面类型代号
-                "page_type_name": "str", # 页面类型中文名
+                "app_category": "travel/video/music/sports/social/delivery",
+                "page_type": "travel_route_list/...",  # 类别内页面类型
                 "key_elements": [...],   # 关键元素列表
                 "user_waiting": bool,    # 用户是否在等待
                 "reasoning": "str",      # 判断理由
@@ -114,7 +169,7 @@ class PageClassifier:
         # 缓存命中
         if use_cache and screenshot_path in self._cache:
             cached = self._cache[screenshot_path]
-            print(f"  [分类器] 缓存命中: {Path(screenshot_path).name} → {cached.get('page_type_name', '?')}")
+            print(f"  [分类器] 缓存命中: {Path(screenshot_path).name} → {cached.get('app_category', '?')}/{cached.get('page_type', '?')}")
             return cached
 
         print(f"  [分类器] 分析页面: {Path(screenshot_path).name}")
@@ -126,7 +181,7 @@ class PageClassifier:
         result = self._parse_response(raw_response)
         result["raw_response"] = raw_response
 
-        print(f"  [分类器] 分类结果: {result.get('page_type_name', '?')} "
+        print(f"  [分类器] 分类结果: {result.get('app_category', '?')}/{result.get('page_type', '?')} "
               f"(等待={result.get('user_waiting', '?')})")
 
         # 缓存
@@ -213,49 +268,48 @@ class PageClassifier:
         raise Exception(f"VLM 调用失败，已重试 {max_retries} 次。最后错误: {last_error}")
 
     def _parse_response(self, response: str) -> dict:
-        """
-        解析 VLM 的 JSON 响应
+        """解析 VLM 的 JSON 响应（v2 两级分类）"""
+        # 有效值集合
+        VALID_CATEGORIES = {"travel", "video", "music", "sports", "social", "delivery"}
+        VALID_PAGE_TYPES = {
+            "travel":   {"travel_home","travel_search","travel_route_list","travel_detail","travel_booking","travel_payment","travel_order","travel_member","travel_loading"},
+            "video":    {"video_home","video_search","video_content_detail","video_episode_select","video_download","video_player","video_profile","video_loading"},
+            "music":    {"music_home","music_search","music_album_detail","music_player","music_lyrics","music_download","music_profile","music_loading"},
+            "sports":   {"sports_home","sports_schedule","sports_live","sports_data","sports_community","sports_profile","sports_loading"},
+            "social":   {"social_feed","social_note_detail","social_post_create","social_search","social_shop","social_message","social_profile","social_loading"},
+            "delivery": {"delivery_home","delivery_shop_list","delivery_menu","delivery_item_config","delivery_cart","delivery_payment","delivery_tracking","delivery_profile","delivery_loading"},
+        }
 
-        Args:
-            response: VLM 原始响应文本
-
-        Returns:
-            结构化的分类结果
-        """
-        # 默认值
         default = {
-            "page_type": "J",
-            "page_type_name": "其他/未知页面",
+            "app_category": "travel",
+            "page_type": "travel_loading",
             "key_elements": [],
             "user_waiting": False,
             "reasoning": "解析失败，使用默认值"
         }
 
         try:
-            # 提取 JSON（处理 VLM 可能返回 markdown 包裹的情况）
             json_match = re.search(r'\{[\s\S]*\}', response)
             if not json_match:
                 return default
 
             data = json.loads(json_match.group(0))
 
-            # 校验 page_type
-            page_type = data.get("page_type", "J").strip().upper()
-            if page_type not in "ABCDEFGHIJ":
-                page_type = "J"
+            # 校验 app_category
+            app_category = data.get("app_category", "").strip().lower()
+            if app_category not in VALID_CATEGORIES:
+                app_category = "travel"
 
-            # page_type 代号 → 中文名
-            type_names = {
-                "A": "启动页/开屏页", "B": "首页/主页面",
-                "C": "搜索/筛选页", "D": "列表/结果页",
-                "E": "详情展示页", "F": "表单填写页",
-                "G": "支付/确认页", "H": "个人中心/设置",
-                "I": "加载/等待页", "J": "其他/未知页面"
-            }
+            # 校验 page_type（必须在对应 category 的有效集合中）
+            page_type = data.get("page_type", "").strip().lower()
+            valid_types = VALID_PAGE_TYPES.get(app_category, set())
+            if page_type not in valid_types:
+                # 尝试模糊匹配：取第一个有效的
+                page_type = next(iter(valid_types), "travel_loading")
 
             return {
+                "app_category": app_category,
                 "page_type": page_type,
-                "page_type_name": type_names.get(page_type, "其他/未知页面"),
                 "key_elements": data.get("key_elements", []),
                 "user_waiting": bool(data.get("user_waiting", False)),
                 "reasoning": data.get("reasoning", "")

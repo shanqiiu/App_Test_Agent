@@ -41,58 +41,55 @@ class RuleEngine:
             self._data = json.load(f)
 
         self._rules: List[Dict] = self._data.get("rules", [])
-        self._page_types: Dict = self._data.get("page_types", {})
+        self._app_categories: Dict = self._data.get("app_categories", {})
+        self._page_types: Dict = self._data.get("page_types", {})  # 保留兼容旧格式
         self._fallback: Dict = self._data.get("fallback", {})
 
         print(f"  [规则引擎] 加载 {len(self._rules)} 条规则, "
-              f"{len(self._page_types)} 种页面类型")
+              f"{len(self._app_categories)} 个 APP 类别")
 
     def match(
         self,
-        page_type: str,
-        page_type_name: str = "",
+        app_category: str = "",
+        page_type: str = "",
         key_elements: Optional[List[str]] = None,
         user_waiting: bool = False
     ) -> List[Dict]:
         """
-        匹配规则
+        匹配规则（v2 — app_category + page_type 双维度）
 
         Args:
-            page_type: VLM 分类的页面类型代号 (A-J)
-            page_type_name: 页面类型中文名（用于匹配）
+            app_category: APP 类别（travel/video/music/sports/social/delivery）
+            page_type: 页面类型（如 travel_route_list）
             key_elements: 页面上的关键元素列表
             user_waiting: 用户是否在等待状态
 
         Returns:
-            匹配到的规则列表（按 priority 降序排列），空列表表示无匹配
+            匹配到的规则列表（按 priority + score 降序排列），空列表表示无匹配
         """
         if not self._rules:
             return []
 
-        # page_type 代号 → 规则表中的 page_type 键名
-        type_key_map = {
-            "A": "splash", "B": "home", "C": "search",
-            "D": "list_result", "E": "detail", "F": "form",
-            "G": "payment", "H": "profile", "I": "loading_wait",
-            "J": "other"
-        }
-        page_type_key = type_key_map.get(page_type, "other")
-
         matched = []
 
         for rule in self._rules:
-            # 1. page_type 匹配
-            rule_page_types = rule.get("page_types", [])
-            if page_type_key not in rule_page_types:
+            # 1. app_category 硬过滤（v2 新增）
+            rule_categories = rule.get("app_categories", [])
+            if app_category and rule_categories and app_category not in rule_categories:
                 continue
 
-            score = 0
+            # 2. page_type 硬过滤
+            rule_page_types = rule.get("page_types", [])
+            if page_type and rule_page_types and page_type not in rule_page_types:
+                continue
 
-            # 2. user_waiting 加分
+            score = rule.get("priority", 0)
+
+            # 3. user_waiting 加分
             if rule.get("user_waiting") and user_waiting:
                 score += 20
 
-            # 3. key_elements 加分
+            # 4. key_elements 加分
             required_elements = rule.get("requires_elements", [])
             if required_elements and key_elements:
                 element_match = sum(
@@ -103,18 +100,18 @@ class RuleEngine:
 
             matched.append({
                 **rule,
-                "_match_score": rule.get("priority", 0) + score
+                "_match_score": score
             })
 
         # 按匹配得分降序排序
         matched.sort(key=lambda r: r["_match_score"], reverse=True)
 
         if matched:
-            print(f"  [规则引擎] 匹配到 {len(matched)} 条规则, "
-                  f"最优: {matched[0].get('id', '?')} "
+            print(f"  [规则引擎] app={app_category} page={page_type} → "
+                  f"匹配 {len(matched)} 条, 最优: {matched[0].get('id', '?')} "
                   f"(得分={matched[0]['_match_score']})")
         else:
-            print(f"  [规则引擎] 无匹配规则, 页面类型: {page_type_key}")
+            print(f"  [规则引擎] 无匹配: app={app_category} page={page_type}")
 
         return matched
 

@@ -224,7 +224,7 @@ class SequenceRewriter:
 
         # Step 2: 调用已有生成器生成异常截图
         base_screenshot = original_screenshots[injection_point]
-        anomaly_images = self._call_generator(
+        anomaly_images, close_btn_info = self._call_generator(
             screenshot_path=base_screenshot,
             instruction=instruction,
             anomaly_type=anomaly_type,
@@ -289,6 +289,9 @@ class SequenceRewriter:
             "modified_sequence": [str(p) for p in modified_sequence],
             "anomaly_images": [str(p) for p in anomaly_sequence_paths]
         }
+        # 注入关闭按钮绘制信息（从 pipeline_meta 中提取）
+        if close_btn_info:
+            metadata["close_button"] = close_btn_info
 
         metadata_path = run_output_dir / "metadata.json"
         with open(metadata_path, 'w', encoding='utf-8') as f:
@@ -428,7 +431,27 @@ class SequenceRewriter:
             anomaly_images = [placeholder]
 
         print(f"  生成了 {len(anomaly_images)} 张异常截图")
-        return anomaly_images
+        
+        # 提取关闭按钮信息（从 pipeline_meta JSON 中）
+        close_btn_info = self._extract_close_button_info(output_dir)
+        
+        return anomaly_images, close_btn_info
+
+    def _extract_close_button_info(self, output_dir: Path) -> Dict:
+        """从 pipeline_meta JSON 中提取关闭按钮绘制信息"""
+        for f in output_dir.glob("*_pipeline_meta_*.json"):
+            try:
+                meta = json.loads(f.read_text(encoding='utf-8'))
+                ri = meta.get('render_metadata', {}).get('render_info', {})
+                if 'close_button_drawn' in ri:
+                    return {
+                        'close_button_drawn': ri['close_button_drawn'],
+                        'close_button': ri.get('close_button'),
+                        'close_button_skipped_reason': ri.get('close_button_skipped_reason'),
+                    }
+            except (json.JSONDecodeError, KeyError):
+                pass
+        return {}
 
     def _find_generated_images(self, output_dir: Path) -> List[Path]:
         """查找最终生成的异常截图（仅 final_*.png）"""

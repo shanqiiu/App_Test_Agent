@@ -638,6 +638,7 @@ class StepRecord(BaseModel):
         action: 执行的动作
         context: 上下文信息
         confidence: 决策置信度
+        app_category: APP 类别（v2 新增）
     """
     step_index: int = Field(..., ge=0, description="步骤索引")
     screenshot_path: str = Field(..., description="截图路径")
@@ -650,6 +651,7 @@ class StepRecord(BaseModel):
     action: Optional[str] = Field(default=None, description="执行的动作")
     context: Dict[str, Any] = Field(default_factory=dict, description="上下文信息")
     confidence: float = Field(default=0.0, ge=0.0, le=1.0, description="决策置信度")
+    app_category: str = Field(default="", description="APP 类别（travel/video/music/sports/social/delivery）")
 
     def to_history_entry(self) -> str:
         """转换为历史记录条目（用于 VLM 提示词）"""

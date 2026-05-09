@@ -1,120 +1,463 @@
 {
-  "version": "1.0",
-  "description": "页面类型 → 异常模式映射规则表（通用规则引擎）",
-  "page_types": {
-    "splash":      {"name": "启动页/开屏页",     "description": "应用启动画面、品牌展示、开屏广告"},
-    "home":        {"name": "首页/主页面",       "description": "应用主界面、tab导航页"},
-    "search":      {"name": "搜索/筛选页",       "description": "搜索框、筛选条件、日期选择"},
-    "list_result": {"name": "列表/结果页",       "description": "商品列表、搜索结果、信息流"},
-    "detail":      {"name": "详情展示页",        "description": "商品详情、信息详情"},
-    "form":        {"name": "表单填写页",        "description": "输入框、表单填写、信息录入"},
-    "payment":     {"name": "支付/确认页",       "description": "支付确认、订单确认"},
-    "profile":     {"name": "个人中心/设置",     "description": "我的页面、设置页"},
-    "loading_wait":{"name": "加载/等待页",       "description": "加载动画、等待状态"},
-    "other":       {"name": "其他/未知页面",     "description": "无法明确分类的页面"}
+  "version": "2.0",
+  "description": "APP类别 × 页面类型 → 异常模式映射规则表（解耦版，6 类别 45 条规则）",
+  "app_categories": {
+    "travel":   {"name": "出行预订", "apps": ["12306", "携程", "去哪儿旅行"], "description": "机票、火车票、酒店预订"},
+    "video":    {"name": "长视频",   "apps": ["腾讯视频"], "description": "电视剧、电影、综艺、动漫"},
+    "music":    {"name": "音乐音频", "apps": ["QQ音乐"], "description": "歌曲、歌单、播放器、歌词"},
+    "sports":   {"name": "体育直播", "apps": ["直播吧"], "description": "赛事直播、数据统计、社区讨论"},
+    "social":   {"name": "内容社区", "apps": ["小红书"], "description": "笔记、图文、UGC、商城"},
+    "delivery": {"name": "即时配送", "apps": ["美团", "饿了么", "京东外卖"], "description": "外卖、生鲜、跑腿、即时配送"}
   },
   "rules": [
     {
-      "id": "splash_dialog_ad",
-      "page_types": ["splash", "home"],
+      "id": "travel_home_ad",
+      "app_categories": ["travel"],
+      "page_types": ["travel_home"],
       "anomaly_mode": "dialog",
-      "fault_mode": "开屏广告弹窗",
+      "fault_mode": "弹窗广告",
       "instruction_template": "在首页生成广告弹窗遮挡功能入口",
-      "priority": 80,
-      "gt_category": "dialog",
-      "gt_sample": ""
+      "priority": 85,
+      "gt_category": "dialog"
     },
     {
-      "id": "home_dialog_coupon",
-      "page_types": ["home"],
-      "anomaly_mode": "dialog",
-      "fault_mode": "优惠券弹窗",
-      "instruction_template": "在页面生成优惠券领取弹窗",
-      "priority": 70,
-      "gt_category": "dialog",
-      "gt_sample": ""
-    },
-    {
-      "id": "home_dialog_permission",
-      "page_types": ["home", "splash"],
+      "id": "travel_home_permission",
+      "app_categories": ["travel"],
+      "page_types": ["travel_home"],
       "anomaly_mode": "dialog",
       "fault_mode": "权限请求弹窗",
       "instruction_template": "模拟定位权限请求弹窗",
-      "priority": 60,
-      "gt_category": "dialog",
-      "gt_sample": ""
-    },
-    {
-      "id": "search_result_empty",
-      "page_types": ["list_result", "search"],
-      "anomaly_mode": "modify_text",
-      "fault_mode": "无结果状态提示",
-      "instruction_template": "将查询结果修改为「未找到相关结果」状态",
-      "priority": 90,
-      "gt_category": "",
-      "gt_sample": ""
-    },
-    {
-      "id": "search_button_disabled",
-      "page_types": ["search", "form"],
-      "anomaly_mode": "modify_text_ocr",
-      "fault_mode": "按钮置灰不可用",
-      "instruction_template": "将查询按钮置灰，显示为不可点击状态",
       "priority": 70,
-      "gt_category": "",
-      "gt_sample": ""
+      "gt_category": "dialog"
     },
     {
-      "id": "list_loading_timeout",
-      "page_types": ["list_result", "loading_wait"],
-      "anomaly_mode": "area_loading",
-      "fault_mode": "列表加载超时",
-      "instruction_template": "模拟列表加载超时，显示加载失败提示",
-      "priority": 85,
-      "gt_category": "",
-      "gt_sample": "",
-      "user_waiting": true
+      "id": "travel_search_btn_disabled",
+      "app_categories": ["travel"],
+      "page_types": ["travel_search"],
+      "anomaly_mode": "modify_text_ai",
+      "fault_mode": "查询按钮置灰",
+      "instruction_template": "将查询按钮置灰，显示为不可点击状态",
+      "priority": 80
     },
     {
-      "id": "detail_dialog_prompt",
-      "page_types": ["detail"],
+      "id": "travel_route_price_error",
+      "app_categories": ["travel"],
+      "page_types": ["travel_route_list"],
+      "anomaly_mode": "modify_text",
+      "fault_mode": "价格逻辑错误",
+      "instruction_template": "修改路线结果中的价格数字，制造价格逻辑矛盾",
+      "priority": 90
+    },
+    {
+      "id": "travel_route_no_ticket",
+      "app_categories": ["travel"],
+      "page_types": ["travel_route_list"],
+      "anomaly_mode": "modify_text",
+      "fault_mode": "无票状态提示",
+      "instruction_template": "将路线结果显示为无票/售罄状态",
+      "priority": 85
+    },
+    {
+      "id": "travel_detail_prompt",
+      "app_categories": ["travel"],
+      "page_types": ["travel_detail"],
       "anomaly_mode": "dialog",
       "fault_mode": "系统提示弹窗",
-      "instruction_template": "模拟系统提示弹窗（与商品相关）",
-      "priority": 60,
-      "gt_category": "dialog",
-      "gt_sample": ""
+      "instruction_template": "模拟系统提示弹窗",
+      "priority": 70,
+      "gt_category": "dialog"
     },
     {
-      "id": "payment_network_error",
-      "page_types": ["payment"],
+      "id": "travel_booking_price",
+      "app_categories": ["travel"],
+      "page_types": ["travel_booking"],
+      "anomaly_mode": "modify_text",
+      "fault_mode": "增值服务总价异常",
+      "instruction_template": "修改增值服务价格，使含保险/行李的总价低于裸票价",
+      "priority": 80
+    },
+    {
+      "id": "travel_payment_timeout",
+      "app_categories": ["travel"],
+      "page_types": ["travel_payment"],
       "anomaly_mode": "dialog",
       "fault_mode": "支付超时弹窗",
       "instruction_template": "模拟支付超时的系统提示弹窗",
       "priority": 90,
       "gt_category": "dialog",
-      "gt_sample": "",
       "user_waiting": true
     },
     {
-      "id": "profile_login_prompt",
-      "page_types": ["profile"],
-      "anomaly_mode": "dialog",
-      "fault_mode": "登录提示弹窗",
-      "instruction_template": "模拟需要登录的权限弹窗",
-      "priority": 65,
-      "gt_category": "dialog",
-      "gt_sample": ""
+      "id": "travel_loading_timeout",
+      "app_categories": ["travel"],
+      "page_types": ["travel_loading"],
+      "anomaly_mode": "area_loading",
+      "fault_mode": "加载超时",
+      "instruction_template": "模拟页面加载超时，显示加载失败状态",
+      "priority": 85
     },
     {
-      "id": "list_content_duplicate",
-      "page_types": ["list_result", "home"],
+      "id": "video_home_ad",
+      "app_categories": ["video"],
+      "page_types": ["video_home"],
+      "anomaly_mode": "dialog",
+      "fault_mode": "弹窗广告",
+      "instruction_template": "在首页生成广告弹窗遮挡功能入口",
+      "priority": 85,
+      "gt_category": "dialog"
+    },
+    {
+      "id": "video_search_empty",
+      "app_categories": ["video"],
+      "page_types": ["video_search"],
+      "anomaly_mode": "modify_text",
+      "fault_mode": "搜索无结果",
+      "instruction_template": "将搜索结果改为「未找到相关内容」状态",
+      "priority": 75
+    },
+    {
+      "id": "video_content_name_tamper",
+      "app_categories": ["video"],
+      "page_types": ["video_content_detail"],
+      "anomaly_mode": "modify_text_ai",
+      "fault_mode": "内容名篡改",
+      "instruction_template": "将内容详情页中的影视名称替换为相似错误名称",
+      "priority": 90
+    },
+    {
+      "id": "video_content_permission",
+      "app_categories": ["video"],
+      "page_types": ["video_content_detail"],
+      "anomaly_mode": "dialog",
+      "fault_mode": "权限限制弹窗",
+      "instruction_template": "生成权限限制弹窗，提示需要会员或特定权限",
+      "priority": 75,
+      "gt_category": "dialog"
+    },
+    {
+      "id": "video_episode_duplicate",
+      "app_categories": ["video"],
+      "page_types": ["video_episode_select"],
       "anomaly_mode": "content_duplicate",
-      "fault_mode": "内容重复展示",
-      "instruction_template": "将列表第一个元素复制，制造内容重复异常",
-      "priority": 50,
-      "gt_category": "",
-      "gt_sample": ""
+      "fault_mode": "选集重复",
+      "instruction_template": "在选集面板中复制已有选集条目，制造内容重复异常",
+      "priority": 85
+    },
+    {
+      "id": "video_episode_disabled",
+      "app_categories": ["video"],
+      "page_types": ["video_episode_select"],
+      "anomaly_mode": "modify_text_ai",
+      "fault_mode": "选集置灰",
+      "instruction_template": "将选集列表中指定集数的勾选框置灰，模拟权限限制",
+      "priority": 80
+    },
+    {
+      "id": "video_download_blocked",
+      "app_categories": ["video"],
+      "page_types": ["video_download"],
+      "anomaly_mode": "text_overlay",
+      "fault_mode": "下载按钮遮挡",
+      "instruction_template": "在下载按钮区域生成遮挡元素，阻止用户点击下载",
+      "priority": 95
+    },
+    {
+      "id": "video_player_delay",
+      "app_categories": ["video"],
+      "page_types": ["video_player"],
+      "anomaly_mode": "response_delay",
+      "fault_mode": "播放响应延迟",
+      "instruction_template": "模拟播放器操作无响应，UI 卡顿未更新",
+      "priority": 80
+    },
+    {
+      "id": "video_profile_member",
+      "app_categories": ["video"],
+      "page_types": ["video_profile"],
+      "anomaly_mode": "dialog",
+      "fault_mode": "会员弹窗",
+      "instruction_template": "模拟需要登录会员的权限弹窗",
+      "priority": 65,
+      "gt_category": "dialog"
+    },
+    {
+      "id": "video_loading_timeout",
+      "app_categories": ["video"],
+      "page_types": ["video_loading"],
+      "anomaly_mode": "area_loading",
+      "fault_mode": "加载超时",
+      "instruction_template": "模拟视频缓冲或列表加载超时",
+      "priority": 70
+    },
+    {
+      "id": "music_home_ad",
+      "app_categories": ["music"],
+      "page_types": ["music_home"],
+      "anomaly_mode": "dialog",
+      "fault_mode": "弹窗广告",
+      "instruction_template": "在首页生成广告弹窗遮挡功能入口",
+      "priority": 85,
+      "gt_category": "dialog"
+    },
+    {
+      "id": "music_search_empty",
+      "app_categories": ["music"],
+      "page_types": ["music_search"],
+      "anomaly_mode": "modify_text",
+      "fault_mode": "搜索无结果",
+      "instruction_template": "将搜索结果改为「未找到相关歌曲」状态",
+      "priority": 75
+    },
+    {
+      "id": "music_album_duplicate",
+      "app_categories": ["music"],
+      "page_types": ["music_album_detail"],
+      "anomaly_mode": "content_duplicate",
+      "fault_mode": "曲目列表重复",
+      "instruction_template": "在专辑/歌单中复制已有曲目条目，制造内容重复",
+      "priority": 80
+    },
+    {
+      "id": "music_album_download_blocked",
+      "app_categories": ["music"],
+      "page_types": ["music_album_detail"],
+      "anomaly_mode": "text_overlay",
+      "fault_mode": "下载按钮遮挡",
+      "instruction_template": "在下载按钮区域生成遮挡元素，阻止用户点击下载",
+      "priority": 85
+    },
+    {
+      "id": "music_player_delay",
+      "app_categories": ["music"],
+      "page_types": ["music_player"],
+      "anomaly_mode": "response_delay",
+      "fault_mode": "播放响应延迟",
+      "instruction_template": "模拟播放器操作无响应，UI 卡顿未更新",
+      "priority": 80
+    },
+    {
+      "id": "music_lyrics_error",
+      "app_categories": ["music"],
+      "page_types": ["music_lyrics"],
+      "anomaly_mode": "content_duplicate",
+      "fault_mode": "歌词错位",
+      "instruction_template": "在歌词页面制造歌词行重叠或错位异常",
+      "priority": 75
+    },
+    {
+      "id": "music_profile_login",
+      "app_categories": ["music"],
+      "page_types": ["music_profile"],
+      "anomaly_mode": "dialog",
+      "fault_mode": "登录弹窗",
+      "instruction_template": "模拟需要登录的权限弹窗",
+      "priority": 65,
+      "gt_category": "dialog"
+    },
+    {
+      "id": "music_loading_timeout",
+      "app_categories": ["music"],
+      "page_types": ["music_loading"],
+      "anomaly_mode": "area_loading",
+      "fault_mode": "加载超时",
+      "instruction_template": "模拟歌曲缓冲或列表加载超时",
+      "priority": 70
+    },
+    {
+      "id": "sports_home_ad",
+      "app_categories": ["sports"],
+      "page_types": ["sports_home"],
+      "anomaly_mode": "dialog",
+      "fault_mode": "弹窗广告",
+      "instruction_template": "在首页生成广告弹窗遮挡功能入口",
+      "priority": 85,
+      "gt_category": "dialog"
+    },
+    {
+      "id": "sports_schedule_duplicate",
+      "app_categories": ["sports"],
+      "page_types": ["sports_schedule"],
+      "anomaly_mode": "content_duplicate",
+      "fault_mode": "赛事列表重复",
+      "instruction_template": "在赛事日程中复制已有赛事条目，制造内容重复",
+      "priority": 75
+    },
+    {
+      "id": "sports_live_delay",
+      "app_categories": ["sports"],
+      "page_types": ["sports_live"],
+      "anomaly_mode": "response_delay",
+      "fault_mode": "直播卡顿",
+      "instruction_template": "模拟直播页面卡顿，画面冻结未更新",
+      "priority": 90
+    },
+    {
+      "id": "sports_data_fail",
+      "app_categories": ["sports"],
+      "page_types": ["sports_data"],
+      "anomaly_mode": "area_loading",
+      "fault_mode": "数据加载失败",
+      "instruction_template": "模拟技术统计/数据页面加载失败状态",
+      "priority": 80
+    },
+    {
+      "id": "sports_community_dup",
+      "app_categories": ["sports"],
+      "page_types": ["sports_community"],
+      "anomaly_mode": "content_duplicate",
+      "fault_mode": "评论内容重复",
+      "instruction_template": "在社区讨论中制造评论或帖子内容重复异常",
+      "priority": 70
+    },
+    {
+      "id": "sports_loading_timeout",
+      "app_categories": ["sports"],
+      "page_types": ["sports_loading"],
+      "anomaly_mode": "area_loading",
+      "fault_mode": "加载超时",
+      "instruction_template": "模拟直播加载或数据刷新超时",
+      "priority": 75
+    },
+    {
+      "id": "social_feed_duplicate",
+      "app_categories": ["social"],
+      "page_types": ["social_feed"],
+      "anomaly_mode": "content_duplicate",
+      "fault_mode": "内容流重复",
+      "instruction_template": "在信息流中复制已有笔记卡片，制造内容重复异常",
+      "priority": 80
+    },
+    {
+      "id": "social_note_text_blocked",
+      "app_categories": ["social"],
+      "page_types": ["social_note_detail"],
+      "anomaly_mode": "text_overlay",
+      "fault_mode": "正文被遮挡",
+      "instruction_template": "在笔记详情页正文区域生成遮挡元素",
+      "priority": 75
+    },
+    {
+      "id": "social_post_btn_disabled",
+      "app_categories": ["social"],
+      "page_types": ["social_post_create"],
+      "anomaly_mode": "modify_text_ai",
+      "fault_mode": "发布按钮置灰",
+      "instruction_template": "将发布按钮置灰，显示为不可点击状态",
+      "priority": 85
+    },
+    {
+      "id": "social_search_empty",
+      "app_categories": ["social"],
+      "page_types": ["social_search"],
+      "anomaly_mode": "modify_text",
+      "fault_mode": "搜索无结果",
+      "instruction_template": "将搜索结果改为「未找到相关内容」",
+      "priority": 75
+    },
+    {
+      "id": "social_shop_price_error",
+      "app_categories": ["social"],
+      "page_types": ["social_shop"],
+      "anomaly_mode": "modify_text",
+      "fault_mode": "商品价格异常",
+      "instruction_template": "修改商城商品价格数字，制造价格错误",
+      "priority": 80
+    },
+    {
+      "id": "social_profile_login",
+      "app_categories": ["social"],
+      "page_types": ["social_profile"],
+      "anomaly_mode": "dialog",
+      "fault_mode": "登录弹窗",
+      "instruction_template": "模拟需要登录的权限弹窗",
+      "priority": 65,
+      "gt_category": "dialog"
+    },
+    {
+      "id": "social_loading_timeout",
+      "app_categories": ["social"],
+      "page_types": ["social_loading"],
+      "anomaly_mode": "area_loading",
+      "fault_mode": "加载超时",
+      "instruction_template": "模拟内容刷新或图片加载超时",
+      "priority": 70
+    },
+    {
+      "id": "delivery_home_ad",
+      "app_categories": ["delivery"],
+      "page_types": ["delivery_home"],
+      "anomaly_mode": "dialog",
+      "fault_mode": "弹窗广告",
+      "instruction_template": "在首页生成广告弹窗遮挡功能入口",
+      "priority": 85,
+      "gt_category": "dialog"
+    },
+    {
+      "id": "delivery_home_coupon",
+      "app_categories": ["delivery"],
+      "page_types": ["delivery_home"],
+      "anomaly_mode": "dialog",
+      "fault_mode": "优惠券弹窗",
+      "instruction_template": "在页面生成优惠券领取弹窗",
+      "priority": 75,
+      "gt_category": "dialog"
+    },
+    {
+      "id": "delivery_menu_price_error",
+      "app_categories": ["delivery"],
+      "page_types": ["delivery_menu"],
+      "anomaly_mode": "modify_text",
+      "fault_mode": "商品价格异常",
+      "instruction_template": "修改菜单中的商品价格数字，制造价格错误",
+      "priority": 85
+    },
+    {
+      "id": "delivery_menu_sold_out",
+      "app_categories": ["delivery"],
+      "page_types": ["delivery_menu"],
+      "anomaly_mode": "dialog",
+      "fault_mode": "商品售罄弹窗",
+      "instruction_template": "模拟商品售罄的系统提示弹窗",
+      "priority": 80,
+      "gt_category": "dialog"
+    },
+    {
+      "id": "delivery_config_conflict",
+      "app_categories": ["delivery"],
+      "page_types": ["delivery_item_config"],
+      "anomaly_mode": "content_duplicate",
+      "fault_mode": "规格冲突",
+      "instruction_template": "制造规格选项冲突异常",
+      "priority": 70
+    },
+    {
+      "id": "delivery_cart_price_error",
+      "app_categories": ["delivery"],
+      "page_types": ["delivery_cart"],
+      "anomaly_mode": "modify_text",
+      "fault_mode": "下单价格错误",
+      "instruction_template": "修改下单页的合计金额，使总价与实际明细不一致",
+      "priority": 90
+    },
+    {
+      "id": "delivery_payment_timeout",
+      "app_categories": ["delivery"],
+      "page_types": ["delivery_payment"],
+      "anomaly_mode": "dialog",
+      "fault_mode": "支付超时弹窗",
+      "instruction_template": "模拟支付超时的系统提示弹窗",
+      "priority": 85,
+      "gt_category": "dialog",
+      "user_waiting": true
+    },
+    {
+      "id": "delivery_tracking_stuck",
+      "app_categories": ["delivery"],
+      "page_types": ["delivery_tracking"],
+      "anomaly_mode": "response_delay",
+      "fault_mode": "配送状态卡死",
+      "instruction_template": "模拟配送跟踪页面状态卡死不更新",
+      "priority": 90
     }
   ],
   "fallback": {
@@ -122,7 +465,6 @@
     "fault_mode": "通用弹窗",
     "instruction_template": "在页面生成广告弹窗遮挡功能入口",
     "priority": 10,
-    "gt_category": "dialog",
-    "gt_sample": ""
+    "gt_category": "dialog"
   }
 }
