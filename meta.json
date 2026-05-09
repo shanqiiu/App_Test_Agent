@@ -1,627 +1,353 @@
 {
-  "category": "dialog",
-  "description": "弹窗覆盖 - 各类遮挡弹窗异常",
-  "count": 10,
-  "samples": {
-    "美团-首页-使用教程弹窗.jpg": {
-      "anomaly_type": "tutorial_guide",
-      "anomaly_description": "美团神券页面中央弹出权益升级引导弹窗，显示'神券权益升级 快来查看、膨胀你的专属神券吧'",
-      "visual_features": {
-        "app_style": "美团",
-        "source_brand": "美团",
-        "source_brand_keywords": [
-          "美团",
-          "神券",
-          "美小团",
-          "外卖神券",
-          "吃喝玩乐红包"
-        ],
-        "primary_color": "#FF6B35",
-        "background": "白色 #FFFFFF",
-        "dialog_position": "center",
-        "dialog_size_ratio": {
-          "width": 0.7,
-          "height": 0.2
-        },
-        "overlay_enabled": true,
-        "overlay_opacity": 0.5,
-        "close_button_position": "none",
-        "close_button_style": "none",
-        "main_button_text": "下一步 1/3",
-        "main_button_style": "outlined_with_arrow",
-        "title_text": "神券权益升级",
-        "subtitle_text": "快来查看、膨胀你的专属神券吧",
-        "special_elements": [
-          "跳过指引按钮",
-          "步骤指示器 1/3",
-          "半透明遮罩背景"
-        ]
-      },
-      "generation_template": {
-        "instruction": "在美团神券页面中央添加一个引导教程弹窗，提示用户进行权益升级。",
-        "patch_operations": [
-          {
-            "type": "add",
-            "component": "TutorialGuideDialog",
-            "position": "center",
-            "overlay": true,
-            "close_button": false
-          }
-        ],
-        "key_points": [
-          "弹窗位于屏幕中央，覆盖主内容区域",
-          "标题为'神券权益升级'，使用红色字体突出",
-          "副标题为'快来查看、膨胀你的专属神券吧'",
-          "底部有'下一步 1/3'的圆形按钮，带箭头样式",
-          "下方有'跳过指引'文字链接"
-        ]
-      },
-      "dialog_bounds_px": {
-        "x": 0,
-        "y": 324,
-        "width": 1220,
-        "height": 1172
-      }
-    },
-    "美团-商品主页-使用教程弹窗.jpg": {
-      "anomaly_type": "floating_tip_banner",
-      "anomaly_description": "美团APP在瑞幸咖啡商品页面底部弹出红色浮动提示横幅，显示'到店自取，取餐更快更便宜!'",
-      "visual_features": {
-        "app_style": "美团",
-        "source_brand": "美团",
-        "source_brand_keywords": [
-          "美团",
-          "Meituan",
-          "拼好饭",
-          "luckin coffee",
-          "瑞幸咖啡"
-        ],
-        "primary_color": "#FF3B58",
-        "background": "红色渐变 #FF3B58 → #FF6B6B",
-        "dialog_position": "bottom-fixed",
-        "dialog_size_ratio": {
-          "width": 0.9,
-          "height": 0.12
-        },
-        "overlay_enabled": false,
-        "overlay_opacity": 0,
-        "close_button_position": "none",
-        "close_button_style": "none",
-        "main_button_text": "我知道了",
-        "main_button_style": "white_text_button",
-        "title_text": "到店自取，取餐更快更便宜!",
-        "subtitle_text": "",
-        "special_elements": [
-          "黄色笑脸表情图标",
-          "粉色帽子的卡通形象",
-          "右上角小对话气泡"
-        ],
-        "mascot_position": "right",
-        "mascot_style": "yellow_smiley_with_pink_hat",
-        "close_button_text": "我知道了",
-        "main_text": "到店自取，取餐更快更便宜!"
-      },
-      "generation_template": {
-        "instruction": "在美团APP商品详情页底部添加一个红色固定横幅，包含促销文案和卡通形象，并附带确认按钮。",
-        "patch_operations": [
-          {
-            "type": "add",
-            "component": "FloatingTipBanner",
-            "position": "bottom-fixed",
-            "overlay": false,
-            "close_button": true
-          }
-        ],
-        "key_points": [
-          "底部固定位置的红色横幅",
-          "包含文字'到店自取，取餐更快更便宜!'",
-          "右侧有黄色笑脸卡通形象",
-          "带有'我知道了'白色按钮",
-          "无遮罩层，直接覆盖在内容上方"
-        ]
-      }
-    },
-    "美团-店铺主页-使用教程弹窗.jpg": {
-      "anomaly_type": "floating_tip_banner",
-      "anomaly_description": "美团外卖页面底部弹出黄色浮动提示横幅，显示'这家店所有优惠的商品都在这里喔～'",
-      "visual_features": {
-        "app_style": "美团",
-        "source_brand": "美团",
-        "source_brand_keywords": [
-          "美团",
-          "美团外卖",
-          "麦当劳",
-          "麦咖啡"
-        ],
-        "primary_color": "#FFD700",
-        "background": "黄色渐变 #FFD700 → #FFC107",
-        "dialog_position": "bottom-fixed",
-        "dialog_size_ratio": {
-          "width": 0.8,
-          "height": 0.12
-        },
-        "overlay_enabled": false,
-        "overlay_opacity": 0,
-        "close_button_position": "top-right",
-        "close_button_style": "gray_circle_x",
-        "main_button_text": "",
-        "main_button_style": "none",
-        "title_text": "",
-        "subtitle_text": "这家店所有优惠的商品都在这里喔～",
-        "special_elements": [
-          "黄色兔子吉祥物图标",
-          "箭头指示标签",
-          "金色闪光装饰"
-        ],
-        "mascot_position": "left",
-        "mascot_style": "卡通黄色兔子",
-        "close_button_text": "×",
-        "main_text": "这家店所有优惠的商品都在这里喔～"
-      },
-      "generation_template": {
-        "instruction": "在美团外卖店铺页面底部添加一个黄色浮动提示横幅，左侧有黄色兔子吉祥物，右侧显示优惠提示文字，并带右上角关闭按钮。",
-        "patch_operations": [
-          {
-            "type": "add",
-            "component": "FloatingTipBanner",
-            "position": "bottom-fixed",
-            "overlay": false,
-            "close_button": true
-          }
-        ],
-        "key_points": [
-          "底部固定位置的黄色横幅",
-          "左侧有黄色卡通兔子吉祥物",
-          "中间显示‘这家店所有优惠的商品都在这里喔～’文字",
-          "右上角有灰色圆形关闭按钮（×）",
-          "整体风格活泼，带有金色闪光装饰"
-        ]
-      }
-    },
-    "12306-首页-系统提示弹窗.jpg": {
-      "anomaly_type": "permission_dialog",
-      "anomaly_description": "铁路12306首页中央弹出微信/支付宝/负一屏通知权限弹窗，显示开启行程提醒等通知功能",
-      "visual_features": {
-        "app_style": "铁路12306",
-        "source_brand": "铁路12306",
-        "source_brand_keywords": [
-          "铁路12306",
-          "12306",
-          "中国铁路",
-          "火车票"
-        ],
-        "primary_color": "#409EFF",
-        "background": "白色 #FFFFFF",
-        "dialog_position": "center",
-        "dialog_size_ratio": {
-          "width": 0.8,
-          "height": 0.5
-        },
-        "overlay_enabled": true,
-        "overlay_opacity": 0.5,
-        "close_button_position": "bottom-center",
-        "close_button_style": "gray_circle_x",
-        "main_button_text": "立即开启",
-        "main_button_style": "blue_filled",
-        "title_text": "开启微信/支付宝/负一屏通知",
-        "subtitle_text": "第一时间接收行程信息等重要通知",
-        "special_elements": [
-          "三个圆形图标：购退交易、候补结果、行程提醒等",
-          "蓝色主按钮",
-          "半透明遮罩背景"
-        ]
-      },
-      "generation_template": {
-        "instruction": "在铁路12306首页中央添加一个权限弹窗，用于引导用户开启微信/支付宝/负一屏通知",
-        "patch_operations": [
-          {
-            "type": "add",
-            "component": "PermissionDialog",
-            "position": "center",
-            "overlay": true,
-            "close_button": true
-          }
-        ],
-        "key_points": [
-          "弹窗位于屏幕中央，覆盖主界面",
-          "标题为'开启微信/支付宝/负一屏通知'",
-          "副标题提示接收行程信息等通知",
-          "包含三个黄色圆形图标分别代表购退交易、候补结果、行程提醒",
-          "底部有蓝色'立即开启'按钮和关闭按钮"
-        ]
-      },
-      "dialog_bounds_px": {
-        "x": 90,
-        "y": 856,
-        "width": 1046,
-        "height": 848
-      }
-    },
-    "去哪儿-首页-权限类弹窗.jpg": {
-      "anomaly_type": "permission_dialog",
-      "anomaly_description": "去哪儿旅行首页中央弹出位置权限请求弹窗，显示'允许“去哪儿旅行”访问你的位置？'",
-      "visual_features": {
-        "app_style": "去哪儿旅行",
-        "source_brand": "去哪儿旅行",
-        "source_brand_keywords": [
-          "去哪儿旅行",
-          "游视界",
-          "Petal Maps",
-          "华为"
-        ],
-        "primary_color": "#007AFF",
-        "background": "白色 #FFFFFF",
-        "dialog_position": "center",
-        "dialog_size_ratio": {
-          "width": 0.85,
-          "height": 0.65
-        },
-        "overlay_enabled": true,
-        "overlay_opacity": 0.5,
-        "close_button_position": "none",
-        "close_button_style": "none",
-        "main_button_text": "本次使用允许",
-        "main_button_style": "blue_filled",
-        "buttons": [
-          "本次使用允许",
-          "仅使用期间允许",
-          "不允许"
-        ],
-        "title_text": "允许“去哪儿旅行”访问你的位置？",
-        "subtitle_text": "申请位置权限为了向您提供基于您位置信息附近的优质出行资源及相关产品",
-        "special_elements": [
-          "蓝色定位图标",
-          "地图预览图（Petal Maps）",
-          "精确位置开关（已开启）",
-          "三个选项按钮：本次使用允许、仅使用期间允许、不允许"
-        ]
-      },
-      "generation_template": {
-        "instruction": "在去哪儿旅行首页中央添加一个位置权限请求弹窗，包含标题、副标题、地图预览和三个权限选项。",
-        "patch_operations": [
-          {
-            "type": "add",
-            "component": "PermissionDialog",
-            "position": "center",
-            "overlay": true,
-            "close_button": false
-          }
-        ],
-        "key_points": [
-          "弹窗位于屏幕中央，覆盖半透明遮罩",
-          "顶部有蓝色定位图标和标题文字",
-          "中间显示Petal Maps的地图预览及‘精确位置’开关",
-          "下方有三个蓝色文字按钮：本次使用允许、仅使用期间允许、不允许",
-          "背景为白色，主色调为蓝色（#007AFF）"
-        ]
-      },
-      "dialog_bounds_px": {
-        "x": 6,
-        "y": 536,
-        "width": 1212,
-        "height": 1698
-      }
-    },
-    "京东-店铺主页-底部优惠弹窗.jpg": {
-      "anomaly_type": "promotional_coupont_dialog",
-      "anomaly_description": "京东到家外卖页面底部弹出专属福利优惠券弹窗，显示'百补好运券 满4元可用'",
-      "visual_features": {
-        "app_style": "京东到家",
-        "source_brand": "京东到家",
-        "source_brand_keywords": [
-          "京东",
-          "京东到家",
-          "京东秒送",
-          "京喜"
-        ],
-        "primary_color": "#FF1744",
-        "background": "白色 #FFFFFF",
-        "dialog_position": "bottom-fixed",
-        "dialog_size_ratio": {
-          "width": 0.96,
-          "height": 0.23
-        },
-        "overlay_enabled": false,
-        "overlay_opacity": 0,
-        "close_button_position": "top-right",
-        "close_button_style": "gray_circle_x",
-        "main_button_text": "立即使用",
-        "main_button_style": "red_filled",
-        "title_text": "送您专属福利",
-        "subtitle_text": "百补好运券",
-        "special_elements": [
-          "优惠券金额¥3",
-          "使用条件满4元可用",
-          "有效期限2025.12.29~2026.02.28",
-          "红色横幅背景"
-        ]
-      },
-      "generation_template": {
-        "instruction": "在京东到家外卖页面底部添加一个红色主题的优惠券弹窗，包含标题、优惠信息和立即使用按钮。",
-        "patch_operations": [
-          {
-            "type": "add",
-            "component": "PromotionalCouponDialog",
-            "position": "bottom-fixed",
-            "overlay": false,
-            "close_button": true
-          }
-        ],
-        "key_points": [
-          "弹窗位于页面底部固定位置",
-          "主色调为红色（#FF1744）",
-          "包含标题'送您专属福利'和优惠内容'百补好运券 满4元可用'",
-          "右侧有红色'立即使用'按钮"
-        ]
-      },
-      "dialog_bounds_px": {
-        "x": 12,
-        "y": 2403,
-        "width": 1176,
-        "height": 274
-      }
-    },
-    "携程-首页-广告弹窗.jpg": {
-      "anomaly_type": "promotional_popup",
-      "anomaly_description": "携程旅行首页中央弹出携程榜单推广弹窗，显示'被世界米到了！'的宣传内容",
-      "visual_features": {
-        "app_style": "携程旅行",
-        "source_brand": "携程",
-        "source_brand_keywords": [
-          "携程",
-          "携程旅行",
-          "携程榜单",
-          "米卡MIKA",
-          "携程口碑榜"
-        ],
-        "primary_color": "#F5E87B",
-        "background": "绿色草地背景 #4CAF50",
-        "dialog_position": "center",
-        "dialog_size_ratio": {
-          "width": 0.75,
-          "height": 0.65
-        },
-        "overlay_enabled": true,
-        "overlay_opacity": 0.5,
-        "close_button_position": "top-right",
-        "close_button_style": "gray_circle_x",
-        "main_button_text": "立即查看",
-        "main_button_style": "yellow_filled",
-        "title_text": "被世界米到了！",
-        "subtitle_text": "打卡同款路线 解锁限量周边",
-        "special_elements": [
-          "人物剪影轮廓",
-          "手绘风格文字",
-          "泰国·曼谷地理位置标签",
-          "米卡MIKA品牌大使标识",
-          "What a beautiful world! 手写体英文"
-        ]
-      },
-      "generation_template": {
-        "instruction": "在携程旅行首页中央添加一个推广弹窗，展示‘被世界米到了’主题的旅游榜单活动",
-        "patch_operations": [
-          {
-            "type": "add",
-            "component": "PromotionalPopup",
-            "position": "center",
-            "overlay": true,
-            "close_button": true
-          }
-        ],
-        "key_points": [
-          "弹窗位于屏幕中央，覆盖主界面",
-          "顶部有灰色圆形关闭按钮（X）",
-          "主标题为手绘风格‘被世界米到了！’",
-          "包含人物站立剪影和绿色草地背景",
-          "底部黄色按钮显示‘立即查看’"
-        ]
-      },
-      "dialog_bounds_px": {
-        "x": 264,
-        "y": 1274,
-        "width": 774,
-        "height": 854
-      }
-    },
-    "我的华为-首页-广告弹窗.jpg": {
-      "anomaly_type": "reward_badge_dialog",
-      "anomaly_description": "华为花粉俱乐部首页中央弹出HarmonyOS勋章奖励弹窗，显示'恭喜您获得勋章 鸿蒙合伙人 30天'",
-      "visual_features": {
-        "app_style": "华为花粉俱乐部",
-        "source_brand": "华为",
-        "source_brand_keywords": [
-          "华为",
-          "HUAWEI",
-          "HarmonyOS",
-          "鸿蒙",
-          "鸿蒙操作系统",
-          "花粉俱乐部",
-          "鸿蒙合伙人"
-        ],
-        "primary_color": "#F5F0E6",
-        "background": "米白色渐变 #F5F0E6 → #F8F4EB",
-        "dialog_position": "center",
-        "dialog_size_ratio": {
-          "width": 0.75,
-          "height": 0.55
-        },
-        "overlay_enabled": true,
-        "overlay_opacity": 0.5,
-        "close_button_position": "bottom-center",
-        "close_button_style": "gray_circle_x",
-        "main_button_text": "立即查看",
-        "main_button_style": "outlined_with_arrow",
-        "title_text": "恭喜您获得勋章",
-        "subtitle_text": "鸿蒙合伙人 30天",
-        "special_elements": [
-          "圆形勋章图标",
-          "HarmonyOS文字标识",
-          "数字'30'立体浮雕效果",
-          "底部箭头按钮"
-        ]
-      },
-      "generation_template": {
-        "instruction": "在华为花粉俱乐部首页中央添加一个半透明遮罩的勋章奖励弹窗，展示鸿蒙合伙人30天成就。",
-        "patch_operations": [
-          {
-            "type": "add",
-            "component": "RewardBadgeDialog",
-            "position": "center",
-            "overlay": true,
-            "close_button": true
-          }
-        ],
-        "key_points": [
-          "弹窗位于屏幕中央，覆盖主界面内容",
-          "背景为米白色渐变，带有柔和阴影",
-          "顶部显示标题'恭喜您获得勋章'和副标题'鸿蒙合伙人 30天'",
-          "中心是一个金色边框的圆形勋章，内含'30'和'HarmonyOS'字样",
-          "底部有一个带右箭头的'立即查看'按钮"
-        ]
-      },
-      "dialog_bounds_px": {
-        "x": 160,
-        "y": 708,
-        "width": 904,
-        "height": 1196
-      }
-    },
-    "携程-首页-优惠广告弹窗.jpg": {
-      "anomaly_type": "promotional_coupont_dialog",
-      "anomaly_description": "携程旅行APP机票页面中央弹出新客随机福利弹窗，显示90元国内机票券包、100元国际机票券包和1288元出行权益包等优惠内容",
-      "visual_features": {
-        "app_style": "携程",
-        "source_brand": "携程",
-        "source_brand_keywords": [
-          "携程",
-          "CATHAY PACIFIC",
-          "国泰航空",
-          "机票",
-          "特价机票"
-        ],
-        "primary_color": "#FF4D4D",
-        "background": "红色渐变 #FF4D4D → #FF6B35",
-        "dialog_position": "center",
-        "dialog_size_ratio": {
-          "width": 0.85,
-          "height": 0.55
-        },
-        "overlay_enabled": true,
-        "overlay_opacity": 0.5,
-        "close_button_position": "bottom-center",
-        "close_button_style": "gray_circle_x",
-        "main_button_text": "开心收下",
-        "main_button_style": "red_filled",
-        "title_text": "新客随机福利",
-        "subtitle_text": "使用说明 >",
-        "special_elements": [
-          "卡通形象（蓝色海豚）",
-          "红包图标",
-          "三个横向优惠卡片",
-          "价格标签（90元、100元、1288元）",
-          "“共”字标签"
-        ],
-        "coupon_amount": [
-          "90元",
-          "100元",
-          "1288元"
-        ],
-        "coupon_condition": [
-          "包含无门槛/多人/往返券",
-          "包含无门槛券和多人券",
-          "含租车、包车等权益"
-        ],
-        "mascot_position": "top-center",
-        "mascot_style": "蓝色海豚卡通形象，戴帽子，手持红包",
-        "close_button_text": "×",
-        "main_text": "新客随机福利"
-      },
-      "generation_template": {
-        "instruction": "在携程机票页面中央添加一个红色主题的新客福利弹窗，包含三个优惠券选项和底部‘开心收下’按钮",
-        "patch_operations": [
-          {
-            "type": "add",
-            "component": "PromotionalCouponDialog",
-            "position": "center",
-            "overlay": true,
-            "close_button": true
-          }
-        ],
-        "key_points": [
-          "弹窗位于屏幕中央，覆盖半透明遮罩",
-          "主色调为红色，顶部有蓝色海豚卡通形象",
-          "包含三个横向优惠券卡片，分别标注90元、100元、1288元",
-          "底部有‘开心收下’的红色填充按钮"
-        ]
-      },
-      "dialog_bounds_px": {
-        "x": 40,
-        "y": 578,
-        "width": 1142,
-        "height": 1638
-      }
-    },
-    "携程-首页-权限类弹窗.jpg": {
-      "anomaly_type": "permission_dialog",
-      "anomaly_description": "携程旅行APP首页中央弹出权限请求弹窗，显示'允许“携程旅行”向你发送通知？'",
-      "visual_features": {
-        "app_style": "携程旅行",
-        "source_brand": "携程旅行",
-        "source_brand_keywords": [
-          "携程",
-          "携程旅行",
-          "Ctrip"
-        ],
-        "primary_color": "#007AFF",
-        "background": "白色 #FFFFFF",
-        "dialog_position": "center",
-        "dialog_size_ratio": {
-          "width": 0.85,
-          "height": 0.4
-        },
-        "overlay_enabled": true,
-        "overlay_opacity": 0.5,
-        "close_button_position": "none",
-        "close_button_style": "none",
-        "main_button_text": "允许",
-        "main_button_style": "blue_filled",
-        "buttons": [
-          "不允许",
-          "允许"
-        ],
-        "title_text": "允许“携程旅行”向你发送通知？",
-        "subtitle_text": "通知提醒方式可能包括锁屏、横幅、角标、响铃、振动。可前往“设置”更改。",
-        "special_elements": [
-          "蓝色铃铛图标",
-          "两个按钮：不允许/允许"
-        ]
-      },
-      "generation_template": {
-        "instruction": "在携程旅行APP首页中央添加一个权限请求弹窗，询问用户是否允许接收通知。",
-        "patch_operations": [
-          {
-            "type": "add",
-            "component": "PermissionDialog",
-            "position": "center",
-            "overlay": true,
-            "close_button": false
-          }
-        ],
-        "key_points": [
-          "弹窗位于屏幕中央，覆盖背景内容",
-          "顶部有一个蓝色铃铛图标",
-          "标题为'允许“携程旅行”向你发送通知？'",
-          "副标题说明通知形式和设置路径",
-          "底部有两个按钮：'不允许'和'允许'"
-        ]
-      },
-      "dialog_bounds_px": {
-        "x": 36,
-        "y": 1016,
-        "width": 1150,
-        "height": 744
-      }
+  "query": "(去哪儿旅行)购买一张从南京去北京的机票，后天18:00-21:00出发",
+  "app_name": "去哪儿旅行",
+  "fault_mode": "订阅按钮置灰",
+  "fault_mode_key": "mode_1",
+  "mapping": {
+    "query": "(去哪儿旅行)购买一张从南京去北京的机票，后天18:00-21:00出发",
+    "query_id": "04a90dc3-5140-47d2-89ee-f31855483679",
+    "app_name": "去哪儿旅行",
+    "example_dir": "injection_demo_01",
+    "fault_mode": "订阅按钮置灰",
+    "fault_mode_key": "mode_1",
+    "injection_config": {
+      "anomaly_mode": "modify_text_ai",
+      "instruction": "将订阅按钮置灰，显示为不可点击状态"
     }
   },
-  "usage": "--gt-category dialog --gt-sample <sample>.jpg"
+  "rule_decision": {
+    "success": true,
+    "injection_point": 2,
+    "anomaly_mode": "modify_text_ai",
+    "instruction": "将查询按钮置灰，显示为不可点击状态",
+    "gt_category": "",
+    "gt_sample": "",
+    "fault_mode": "查询按钮置灰",
+    "app_category": "travel",
+    "page_type": "travel_search",
+    "matched_rule_id": "travel_search_btn_disabled",
+    "matched_rule": {
+      "id": "travel_search_btn_disabled",
+      "app_categories": [
+        "travel"
+      ],
+      "page_types": [
+        "travel_search"
+      ],
+      "anomaly_mode": "modify_text_ai",
+      "fault_mode": "查询按钮置灰",
+      "instruction_template": "将查询按钮置灰，显示为不可点击状态",
+      "priority": 80,
+      "content_requirements": {
+        "has_button": true,
+        "has_form_input": true,
+        "desc": "页面需包含查询按钮和输入框",
+        "semantic_keywords": [
+          "查询",
+          "搜索",
+          "按钮",
+          "日期"
+        ],
+        "min_keyword_match": 1
+      }
+    },
+    "match_score": 80,
+    "match_confidence": 0.67,
+    "vlm_reasoning": "当前页面为机票搜索筛选页，用户正在设置行程信息（出发地、目的地、日期、乘客等），尚未执行搜索操作，因此不是结果列表页。",
+    "vlm_key_elements": [
+      "单程/往返/多程切换",
+      "出发城市选择",
+      "到达城市选择",
+      "日期选择",
+      "乘客姓名输入",
+      "舱位选择",
+      "商旅出行开关",
+      "搜索按钮"
+    ],
+    "vlm_user_waiting": false,
+    "reasoning": "app=travel, page=travel_search, 等待=False, 匹配规则=travel_search_btn_disabled (score=80, conf=0.67)",
+    "candidates_count": 7,
+    "history": [
+      {
+        "step_index": 0,
+        "screenshot_path": "/data/App_Test_Agent/data/examples/injection_demo_01/screenshots/step_00.jpg",
+        "think": "前 2 步强制跳过",
+        "decision": "SKIP",
+        "anomaly_type": null,
+        "instruction": null,
+        "conclusion": "",
+        "timestamp": "2026-05-09T16:49:46.480829",
+        "action": null,
+        "context": {},
+        "confidence": 0.0,
+        "app_category": ""
+      },
+      {
+        "step_index": 1,
+        "screenshot_path": "/data/App_Test_Agent/data/examples/injection_demo_01/screenshots/step_01.jpg",
+        "think": "前 2 步强制跳过",
+        "decision": "SKIP",
+        "anomaly_type": null,
+        "instruction": null,
+        "conclusion": "",
+        "timestamp": "2026-05-09T16:49:46.480880",
+        "action": null,
+        "context": {},
+        "confidence": 0.0,
+        "app_category": ""
+      },
+      {
+        "step_index": 2,
+        "screenshot_path": "/data/App_Test_Agent/data/examples/injection_demo_01/screenshots/step_02.jpg",
+        "think": "app=travel, page=travel_search, 等待=False, 匹配规则=travel_search_btn_disabled (score=80, conf=0.67)",
+        "decision": "INJECT",
+        "anomaly_type": "modify_text_ai",
+        "instruction": "将查询按钮置灰，显示为不可点击状态",
+        "conclusion": "travel_search",
+        "timestamp": "2026-05-09T16:49:49.297736",
+        "action": null,
+        "context": {},
+        "confidence": 0.67,
+        "app_category": "travel"
+      },
+      {
+        "step_index": 3,
+        "screenshot_path": "/data/App_Test_Agent/data/examples/injection_demo_01/screenshots/step_03.jpg",
+        "think": "app=travel, page=travel_search, 等待=False, 匹配规则=travel_search_btn_disabled (score=80, conf=0.67)",
+        "decision": "INJECT",
+        "anomaly_type": "modify_text_ai",
+        "instruction": "将查询按钮置灰，显示为不可点击状态",
+        "conclusion": "travel_search",
+        "timestamp": "2026-05-09T16:49:52.571845",
+        "action": null,
+        "context": {},
+        "confidence": 0.67,
+        "app_category": "travel"
+      },
+      {
+        "step_index": 4,
+        "screenshot_path": "/data/App_Test_Agent/data/examples/injection_demo_01/screenshots/step_04.jpg",
+        "think": "app=travel, page=travel_search, 等待=False, 匹配规则=travel_search_btn_disabled (score=80, conf=0.67)",
+        "decision": "INJECT",
+        "anomaly_type": "modify_text_ai",
+        "instruction": "将查询按钮置灰，显示为不可点击状态",
+        "conclusion": "travel_search",
+        "timestamp": "2026-05-09T16:49:56.799176",
+        "action": null,
+        "context": {},
+        "confidence": 0.67,
+        "app_category": "travel"
+      },
+      {
+        "step_index": 5,
+        "screenshot_path": "/data/App_Test_Agent/data/examples/injection_demo_01/screenshots/step_05.jpg",
+        "think": "app=travel, page=travel_search, 等待=False, 匹配规则=travel_search_btn_disabled (score=80, conf=0.67)",
+        "decision": "INJECT",
+        "anomaly_type": "modify_text_ai",
+        "instruction": "将查询按钮置灰，显示为不可点击状态",
+        "conclusion": "travel_search",
+        "timestamp": "2026-05-09T16:50:00.364001",
+        "action": null,
+        "context": {},
+        "confidence": 0.67,
+        "app_category": "travel"
+      },
+      {
+        "step_index": 6,
+        "screenshot_path": "/data/App_Test_Agent/data/examples/injection_demo_01/screenshots/step_06.jpg",
+        "think": "app=travel, page=travel_search, 等待=False, 匹配规则=travel_search_btn_disabled (score=80, conf=0.67)",
+        "decision": "INJECT",
+        "anomaly_type": "modify_text_ai",
+        "instruction": "将查询按钮置灰，显示为不可点击状态",
+        "conclusion": "travel_search",
+        "timestamp": "2026-05-09T16:50:04.669952",
+        "action": null,
+        "context": {},
+        "confidence": 0.67,
+        "app_category": "travel"
+      },
+      {
+        "step_index": 7,
+        "screenshot_path": "/data/App_Test_Agent/data/examples/injection_demo_01/screenshots/step_07.jpg",
+        "think": "app=travel, page=travel_route_list, 规则推荐异常模式=modify_text, 期望=modify_text_ai → 不匹配，跳过",
+        "decision": "SKIP",
+        "anomaly_type": null,
+        "instruction": null,
+        "conclusion": "travel_route_list",
+        "timestamp": "2026-05-09T16:50:08.227299",
+        "action": null,
+        "context": {},
+        "confidence": 0.0,
+        "app_category": "travel"
+      },
+      {
+        "step_index": 8,
+        "screenshot_path": "/data/App_Test_Agent/data/examples/injection_demo_01/screenshots/step_08.jpg",
+        "think": "app=travel, page=travel_search, 等待=False, 匹配规则=travel_search_btn_disabled (score=80, conf=0.67)",
+        "decision": "INJECT",
+        "anomaly_type": "modify_text_ai",
+        "instruction": "将查询按钮置灰，显示为不可点击状态",
+        "conclusion": "travel_search",
+        "timestamp": "2026-05-09T16:50:11.811184",
+        "action": null,
+        "context": {},
+        "confidence": 0.67,
+        "app_category": "travel"
+      },
+      {
+        "step_index": 9,
+        "screenshot_path": "/data/App_Test_Agent/data/examples/injection_demo_01/screenshots/step_09.jpg",
+        "think": "app=travel, page=travel_search, 等待=False, 匹配规则=travel_search_btn_disabled (score=80, conf=0.67)",
+        "decision": "INJECT",
+        "anomaly_type": "modify_text_ai",
+        "instruction": "将查询按钮置灰，显示为不可点击状态",
+        "conclusion": "travel_search",
+        "timestamp": "2026-05-09T16:50:15.293444",
+        "action": null,
+        "context": {},
+        "confidence": 0.67,
+        "app_category": "travel"
+      },
+      {
+        "step_index": 10,
+        "screenshot_path": "/data/App_Test_Agent/data/examples/injection_demo_01/screenshots/step_10.jpg",
+        "think": "app=travel, page=travel_route_list, 规则推荐异常模式=modify_text, 期望=modify_text_ai → 不匹配，跳过",
+        "decision": "SKIP",
+        "anomaly_type": null,
+        "instruction": null,
+        "conclusion": "travel_route_list",
+        "timestamp": "2026-05-09T16:50:19.374898",
+        "action": null,
+        "context": {},
+        "confidence": 0.0,
+        "app_category": "travel"
+      },
+      {
+        "step_index": 11,
+        "screenshot_path": "/data/App_Test_Agent/data/examples/injection_demo_01/screenshots/step_11.jpg",
+        "think": "app=travel, page=travel_detail, 规则推荐异常模式=dialog, 期望=modify_text_ai → 不匹配，跳过",
+        "decision": "SKIP",
+        "anomaly_type": null,
+        "instruction": null,
+        "conclusion": "travel_detail",
+        "timestamp": "2026-05-09T16:50:23.453599",
+        "action": null,
+        "context": {},
+        "confidence": 0.0,
+        "app_category": "travel"
+      },
+      {
+        "step_index": 12,
+        "screenshot_path": "/data/App_Test_Agent/data/examples/injection_demo_01/screenshots/step_12.jpg",
+        "think": "app=travel, page=travel_route_list, 规则推荐异常模式=modify_text, 期望=modify_text_ai → 不匹配，跳过",
+        "decision": "SKIP",
+        "anomaly_type": null,
+        "instruction": null,
+        "conclusion": "travel_route_list",
+        "timestamp": "2026-05-09T16:50:27.426994",
+        "action": null,
+        "context": {},
+        "confidence": 0.0,
+        "app_category": "travel"
+      },
+      {
+        "step_index": 13,
+        "screenshot_path": "/data/App_Test_Agent/data/examples/injection_demo_01/screenshots/step_13.jpg",
+        "think": "app=travel, page=travel_booking, 规则推荐异常模式=modify_text, 期望=modify_text_ai → 不匹配，跳过",
+        "decision": "SKIP",
+        "anomaly_type": null,
+        "instruction": null,
+        "conclusion": "travel_booking",
+        "timestamp": "2026-05-09T16:50:30.980716",
+        "action": null,
+        "context": {},
+        "confidence": 0.0,
+        "app_category": "travel"
+      },
+      {
+        "step_index": 14,
+        "screenshot_path": "/data/App_Test_Agent/data/examples/injection_demo_01/screenshots/step_14.jpg",
+        "think": "app=travel, page=travel_booking, 规则推荐异常模式=modify_text, 期望=modify_text_ai → 不匹配，跳过",
+        "decision": "SKIP",
+        "anomaly_type": null,
+        "instruction": null,
+        "conclusion": "travel_booking",
+        "timestamp": "2026-05-09T16:50:34.590509",
+        "action": null,
+        "context": {},
+        "confidence": 0.0,
+        "app_category": "travel"
+      },
+      {
+        "step_index": 15,
+        "screenshot_path": "/data/App_Test_Agent/data/examples/injection_demo_01/screenshots/step_15.jpg",
+        "think": "app=travel, page=travel_payment, 规则推荐异常模式=dialog, 期望=modify_text_ai → 不匹配，跳过",
+        "decision": "SKIP",
+        "anomaly_type": null,
+        "instruction": null,
+        "conclusion": "travel_payment",
+        "timestamp": "2026-05-09T16:50:38.280868",
+        "action": null,
+        "context": {},
+        "confidence": 0.0,
+        "app_category": "travel"
+      },
+      {
+        "step_index": 16,
+        "screenshot_path": "/data/App_Test_Agent/data/examples/injection_demo_01/screenshots/step_16.jpg",
+        "think": "app=travel, page=travel_payment, 规则推荐异常模式=dialog, 期望=modify_text_ai → 不匹配，跳过",
+        "decision": "SKIP",
+        "anomaly_type": null,
+        "instruction": null,
+        "conclusion": "travel_payment",
+        "timestamp": "2026-05-09T16:50:42.289788",
+        "action": null,
+        "context": {},
+        "confidence": 0.0,
+        "app_category": "travel"
+      },
+      {
+        "step_index": 17,
+        "screenshot_path": "/data/App_Test_Agent/data/examples/injection_demo_01/screenshots/step_17.jpg",
+        "think": "app=travel, page=travel_booking, 规则推荐异常模式=modify_text, 期望=modify_text_ai → 不匹配，跳过",
+        "decision": "SKIP",
+        "anomaly_type": null,
+        "instruction": null,
+        "conclusion": "travel_booking",
+        "timestamp": "2026-05-09T16:50:44.841349",
+        "action": null,
+        "context": {},
+        "confidence": 0.0,
+        "app_category": "travel"
+      },
+      {
+        "step_index": 18,
+        "screenshot_path": "/data/App_Test_Agent/data/examples/injection_demo_01/screenshots/step_18.jpg",
+        "think": "app=travel, page=travel_payment, 规则推荐异常模式=dialog, 期望=modify_text_ai → 不匹配，跳过",
+        "decision": "SKIP",
+        "anomaly_type": null,
+        "instruction": null,
+        "conclusion": "travel_payment",
+        "timestamp": "2026-05-09T16:50:48.484703",
+        "action": null,
+        "context": {},
+        "confidence": 0.0,
+        "app_category": "travel"
+      },
+      {
+        "step_index": 19,
+        "screenshot_path": "/data/App_Test_Agent/data/examples/injection_demo_01/screenshots/step_19.jpg",
+        "think": "app=travel, page=travel_booking, 规则推荐异常模式=modify_text, 期望=modify_text_ai → 不匹配，跳过",
+        "decision": "SKIP",
+        "anomaly_type": null,
+        "instruction": null,
+        "conclusion": "travel_booking",
+        "timestamp": "2026-05-09T16:50:51.106352",
+        "action": null,
+        "context": {},
+        "confidence": 0.0,
+        "app_category": "travel"
+      }
+    ]
+  }
 }
