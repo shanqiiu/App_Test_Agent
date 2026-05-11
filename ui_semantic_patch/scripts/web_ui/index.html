@@ -1,0 +1,1427 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>异常场景生成控制台</title>
+<style>
+  :root {
+    --bg: #0e1413;
+    --surface: #15201e;
+    --surface-2: #1d2c29;
+    --border: #29423d;
+    --text: #e8f0ee;
+    --text-2: #9bb4ad;
+    --text-3: #69827b;
+    --primary: #2fbf9f;
+    --primary-2: #8de1c7;
+    --success: #32d27f;
+    --warn: #f2b84b;
+    --error: #f06b6b;
+    --bg-soft: rgba(47,191,159,0.08);
+    --success-soft: rgba(50,210,127,0.12);
+    --warn-soft: rgba(242,184,75,0.12);
+    --error-soft: rgba(240,107,107,0.12);
+    --radius: 12px;
+    --radius-sm: 8px;
+    --shadow: 0 24px 50px rgba(0,0,0,0.2);
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    min-height: 100vh;
+    background:
+      radial-gradient(circle at top right, rgba(47,191,159,0.14), transparent 32%),
+      radial-gradient(circle at bottom left, rgba(141,225,199,0.1), transparent 28%),
+      var(--bg);
+    color: var(--text);
+    font: 14px/1.6 "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+  }
+
+  .app { display: flex; min-height: 100vh; }
+  .sidebar {
+    width: 300px;
+    border-right: 1px solid var(--border);
+    background: rgba(21,32,30,0.92);
+    backdrop-filter: blur(12px);
+    display: flex;
+    flex-direction: column;
+    flex-shrink: 0;
+  }
+  .sidebar-header {
+    padding: 20px 22px 18px;
+    border-bottom: 1px solid var(--border);
+  }
+  .sidebar-header h1 {
+    font-size: 18px;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+  }
+  .sidebar-header p {
+    margin-top: 4px;
+    font-size: 12px;
+    color: var(--text-2);
+  }
+  .history-list {
+    flex: 1;
+    overflow-y: auto;
+    padding: 10px;
+  }
+  .history-item {
+    border: 1px solid transparent;
+    background: rgba(255,255,255,0.02);
+    border-radius: var(--radius-sm);
+    padding: 12px;
+    margin-bottom: 8px;
+    cursor: pointer;
+    transition: .18s ease;
+  }
+  .history-item:hover {
+    border-color: var(--border);
+    background: rgba(255,255,255,0.04);
+  }
+  .history-item.active {
+    border-color: rgba(47,191,159,0.5);
+    background: var(--bg-soft);
+  }
+  .history-type {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--primary-2);
+    margin-bottom: 6px;
+  }
+  .history-title {
+    font-size: 13px;
+    font-weight: 600;
+  }
+  .history-subtitle {
+    font-size: 11px;
+    color: var(--text-2);
+    margin-top: 3px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .history-meta {
+    margin-top: 6px;
+    display: flex;
+    gap: 8px;
+    font-size: 10px;
+    color: var(--text-3);
+  }
+  .sidebar-footer {
+    padding: 14px 22px;
+    border-top: 1px solid var(--border);
+    font-size: 11px;
+    color: var(--text-2);
+  }
+
+  .main {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+  }
+  .main-header {
+    padding: 22px 28px 18px;
+    border-bottom: 1px solid var(--border);
+  }
+  .main-header h2 {
+    font-size: 20px;
+    font-weight: 700;
+  }
+  .main-header p {
+    margin-top: 4px;
+    color: var(--text-2);
+    font-size: 12px;
+  }
+  .tabs {
+    display: inline-flex;
+    gap: 8px;
+    margin-top: 16px;
+    padding: 6px;
+    background: rgba(255,255,255,0.03);
+    border: 1px solid var(--border);
+    border-radius: 999px;
+  }
+  .tab-btn {
+    border: none;
+    background: transparent;
+    color: var(--text-2);
+    padding: 8px 14px;
+    border-radius: 999px;
+    cursor: pointer;
+    font-size: 12px;
+    font-weight: 600;
+    transition: .16s ease;
+  }
+  .tab-btn.active {
+    background: linear-gradient(135deg, rgba(47,191,159,0.25), rgba(141,225,199,0.08));
+    color: var(--text);
+  }
+
+  .main-body {
+    flex: 1;
+    overflow-y: auto;
+    padding: 24px 28px 30px;
+  }
+  .tab-panel { display: none; }
+  .tab-panel.active {
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+  }
+
+  .card {
+    background: linear-gradient(180deg, rgba(255,255,255,0.03), rgba(255,255,255,0.015));
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+  }
+  .card-header {
+    padding: 18px 20px 14px;
+    border-bottom: 1px solid rgba(255,255,255,0.05);
+  }
+  .card-header h3 {
+    font-size: 13px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--text-2);
+  }
+  .card-body {
+    padding: 18px 20px 20px;
+  }
+
+  .form-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+  }
+  .form-group { min-width: 0; }
+  .form-group.full { grid-column: 1 / -1; }
+  .form-group label {
+    display: block;
+    font-size: 12px;
+    color: var(--text-2);
+    margin-bottom: 6px;
+  }
+  .form-group input,
+  .form-group textarea,
+  .form-group select {
+    width: 100%;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    background: rgba(0,0,0,0.18);
+    color: var(--text);
+    padding: 10px 12px;
+    font: inherit;
+    outline: none;
+    transition: .16s ease;
+  }
+  .form-group textarea { min-height: 78px; resize: vertical; }
+  .form-group input:focus,
+  .form-group textarea:focus,
+  .form-group select:focus {
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3px rgba(47,191,159,0.12);
+  }
+
+  .check-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 14px;
+    margin-top: 14px;
+  }
+  .check {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 12px;
+    color: var(--text-2);
+  }
+  .check input { accent-color: var(--primary); }
+
+  .actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-top: 16px;
+  }
+  .btn {
+    border: none;
+    border-radius: 999px;
+    padding: 10px 16px;
+    font-size: 13px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: .16s ease;
+  }
+  .btn-primary {
+    background: linear-gradient(135deg, var(--primary), #249c83);
+    color: #07251e;
+  }
+  .btn-primary:hover { transform: translateY(-1px); }
+  .btn-ghost {
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--text);
+  }
+  .btn-ghost:hover { border-color: var(--primary); color: var(--primary-2); }
+
+  .pipeline {
+    display: grid;
+    gap: 10px;
+  }
+  .step-card {
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    background: rgba(255,255,255,0.02);
+    overflow: hidden;
+  }
+  .step-card.running { border-color: rgba(47,191,159,0.45); }
+  .step-card.success { border-color: rgba(50,210,127,0.45); }
+  .step-card.error { border-color: rgba(240,107,107,0.45); }
+  .step-head {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+    padding: 14px 16px;
+    cursor: pointer;
+  }
+  .step-number {
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 2px solid var(--border);
+    color: var(--text-3);
+    font-size: 12px;
+    font-weight: 700;
+    flex-shrink: 0;
+  }
+  .step-card.running .step-number { border-color: var(--primary); color: var(--primary); }
+  .step-card.success .step-number {
+    border-color: var(--success);
+    color: var(--success);
+    background: var(--success-soft);
+  }
+  .step-card.error .step-number {
+    border-color: var(--error);
+    color: var(--error);
+    background: var(--error-soft);
+  }
+  .step-main { flex: 1; min-width: 0; }
+  .step-name {
+    font-size: 13px;
+    font-weight: 700;
+  }
+  .step-desc {
+    margin-top: 2px;
+    font-size: 11px;
+    color: var(--text-2);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .step-badge {
+    padding: 4px 9px;
+    border-radius: 999px;
+    font-size: 10px;
+    font-weight: 700;
+    flex-shrink: 0;
+  }
+  .pending { background: rgba(255,255,255,0.06); color: var(--text-3); }
+  .running { background: var(--bg-soft); color: var(--primary-2); }
+  .success { background: var(--success-soft); color: var(--success); }
+  .error { background: var(--error-soft); color: var(--error); }
+  .step-log {
+    display: none;
+    padding: 14px 16px;
+    border-top: 1px solid rgba(255,255,255,0.05);
+    background: rgba(0,0,0,0.18);
+    font: 12px/1.7 Consolas, "Cascadia Code", monospace;
+    color: var(--text-2);
+    white-space: pre-wrap;
+    max-height: 240px;
+    overflow-y: auto;
+  }
+  .step-log.show { display: block; }
+
+  .metrics {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 10px;
+    margin-bottom: 14px;
+  }
+  .metric {
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    background: rgba(255,255,255,0.03);
+    padding: 14px;
+  }
+  .metric .label {
+    font-size: 11px;
+    color: var(--text-2);
+  }
+  .metric .value {
+    margin-top: 4px;
+    font-size: 22px;
+    font-weight: 800;
+  }
+
+  .json-output,
+  .raw-log {
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    background: rgba(0,0,0,0.18);
+    padding: 14px 16px;
+    font: 12px/1.7 Consolas, "Cascadia Code", monospace;
+    white-space: pre-wrap;
+    max-height: 360px;
+    overflow-y: auto;
+  }
+
+  .run-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 14px;
+  }
+  .run-card {
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    overflow: hidden;
+    background: rgba(255,255,255,0.03);
+  }
+  .run-preview {
+    display: block;
+    width: 100%;
+    aspect-ratio: 9 / 16;
+    object-fit: cover;
+    background: rgba(0,0,0,0.25);
+    border-bottom: 1px solid var(--border);
+  }
+  .run-body { padding: 14px; }
+  .run-title {
+    font-size: 14px;
+    font-weight: 700;
+  }
+  .run-sub {
+    margin-top: 4px;
+    color: var(--text-2);
+    font-size: 12px;
+  }
+  .chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin: 10px 0;
+  }
+  .chip {
+    padding: 4px 8px;
+    border-radius: 999px;
+    font-size: 10px;
+    font-weight: 700;
+    background: rgba(255,255,255,0.06);
+    color: var(--text-2);
+  }
+  .run-kv {
+    display: grid;
+    gap: 6px;
+    font-size: 12px;
+    color: var(--text-2);
+  }
+  .run-kv strong { color: var(--text); font-weight: 600; }
+  .run-actions {
+    display: flex;
+    gap: 8px;
+    margin-top: 12px;
+  }
+  .run-actions a {
+    font-size: 12px;
+    color: var(--primary-2);
+    text-decoration: none;
+  }
+  .run-actions a:hover { text-decoration: underline; }
+
+  .empty {
+    text-align: center;
+    padding: 40px 20px;
+    color: var(--text-3);
+    border: 1px dashed var(--border);
+    border-radius: var(--radius);
+  }
+
+  @media (max-width: 980px) {
+    .app { flex-direction: column; }
+    .sidebar { width: 100%; }
+    .main-body { padding: 18px; }
+    .form-grid { grid-template-columns: 1fr; }
+    .metrics { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  }
+  @media (max-width: 640px) {
+    .metrics { grid-template-columns: 1fr; }
+    .tabs { width: 100%; display: flex; }
+    .tab-btn { flex: 1; }
+  }
+</style>
+</head>
+<body>
+<div class="app">
+  <aside class="sidebar">
+    <div class="sidebar-header">
+      <h1>Pipeline Console</h1>
+      <p>映射生成 + 完整批量异常场景生成</p>
+    </div>
+    <div class="history-list" id="historyList">
+      <div class="empty">暂无运行记录</div>
+    </div>
+    <div class="sidebar-footer" id="healthText">Backend: checking...</div>
+  </aside>
+
+  <main class="main">
+    <div class="main-header">
+      <h2>异常场景生成控制台</h2>
+      <p>当前页面直接位于 `ui_semantic_patch/scripts/web_ui`，用于可视化管理映射生成和整条批量注入流程。</p>
+      <div class="tabs">
+        <button class="tab-btn active" data-tab="mapping">映射条目生成</button>
+        <button class="tab-btn" data-tab="single">单图生成</button>
+        <button class="tab-btn" data-tab="batch">完整批量生成</button>
+      </div>
+    </div>
+
+    <div class="main-body">
+      <section class="tab-panel active" id="panel-mapping">
+        <div class="card">
+          <div class="card-header"><h3>输入参数</h3></div>
+          <div class="card-body">
+            <div class="form-grid">
+              <div class="form-group full">
+                <label>Query</label>
+                <textarea id="mapQuery" placeholder="例如：(去哪儿旅行)购买一张从南京去北京的机票，后天18:00-21:00出发"></textarea>
+              </div>
+              <div class="form-group">
+                <label>Fault Mode</label>
+                <input id="mapFault" placeholder="例如：订票按钮置灰">
+              </div>
+              <div class="form-group">
+                <label>App Name</label>
+                <input id="mapApp" placeholder="可留空自动提取">
+              </div>
+            </div>
+            <div class="check-row">
+              <label class="check"><input type="checkbox" id="mapDry"> Dry Run（仅预览，不写入文件）</label>
+            </div>
+            <div class="actions">
+              <button class="btn btn-primary" id="btnMapRun">执行映射生成</button>
+              <button class="btn btn-ghost" id="btnMapMock">模拟演示</button>
+              <button class="btn btn-ghost" id="btnMapClear">清空</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="pipeline" id="mappingPipeline"></div>
+
+        <div class="card" id="mappingOutputCard" style="display:none;">
+          <div class="card-header"><h3>生成结果</h3></div>
+          <div class="card-body">
+            <div class="json-output" id="mappingOutput"></div>
+          </div>
+        </div>
+      </section>
+
+      <section class="tab-panel" id="panel-batch">
+        <div class="card">
+          <div class="card-header"><h3>完整批量生成参数</h3></div>
+          <div class="card-body">
+            <div class="form-grid">
+              <div class="form-group">
+                <label>Examples Dir</label>
+                <input id="batchExamplesDir">
+              </div>
+              <div class="form-group">
+                <label>Output Dir</label>
+                <input id="batchOutputDir">
+              </div>
+              <div class="form-group">
+                <label>Mapping Config</label>
+                <input id="batchMappingConfig">
+              </div>
+              <div class="form-group">
+                <label>GT Template Dir</label>
+                <input id="batchGtTemplateDir">
+              </div>
+              <div class="form-group">
+                <label>Fault Mode</label>
+                <select id="batchFaultMode">
+                  <option value="">全部</option>
+                  <option value="mode_1">mode_1</option>
+                  <option value="mode_2">mode_2</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label>Quality Threshold</label>
+                <input id="batchQualityThreshold" type="number" step="0.1" value="6.0">
+              </div>
+              <div class="form-group">
+                <label>Verification Retries</label>
+                <input id="batchVerificationRetries" type="number" step="1" value="2">
+              </div>
+            </div>
+            <div class="check-row">
+              <label class="check"><input type="checkbox" id="batchEnableRules" checked> 启用规则引擎决定注入点</label>
+              <label class="check"><input type="checkbox" id="batchEnableVerification"> 启用 VLM 质量验证</label>
+            </div>
+            <div class="actions">
+              <button class="btn btn-primary" id="btnBatchRun">执行完整生成</button>
+              <button class="btn btn-ghost" id="btnBatchDefaults">恢复默认路径</button>
+              <button class="btn btn-ghost" id="btnBatchClear">清空结果</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="pipeline" id="batchPipeline"></div>
+
+        <div class="card" id="batchSummaryCard" style="display:none;">
+          <div class="card-header"><h3>批量结果总览</h3></div>
+          <div class="card-body">
+            <div class="metrics" id="batchMetrics"></div>
+            <div class="json-output" id="batchSummaryJson"></div>
+          </div>
+        </div>
+
+        <div class="card" id="batchRunsCard" style="display:none;">
+          <div class="card-header"><h3>生成产物预览</h3></div>
+          <div class="card-body">
+            <div class="run-grid" id="batchRunsGrid"></div>
+          </div>
+        </div>
+
+        <div class="card" id="batchLogsCard" style="display:none;">
+          <div class="card-header"><h3>完整日志</h3></div>
+          <div class="card-body">
+            <div class="raw-log" id="batchLogsRaw"></div>
+          </div>
+        </div>
+      </section>
+
+      <section class="tab-panel" id="panel-single">
+        <div class="card">
+          <div class="card-header"><h3>单图生成参数</h3></div>
+          <div class="card-body">
+            <div class="form-grid">
+              <div class="form-group full">
+                <label>Screenshot</label>
+                <input id="singleScreenshot">
+              </div>
+              <div class="form-group full">
+                <label>Instruction</label>
+                <textarea id="singleInstruction" placeholder="例如：模拟查询结果无票的系统提示弹窗"></textarea>
+              </div>
+              <div class="form-group">
+                <label>Anomaly Mode</label>
+                <select id="singleAnomalyMode">
+                  <option value="dialog">dialog</option>
+                  <option value="area_loading">area_loading</option>
+                  <option value="content_duplicate">content_duplicate</option>
+                  <option value="text_overlay">text_overlay</option>
+                  <option value="modify_text">modify_text</option>
+                  <option value="modify_text_ai">modify_text_ai</option>
+                  <option value="modify_text_ocr">modify_text_ocr</option>
+                  <option value="modify_text_e2e">modify_text_e2e</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label>Output Dir</label>
+                <input id="singleOutputDir">
+              </div>
+              <div class="form-group">
+                <label>GT Category</label>
+                <input id="singleGtCategory" placeholder="例如：dialog">
+              </div>
+              <div class="form-group">
+                <label>GT Sample</label>
+                <input id="singleGtSample" placeholder="例如：携程旅行-首页-推广弹窗.jpg">
+              </div>
+              <div class="form-group">
+                <label>GT Dir</label>
+                <input id="singleGtDir" placeholder="可留空使用默认目录">
+              </div>
+              <div class="form-group">
+                <label>Structure Model</label>
+                <input id="singleStructureModel" placeholder="可留空使用环境变量默认值">
+              </div>
+              <div class="form-group">
+                <label>Reference</label>
+                <input id="singleReference" placeholder="dialog 模式可选参考图">
+              </div>
+              <div class="form-group">
+                <label>Reference Icon</label>
+                <input id="singleReferenceIcon" placeholder="area_loading 模式可选">
+              </div>
+              <div class="form-group">
+                <label>Target Component</label>
+                <input id="singleTargetComponent" placeholder="仅部分模式使用">
+              </div>
+              <div class="form-group">
+                <label>Edit Plan</label>
+                <input id="singleEditPlan" placeholder="文本编辑模式可选 JSON 路径">
+              </div>
+            </div>
+            <div class="check-row">
+              <label class="check"><input type="checkbox" id="singleNoVisualize"> 禁用检测可视化</label>
+              <label class="check"><input type="checkbox" id="singleE2EFullImage"> `modify_text_e2e` 使用整图编辑</label>
+            </div>
+            <div class="actions">
+              <button class="btn btn-primary" id="btnSingleRun">执行单图生成</button>
+              <button class="btn btn-ghost" id="btnSingleDefaults">恢复示例参数</button>
+              <button class="btn btn-ghost" id="btnSingleClear">清空结果</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="pipeline" id="singlePipeline"></div>
+
+        <div class="card" id="singleSummaryCard" style="display:none;">
+          <div class="card-header"><h3>单图结果总览</h3></div>
+          <div class="card-body">
+            <div class="metrics" id="singleMetrics"></div>
+            <div class="json-output" id="singleSummaryJson"></div>
+          </div>
+        </div>
+
+        <div class="card" id="singlePreviewCard" style="display:none;">
+          <div class="card-header"><h3>生成产物预览</h3></div>
+          <div class="card-body">
+            <div class="run-grid" id="singlePreviewGrid"></div>
+          </div>
+        </div>
+
+        <div class="card" id="singleLogsCard" style="display:none;">
+          <div class="card-header"><h3>完整日志</h3></div>
+          <div class="card-body">
+            <div class="raw-log" id="singleLogsRaw"></div>
+          </div>
+        </div>
+      </section>
+    </div>
+  </main>
+</div>
+
+<script>
+const mappingSteps = [
+  { id: 'm1', name: '异常模式分类', desc: 'fault_mode -> anomaly_mode 规则匹配' },
+  { id: 'm2', name: '指令展开', desc: 'VLM 或模板生成 instruction' },
+  { id: 'm3', name: 'GT 模板匹配', desc: 'dialog / area_loading / content_duplicate' },
+  { id: 'm4', name: '校验与写入', desc: '预览或写入 mapping 文件' },
+];
+
+const batchSteps = [
+  { id: 'b1', name: '配置加载', desc: '加载 mapping、初始化规则引擎与目录' },
+  { id: 'b2', name: '语义分析', desc: '按 demo 决定注入点' },
+  { id: 'b3', name: '批量注入', desc: '调用 run_pipeline.py 生成异常结果' },
+  { id: 'b4', name: '汇总输出', desc: '统计成功失败并整理产物' },
+];
+
+const singleSteps = [
+  { id: 's1', name: 'Stage 1 检测', desc: 'OmniParser 粗检测与可视化' },
+  { id: 's2', name: 'Stage 2 分组', desc: 'VLM 语义分组与组件过滤' },
+  { id: 's3', name: 'Stage 3 渲染', desc: '根据 anomaly_mode 执行异常渲染' },
+  { id: 's4', name: '结果落盘', desc: '保存 final image 与 pipeline meta' },
+];
+
+const state = {
+  tab: 'mapping',
+  history: [],
+  activeHistory: -1,
+  defaults: null,
+};
+
+const sampleQueries = [
+  ['(去哪儿旅行)购买一张从南京去北京的机票，后天18:00-21:00出发', '订票按钮置灰', '去哪儿旅行'],
+  ['去华为(视频)下载电视剧伏击第2集', '下载按钮区域被遮挡', '视频'],
+  ['(铁路12306)申请乘车证明', '系统提示弹窗告知服务不可用', '铁路12306'],
+];
+
+function $(id) { return document.getElementById(id); }
+
+function switchTab(tab) {
+  state.tab = tab;
+  document.querySelectorAll('.tab-btn').forEach(btn => {
+    btn.classList.toggle('active', btn.dataset.tab === tab);
+  });
+  document.querySelectorAll('.tab-panel').forEach(panel => {
+    panel.classList.toggle('active', panel.id === `panel-${tab}`);
+  });
+}
+
+function badge(status) {
+  const text = { pending: '待执行', running: '执行中', success: '完成', error: '失败' }[status] || '待执行';
+  return `<span class="step-badge ${status}">${text}</span>`;
+}
+
+function buildPipeline(containerId, steps) {
+  $(containerId).innerHTML = steps.map((s, i) => `
+    <div class="step-card" id="${containerId}-${s.id}">
+      <div class="step-head" onclick="toggleLog('${containerId}-${s.id}-log')">
+        <div class="step-number">${i + 1}</div>
+        <div class="step-main">
+          <div class="step-name">${s.name}</div>
+          <div class="step-desc">${s.desc}</div>
+        </div>
+        ${badge('pending')}
+      </div>
+      <div class="step-log" id="${containerId}-${s.id}-log"></div>
+    </div>
+  `).join('');
+}
+
+function toggleLog(id) {
+  $(id).classList.toggle('show');
+}
+
+function updateStep(containerId, stepId, status, desc, logs) {
+  const card = $(`${containerId}-${stepId}`);
+  if (!card) return;
+  card.className = `step-card ${status}`;
+  const badgeSlot = card.querySelector('.step-badge');
+  if (badgeSlot) badgeSlot.outerHTML = badge(status);
+  const descNode = card.querySelector('.step-desc');
+  if (desc) descNode.textContent = desc;
+  if (logs !== undefined) {
+    const logEl = $(`${containerId}-${stepId}-log`);
+    logEl.textContent = Array.isArray(logs) ? logs.join('\n') : String(logs || '');
+  }
+}
+
+function prettyJson(obj) {
+  return JSON.stringify(obj, null, 2);
+}
+
+function addHistory(item) {
+  state.history.unshift(item);
+  if (state.history.length > 20) state.history.pop();
+  state.activeHistory = 0;
+  renderHistory();
+}
+
+function renderHistory() {
+  if (!state.history.length) {
+    $('historyList').innerHTML = '<div class="empty">暂无运行记录</div>';
+    return;
+  }
+  $('historyList').innerHTML = state.history.map((item, idx) => `
+    <div class="history-item ${idx === state.activeHistory ? 'active' : ''}" onclick="loadHistory(${idx})">
+      <div class="history-type">${item.type === 'mapping' ? 'Mapping' : (item.type === 'single' ? 'Single' : 'Batch')} · ${item.time}</div>
+      <div class="history-title">${item.title}</div>
+      <div class="history-subtitle">${item.subtitle}</div>
+      <div class="history-meta"><span>${item.meta1 || ''}</span><span>${item.meta2 || ''}</span></div>
+    </div>
+  `).join('');
+}
+
+function loadHistory(idx) {
+  const item = state.history[idx];
+  if (!item) return;
+  state.activeHistory = idx;
+  renderHistory();
+  switchTab(item.type);
+
+  if (item.type === 'mapping') {
+    $('mapQuery').value = item.form.query || '';
+    $('mapFault').value = item.form.fault_mode || '';
+    $('mapApp').value = item.form.app_name || '';
+    $('mapDry').checked = !!item.form.dry_run;
+    renderMappingResult(item.result);
+  } else if (item.type === 'single') {
+    $('singleScreenshot').value = item.form.screenshot || '';
+    $('singleInstruction').value = item.form.instruction || '';
+    $('singleOutputDir').value = item.form.output || '';
+    $('singleAnomalyMode').value = item.form.anomaly_mode || 'dialog';
+    $('singleGtCategory').value = item.form.gt_category || '';
+    $('singleGtSample').value = item.form.gt_sample || '';
+    $('singleGtDir').value = item.form.gt_dir || '';
+    $('singleReference').value = item.form.reference || '';
+    $('singleReferenceIcon').value = item.form.reference_icon || '';
+    $('singleStructureModel').value = item.form.structure_model || '';
+    $('singleTargetComponent').value = item.form.target_component || '';
+    $('singleEditPlan').value = item.form.edit_plan || '';
+    $('singleNoVisualize').checked = !!item.form.no_visualize;
+    $('singleE2EFullImage').checked = !!item.form.e2e_full_image;
+    renderSingleResult(item.result);
+  } else {
+    $('batchExamplesDir').value = item.form.examples_dir || '';
+    $('batchOutputDir').value = item.form.output_dir || '';
+    $('batchMappingConfig').value = item.form.mapping_config || '';
+    $('batchGtTemplateDir').value = item.form.gt_template_dir || '';
+    $('batchFaultMode').value = item.form.fault_mode || '';
+    $('batchEnableVerification').checked = !!item.form.enable_verification;
+    $('batchEnableRules').checked = !!item.form.enable_rules;
+    $('batchQualityThreshold').value = item.form.quality_threshold ?? 6.0;
+    $('batchVerificationRetries').value = item.form.verification_retries ?? 2;
+    renderBatchResult(item.result);
+  }
+}
+
+function randomSample() {
+  const s = sampleQueries[Math.floor(Math.random() * sampleQueries.length)];
+  $('mapQuery').value = s[0];
+  $('mapFault').value = s[1];
+  $('mapApp').value = s[2];
+}
+
+function splitMappingLogs(logs) {
+  const groups = [[], [], [], []];
+  let idx = -1;
+  logs.forEach(line => {
+    if (line.includes('--- Step 1:')) idx = 0;
+    else if (line.includes('--- Step 2:')) idx = 1;
+    else if (line.includes('--- Step 3:')) idx = 2;
+    else if (line.includes('--- Step 4:')) idx = 3;
+    if (idx >= 0) groups[idx].push(line);
+  });
+  return groups;
+}
+
+function splitBatchLogs(logs) {
+  const groups = [[], [], [], []];
+  let phase = 0;
+  logs.forEach(line => {
+    if (line.includes('--- 语义分析:')) phase = 1;
+    if (line.includes('处理:')) phase = 2;
+    if (line.includes('批量处理完成')) phase = 3;
+    groups[phase].push(line);
+  });
+  return groups;
+}
+
+function splitSingleLogs(logs) {
+  const groups = [[], [], [], []];
+  let phase = -1;
+  logs.forEach(line => {
+    if (line.includes('[Stage 1/3]')) phase = 0;
+    else if (line.includes('[Stage 2/3]')) phase = 1;
+    else if (line.includes('[Stage 3/3]')) phase = 2;
+    else if (line.includes('✓ 流水线执行完成!') || line.includes('[Meta]')) phase = 3;
+    if (phase >= 0) groups[phase].push(line);
+  });
+  return groups;
+}
+
+function renderMappingResult(data) {
+  buildPipeline('mappingPipeline', mappingSteps);
+  const logs = data.logs || [];
+  const stepLogs = splitMappingLogs(logs);
+  const descs = [
+    `anomaly_mode: ${data.anomaly_mode || '-'}`,
+    `instruction: ${(data.instruction || '').slice(0, 80) || '-'}`,
+    data.gt && data.gt.sample ? data.gt.sample : '(不需要 GT 模板)',
+    data.success ? '生成完成' : (data.error || '执行失败'),
+  ];
+  mappingSteps.forEach((s, idx) => {
+    const status = data.success ? 'success' : (idx === 3 ? 'error' : 'success');
+    updateStep('mappingPipeline', s.id, status, descs[idx], stepLogs[idx] || logs || []);
+  });
+  $('mappingOutputCard').style.display = data.entry ? 'block' : 'none';
+  $('mappingOutput').textContent = prettyJson(data.entry || {});
+}
+
+function renderBatchResult(data) {
+  buildPipeline('batchPipeline', batchSteps);
+  const logs = data.logs || [];
+  const grouped = splitBatchLogs(logs);
+  const summary = data.summary || {};
+  const statuses = data.success ? ['success', 'success', 'success', 'success'] : ['success', 'success', 'error', 'error'];
+  const descs = [
+    `映射配置: ${summary.mapping_config || '-'}`,
+    `处理模式: ${summary.fault_mode || 'all'} | 规则引擎: ${summary.enable_rules ? 'on' : 'off'}`,
+    `成功 ${summary.success ?? 0} / 失败 ${summary.failed ?? 0} / 新产物 ${summary.produced_runs ?? 0}`,
+    `输出目录: ${summary.output_dir || '-'}`,
+  ];
+  batchSteps.forEach((s, idx) => {
+    updateStep('batchPipeline', s.id, statuses[idx], descs[idx], grouped[idx] || logs || []);
+  });
+
+  $('batchSummaryCard').style.display = 'block';
+  $('batchMetrics').innerHTML = [
+    metric('成功', summary.success ?? 0),
+    metric('失败', summary.failed ?? 0),
+    metric('跳过', summary.skipped ?? 0),
+    metric('新产物', summary.produced_runs ?? 0),
+  ].join('');
+  $('batchSummaryJson').textContent = prettyJson(summary);
+
+  $('batchRunsCard').style.display = 'block';
+  renderBatchRuns(data.runs || []);
+
+  $('batchLogsCard').style.display = 'block';
+  $('batchLogsRaw').textContent = logs.join('\n');
+}
+
+function renderSingleResult(data) {
+  buildPipeline('singlePipeline', singleSteps);
+  const logs = data.logs || [];
+  const grouped = splitSingleLogs(logs);
+  const summary = data.summary || {};
+  const timings = summary.timing || {};
+  const outputs = data.outputs || {};
+
+  updateStep('singlePipeline', 's1', data.success ? 'success' : 'error',
+    `Stage 1: ${timings.stage1 !== undefined ? timings.stage1 + 's' : '-'}`,
+    grouped[0] || logs || []);
+  updateStep('singlePipeline', 's2', data.success ? 'success' : 'pending',
+    `Stage 2: ${timings.stage2 !== undefined ? timings.stage2 + 's' : '-'} | ${summary.stage2_status || '-'}`,
+    grouped[1] || logs || []);
+  updateStep('singlePipeline', 's3', data.success ? 'success' : 'pending',
+    `Stage 3: ${timings.stage3 !== undefined ? timings.stage3 + 's' : '-'} | ${summary.gt_category || summary.anomaly_mode || '-'}`,
+    grouped[2] || logs || []);
+  updateStep('singlePipeline', 's4', data.success ? 'success' : 'error',
+    summary.final_image_path ? summary.final_image_path : (data.error || '未生成最终图片'),
+    grouped[3] || logs || []);
+
+  $('singleSummaryCard').style.display = 'block';
+  $('singleMetrics').innerHTML = [
+    metric('Stage1(s)', timings.stage1 ?? '-'),
+    metric('Stage2(s)', timings.stage2 ?? '-'),
+    metric('Stage3(s)', timings.stage3 ?? '-'),
+    metric('Warnings', Array.isArray(summary.warnings) ? summary.warnings.length : 0),
+  ].join('');
+  $('singleSummaryJson').textContent = prettyJson(summary);
+
+  $('singlePreviewCard').style.display = 'block';
+  renderSinglePreview(summary, outputs);
+
+  $('singleLogsCard').style.display = 'block';
+  $('singleLogsRaw').textContent = logs.join('\n');
+}
+
+function metric(label, value) {
+  return `<div class="metric"><div class="label">${label}</div><div class="value">${value}</div></div>`;
+}
+
+function renderBatchRuns(runs) {
+  if (!runs.length) {
+    $('batchRunsGrid').innerHTML = '<div class="empty">本次运行没有生成新的 metadata.json 产物。</div>';
+    return;
+  }
+  $('batchRunsGrid').innerHTML = runs.map(run => `
+    <div class="run-card">
+      ${run.preview_image_url ? `<a href="${run.preview_image_url}" target="_blank"><img class="run-preview" src="${run.preview_image_url}" alt="${escapeHtml(run.demo_name)}"></a>` : '<div class="run-preview"></div>'}
+      <div class="run-body">
+        <div class="run-title">${escapeHtml(run.demo_name || run.batch_group || '未命名 demo')}</div>
+        <div class="run-sub">${escapeHtml(run.fault_mode || '')}</div>
+        <div class="chips">
+          <span class="chip">${escapeHtml(run.fault_mode_key || '-')}</span>
+          <span class="chip">${escapeHtml(run.anomaly_mode || '-')}</span>
+          <span class="chip">Step ${run.injection_point ?? '-'}</span>
+        </div>
+        <div class="run-kv">
+          <div><strong>App:</strong> ${escapeHtml(run.app_name || '-')}</div>
+          <div><strong>规则:</strong> ${escapeHtml(run.matched_rule_id || '-')}</div>
+          <div><strong>页面类型:</strong> ${escapeHtml(run.page_type || '-')}</div>
+          <div><strong>序列长度:</strong> ${run.original_length ?? '-'} -> ${run.modified_length ?? '-'}</div>
+          <div><strong>指令:</strong> ${escapeHtml(run.instruction || '-')}</div>
+        </div>
+        <div class="run-actions">
+          ${run.preview_image_url ? `<a href="${run.preview_image_url}" target="_blank">查看图片</a>` : ''}
+          ${run.metadata_path ? `<a href="/api/file?path=${encodeURIComponent(run.metadata_path)}" target="_blank">metadata.json</a>` : ''}
+          ${run.decision_log_path ? `<a href="/api/file?path=${encodeURIComponent(run.decision_log_path)}" target="_blank">decision_log.json</a>` : ''}
+        </div>
+      </div>
+    </div>
+  `).join('');
+}
+
+function renderSinglePreview(summary, outputs) {
+  const cards = [];
+  if (summary.final_image_url) {
+    cards.push(`
+      <div class="run-card">
+        <a href="${summary.final_image_url}" target="_blank"><img class="run-preview" src="${summary.final_image_url}" alt="final image"></a>
+        <div class="run-body">
+          <div class="run-title">Final Image</div>
+          <div class="run-sub">${escapeHtml(summary.anomaly_mode || '')}</div>
+          <div class="run-kv">
+            <div><strong>GT:</strong> ${escapeHtml(summary.gt_category || '-')} / ${escapeHtml(summary.gt_sample || '-')}</div>
+            <div><strong>定位:</strong> ${escapeHtml(summary.position_method || '-')}</div>
+            <div><strong>组件数:</strong> ${summary.ui_components_count ?? '-'}</div>
+          </div>
+          <div class="run-actions">
+            <a href="${summary.final_image_url}" target="_blank">查看图片</a>
+            ${summary.pipeline_meta_url ? `<a href="${summary.pipeline_meta_url}" target="_blank">pipeline_meta.json</a>` : ''}
+          </div>
+        </div>
+      </div>
+    `);
+  }
+
+  ['stage1_annotated', 'stage2_annotated'].forEach(key => {
+    const item = outputs[key];
+    if (!item || !item.url) return;
+    cards.push(`
+      <div class="run-card">
+        <a href="${item.url}" target="_blank"><img class="run-preview" src="${item.url}" alt="${key}"></a>
+        <div class="run-body">
+          <div class="run-title">${escapeHtml(key)}</div>
+          <div class="run-sub">${escapeHtml(item.path || '')}</div>
+          <div class="run-actions">
+            <a href="${item.url}" target="_blank">查看图片</a>
+          </div>
+        </div>
+      </div>
+    `);
+  });
+
+  ['stage1_omni_raw', 'stage2_filtered', 'pipeline_meta'].forEach(key => {
+    const item = outputs[key];
+    if (!item || !item.url) return;
+    cards.push(`
+      <div class="run-card">
+        <div class="run-body">
+          <div class="run-title">${escapeHtml(key)}</div>
+          <div class="run-sub">${escapeHtml(item.path || '')}</div>
+          <div class="run-actions">
+            <a href="${item.url}" target="_blank">打开文件</a>
+          </div>
+        </div>
+      </div>
+    `);
+  });
+
+  $('singlePreviewGrid').innerHTML = cards.length
+    ? cards.join('')
+    : '<div class="empty">本次运行未收集到新的输出文件。</div>';
+}
+
+function escapeHtml(value) {
+  return String(value || '')
+    .replaceAll('&', '&amp;')
+    .replaceAll('<', '&lt;')
+    .replaceAll('>', '&gt;')
+    .replaceAll('"', '&quot;')
+    .replaceAll("'", '&#39;');
+}
+
+async function runMappingMock() {
+  buildPipeline('mappingPipeline', mappingSteps);
+  const q = $('mapQuery').value || sampleQueries[0][0];
+  const f = $('mapFault').value || sampleQueries[0][1];
+  const a = $('mapApp').value || sampleQueries[0][2];
+  const dry = $('mapDry').checked;
+
+  const mode = f.includes('弹窗') ? 'dialog'
+    : f.includes('遮挡') ? 'text_overlay'
+    : f.includes('重复') ? 'content_duplicate'
+    : f.includes('延迟') ? 'response_delay'
+    : 'modify_text_ai';
+  const instruction = `${a ? a + ' - ' : ''}${f}`;
+
+  updateStep('mappingPipeline', 'm1', 'running', '分类中...', ['--- Step 1: 异常模式分类 ---', `fault_mode: ${f}`]);
+  await sleep(300);
+  updateStep('mappingPipeline', 'm1', 'success', `anomaly_mode: ${mode}`, ['--- Step 1: 异常模式分类 ---', `anomaly_mode: ${mode}`]);
+  updateStep('mappingPipeline', 'm2', 'success', `instruction: ${instruction}`, ['--- Step 2: 指令展开 ---', `instruction: ${instruction}`]);
+  updateStep('mappingPipeline', 'm3', 'success', mode === 'dialog' ? 'GT 样本已匹配' : '(不需要 GT 模板)', ['--- Step 3: GT 模板匹配 ---']);
+  updateStep('mappingPipeline', 'm4', 'success', dry ? '预览完成' : '写入完成', ['--- Step 4: 校验 & 写入 ---']);
+
+  const result = {
+    success: true,
+    entry: {
+      query: q,
+      app_name: a,
+      fault_mode: f,
+      injection_config: {
+        anomaly_mode: mode,
+        instruction,
+      },
+    },
+    anomaly_mode: mode,
+    instruction,
+    gt: {},
+    logs: [],
+  };
+  $('mappingOutputCard').style.display = 'block';
+  $('mappingOutput').textContent = prettyJson(result.entry);
+  addHistory({
+    type: 'mapping',
+    title: f || '映射生成',
+    subtitle: q,
+    meta1: mode,
+    meta2: new Date().toLocaleTimeString(),
+    time: new Date().toLocaleTimeString(),
+    form: { query: q, fault_mode: f, app_name: a, dry_run: dry },
+    result,
+  });
+}
+
+async function runMapping() {
+  const form = {
+    query: $('mapQuery').value.trim(),
+    fault_mode: $('mapFault').value.trim(),
+    app_name: $('mapApp').value.trim(),
+    dry_run: $('mapDry').checked,
+  };
+  if (!form.query || !form.fault_mode) {
+    alert('请填写 Query 和 Fault Mode');
+    return;
+  }
+
+  buildPipeline('mappingPipeline', mappingSteps);
+  mappingSteps.forEach(s => updateStep('mappingPipeline', s.id, 'running', '等待执行...', ['...']));
+
+  try {
+    const resp = await fetch('/api/run', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(form),
+    });
+    const data = await resp.json();
+    if (!resp.ok || !data.success) {
+      const errLogs = data.logs || [data.error || `HTTP ${resp.status}`];
+      mappingSteps.forEach((s, idx) => updateStep('mappingPipeline', s.id, idx === 0 ? 'error' : 'pending', '执行失败', errLogs));
+      return;
+    }
+
+    $('mappingOutputCard').style.display = 'block';
+    $('mappingOutput').textContent = prettyJson(data.entry || {});
+    renderMappingResult(data);
+
+    addHistory({
+      type: 'mapping',
+      title: form.fault_mode,
+      subtitle: form.query,
+      meta1: data.anomaly_mode || '-',
+      meta2: new Date().toLocaleTimeString(),
+      time: new Date().toLocaleTimeString(),
+      form,
+      result: data,
+    });
+  } catch (err) {
+    mappingSteps.forEach((s, idx) => updateStep(
+      'mappingPipeline',
+      s.id,
+      idx === 0 ? 'error' : 'pending',
+      '连接失败',
+      [`[ERROR] ${err.message}`, '请确认 web_ui/server.py 已启动']
+    ));
+  }
+}
+
+async function runBatch() {
+  const form = {
+    examples_dir: $('batchExamplesDir').value.trim(),
+    output_dir: $('batchOutputDir').value.trim(),
+    mapping_config: $('batchMappingConfig').value.trim(),
+    gt_template_dir: $('batchGtTemplateDir').value.trim(),
+    fault_mode: $('batchFaultMode').value,
+    enable_verification: $('batchEnableVerification').checked,
+    quality_threshold: Number($('batchQualityThreshold').value || 6.0),
+    verification_retries: Number($('batchVerificationRetries').value || 2),
+    enable_rules: $('batchEnableRules').checked,
+  };
+
+  buildPipeline('batchPipeline', batchSteps);
+  batchSteps.forEach((s, idx) => updateStep('batchPipeline', s.id, idx === 0 ? 'running' : 'pending', '等待执行...', ['...']));
+  $('batchSummaryCard').style.display = 'none';
+  $('batchRunsCard').style.display = 'none';
+  $('batchLogsCard').style.display = 'none';
+
+  try {
+    const resp = await fetch('/api/batch-run', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(form),
+    });
+    const data = await resp.json();
+    if (!resp.ok) {
+      throw new Error(data.error || `HTTP ${resp.status}`);
+    }
+
+    renderBatchResult(data);
+
+    addHistory({
+      type: 'batch',
+      title: `批量生成 ${data.summary?.fault_mode || 'all'}`,
+      subtitle: data.summary?.output_dir || form.output_dir,
+      meta1: `成功 ${data.summary?.success ?? 0}`,
+      meta2: `新产物 ${data.summary?.produced_runs ?? 0}`,
+      time: new Date().toLocaleTimeString(),
+      form,
+      result: data,
+    });
+  } catch (err) {
+    batchSteps.forEach((s, idx) => updateStep(
+      'batchPipeline',
+      s.id,
+      idx === 0 ? 'error' : 'pending',
+      '执行失败',
+      [`[ERROR] ${err.message}`, '请检查后端日志或脚本依赖']
+    ));
+  }
+}
+
+async function runSingle() {
+  const form = {
+    screenshot: $('singleScreenshot').value.trim(),
+    instruction: $('singleInstruction').value.trim(),
+    output: $('singleOutputDir').value.trim(),
+    anomaly_mode: $('singleAnomalyMode').value,
+    gt_category: $('singleGtCategory').value.trim(),
+    gt_sample: $('singleGtSample').value.trim(),
+    gt_dir: $('singleGtDir').value.trim(),
+    reference: $('singleReference').value.trim(),
+    reference_icon: $('singleReferenceIcon').value.trim(),
+    structure_model: $('singleStructureModel').value.trim(),
+    target_component: $('singleTargetComponent').value.trim(),
+    edit_plan: $('singleEditPlan').value.trim(),
+    no_visualize: $('singleNoVisualize').checked,
+    e2e_full_image: $('singleE2EFullImage').checked,
+  };
+
+  if (!form.screenshot || !form.instruction || !form.output) {
+    alert('请至少填写 Screenshot、Instruction 和 Output Dir');
+    return;
+  }
+
+  buildPipeline('singlePipeline', singleSteps);
+  singleSteps.forEach((s, idx) => updateStep('singlePipeline', s.id, idx === 0 ? 'running' : 'pending', '等待执行...', ['...']));
+  $('singleSummaryCard').style.display = 'none';
+  $('singlePreviewCard').style.display = 'none';
+  $('singleLogsCard').style.display = 'none';
+
+  try {
+    const resp = await fetch('/api/pipeline-run', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(form),
+    });
+    const data = await resp.json();
+    if (!resp.ok) {
+      throw new Error(data.error || `HTTP ${resp.status}`);
+    }
+
+    renderSingleResult(data);
+    addHistory({
+      type: 'single',
+      title: `单图 ${form.anomaly_mode}`,
+      subtitle: form.instruction,
+      meta1: form.gt_category || form.anomaly_mode,
+      meta2: new Date().toLocaleTimeString(),
+      time: new Date().toLocaleTimeString(),
+      form,
+      result: data,
+    });
+  } catch (err) {
+    singleSteps.forEach((s, idx) => updateStep(
+      'singlePipeline',
+      s.id,
+      idx === 0 ? 'error' : 'pending',
+      '执行失败',
+      [`[ERROR] ${err.message}`, '请检查路径、依赖和后端日志']
+    ));
+  }
+}
+
+function clearMapping() {
+  $('mapQuery').value = '';
+  $('mapFault').value = '';
+  $('mapApp').value = '';
+  $('mapDry').checked = false;
+  buildPipeline('mappingPipeline', mappingSteps);
+  $('mappingOutputCard').style.display = 'none';
+}
+
+function clearSingle() {
+  buildPipeline('singlePipeline', singleSteps);
+  $('singleSummaryCard').style.display = 'none';
+  $('singlePreviewCard').style.display = 'none';
+  $('singleLogsCard').style.display = 'none';
+}
+
+function clearBatch() {
+  buildPipeline('batchPipeline', batchSteps);
+  $('batchSummaryCard').style.display = 'none';
+  $('batchRunsCard').style.display = 'none';
+  $('batchLogsCard').style.display = 'none';
+}
+
+function restoreSingleDefaults() {
+  if (!state.defaults) return;
+  $('singleScreenshot').value = state.defaults.single_screenshot || '';
+  $('singleInstruction').value = '模拟查询结果无票的系统提示弹窗';
+  $('singleOutputDir').value = state.defaults.single_output_dir || '';
+  $('singleAnomalyMode').value = 'dialog';
+  $('singleGtCategory').value = 'dialog';
+  $('singleGtSample').value = '携程旅行-首页-推广弹窗.jpg';
+  $('singleGtDir').value = '';
+  $('singleReference').value = '';
+  $('singleReferenceIcon').value = '';
+  $('singleStructureModel').value = '';
+  $('singleTargetComponent').value = '';
+  $('singleEditPlan').value = '';
+  $('singleNoVisualize').checked = false;
+  $('singleE2EFullImage').checked = false;
+}
+
+function restoreBatchDefaults() {
+  if (!state.defaults) return;
+  $('batchExamplesDir').value = state.defaults.examples_dir || '';
+  $('batchOutputDir').value = state.defaults.output_dir || '';
+  $('batchMappingConfig').value = state.defaults.mapping_config || '';
+  $('batchGtTemplateDir').value = state.defaults.gt_template_dir || '';
+  $('batchFaultMode').value = '';
+  $('batchEnableVerification').checked = false;
+  $('batchEnableRules').checked = true;
+  $('batchQualityThreshold').value = 6.0;
+  $('batchVerificationRetries').value = 2;
+}
+
+function sleep(ms) {
+  return new Promise(resolve => setTimeout(resolve, ms));
+}
+
+document.querySelectorAll('.tab-btn').forEach(btn => {
+  btn.addEventListener('click', () => switchTab(btn.dataset.tab));
+});
+$('btnMapRun').addEventListener('click', runMapping);
+$('btnMapMock').addEventListener('click', runMappingMock);
+$('btnMapClear').addEventListener('click', clearMapping);
+$('btnSingleRun').addEventListener('click', runSingle);
+$('btnSingleDefaults').addEventListener('click', restoreSingleDefaults);
+$('btnSingleClear').addEventListener('click', clearSingle);
+$('btnBatchRun').addEventListener('click', runBatch);
+$('btnBatchDefaults').addEventListener('click', restoreBatchDefaults);
+$('btnBatchClear').addEventListener('click', clearBatch);
+
+buildPipeline('mappingPipeline', mappingSteps);
+buildPipeline('singlePipeline', singleSteps);
+buildPipeline('batchPipeline', batchSteps);
+randomSample();
+
+(async function init() {
+  try {
+    const resp = await fetch('/api/health');
+    const data = await resp.json();
+    state.defaults = data.defaults || null;
+    restoreSingleDefaults();
+    restoreBatchDefaults();
+    const imageGen = data.image_gen || {};
+    const imageGenText = imageGen.available
+      ? `ImageGen: ${imageGen.backend} (${imageGen.model || '-'}` + (imageGen.edit_model && imageGen.edit_model !== imageGen.model ? ` | edit: ${imageGen.edit_model}` : '') + `)`
+      : `ImageGen: unavailable (${imageGen.backend || 'auto'})`;
+    $('healthText').textContent =
+      `Backend: connected | VLM: ${data.vlm_available ? `available (${data.vlm_model})` : 'offline'} | ${imageGenText} | Single: ${data.pipeline_available ? 'ready' : 'missing'} | Batch: ${data.batch_available ? 'ready' : 'missing'}`;
+    $('healthText').style.color = (data.vlm_available && imageGen.available) ? 'var(--success)' : 'var(--warn)';
+  } catch (err) {
+    $('healthText').textContent = 'Backend: offline，请先运行 python server.py';
+    $('healthText').style.color = 'var(--error)';
+  }
+})();
+</script>
+</body>
+</html>
