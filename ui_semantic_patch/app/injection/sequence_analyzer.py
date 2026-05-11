@@ -399,7 +399,10 @@ class SequenceAnalyzer:
         评分维度：
         - match_score (规则匹配得分, 0-120)
         - content_bonus: 有内容验证通过的规则 +15（精准匹配优先）
-        - position_bonus: 序列中后部 +5（避免过早注入）
+        - page_type_bonus: 规则 page_types 列表中越靠前的页面类型权重越高
+          （第1位 +8, 第2位 +4, 第3位 +2, 其余 0）
+          — 例如 travel_route_btn_disabled 规则中 travel_route_list 排在
+          travel_booking 之前，说明"订票按钮置灰"在航班列表页比下单确认页更匹配
         - waiting_bonus: 用户等待态 +10
         - semantic_kw_bonus: 语义关键词匹配数 * 3
 
@@ -413,12 +416,18 @@ class SequenceAnalyzer:
             if rule and rule.get("content_requirements"):
                 score += 15
 
-            # 序列位置：后半段 +5，后 1/3 额外 +3
-            pos = c.get("_step_index", 0)
-            if pos >= total_steps // 2:
-                score += 5
-            if pos >= total_steps * 2 // 3:
-                score += 3
+            # page_type 在规则列表中的排序权重（越靠前越匹配 fault_mode）
+            page_type = c.get("page_type", "")
+            rule_page_types = rule.get("page_types", [])
+            if page_type in rule_page_types:
+                idx = rule_page_types.index(page_type)
+                if idx == 0:
+                    score += 8   # 首选页面类型
+                elif idx == 1:
+                    score += 4
+                elif idx == 2:
+                    score += 2
+                # idx >= 3 不加分
 
             # 用户等待态
             if c.get("vlm_user_waiting"):
