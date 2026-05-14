@@ -17,7 +17,7 @@ generate_mapping.py — 自动生成异常注入映射配置
         --fault-mode "订票按钮置灰" \\
         --app-name "去哪儿旅行"
 
-    # 从文件批量生成（每行 JSON: {"query": "...", "fault_mode": "...", "app_name": "..."}）
+    # 从文件批量生成（JSON 数组: [{"query": "...", "fault_mode": "...", "app_name": "..."}]）
     python generate_mapping.py --input queries.json
 
     # 预览模式（不写入文件）
@@ -771,7 +771,7 @@ def generate(
 
 
 def batch_generate(input_file: str, **kwargs) -> List[Dict]:
-    """从 JSON 文件批量生成"""
+    """从 JSON 数组文件批量生成"""
     with open(input_file, 'r', encoding='utf-8') as f:
         queries = json.load(f)
 

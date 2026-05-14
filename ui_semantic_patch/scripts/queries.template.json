@@ -1,0 +1,20 @@
+[
+  {
+    "query": "(去哪儿旅行)购买一张从南京去北京的机票",
+    "fault_mode": "订票按钮置灰",
+    "app_name": "去哪儿旅行",
+    "example_dir": "case_001"
+  },
+  {
+    "query": "(美团)购买一份炸鸡外卖",
+    "fault_mode": "价格被篡改",
+    "app_name": "美团",
+    "example_dir": "case_002"
+  },
+  {
+    "query": "(12306)购买一张从上海到杭州的高铁票",
+    "fault_mode": "车次信息重复显示",
+    "app_name": "12306",
+    "example_dir": "case_003"
+  }
+]
