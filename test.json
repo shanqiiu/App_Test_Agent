@@ -1,272 +1,137 @@
 [
   {
-    "dataid": "06a4d311-6240-4b38-9ec9-ef2dbd9292d1",
-    "taskid": "f74220e7eedc429d95940f271b23b8ff",
-    "Query 描述": "进入拼多多查下ipad ,搜索价格最低的",
-    "业务场景": null,
-    "场景": "搜索商品",
-    "问题分类": "价格排序顺序错误 ",
-    "故障模式1": " 模型拼多多价格排序排反了",
-    "故障模式2": "https://platform.ai.test.huawei.com:2443/service/algorithmTest/analysisJob?id=f74220e7eedc429d95940f271b23b8ff&tagJobId=65402ce1-4dce-45b7-846e-7c0c8c9f2084&templateId=09ee7e80-3b24-4afe-a4e4-9a4dd63ffebe&name=&dataId=06a4d311-6240-4b38-9ec9-ef2dbd9292d1&title=RejectionOpinion&filterValue=1&filterTypeFromQuery=ALL&businessId=7374a8b4-d01c-403e-9e38-7e5dd15376cd&businessType=test"
+    "query": "进入拼多多查下ipad ,搜索价格最低的",
+    "fault_mode": "模型拼多多价格排序排反了",
+    "app_name": "拼多多"
   },
   {
-    "dataid": "14a37b63-550e-489d-a55b-50e8cfc6b38a",
-    "taskid": "f74220e7eedc429d95940f271b23b8ff",
-    "Query 描述": "到天猫帮买一双黑色的37码运动鞋",
-    "业务场景": "衣",
-    "场景": "购物",
-    "问题分类": "滑动遮挡",
-    "故障模式1": "详情页面，鞋码需下滑被遮挡",
-    "故障模式2": "详情页面，颜色需下滑被遮挡"
+    "query": "到天猫帮买一双黑色的37码运动鞋",
+    "fault_mode": "详情页面，鞋码需下滑被遮挡",
+    "app_name": "天猫"
   },
   {
-    "dataid": "1595649e-1dd6-4a3f-93b3-cc6284be6b6d",
-    "taskid": "f74220e7eedc429d95940f271b23b8ff",
-    "Query 描述": "在京东帮搜一下空调，价格2000元以内，销量最高的，且是京东自营店的，支持百亿补贴",
-    "业务场景": null,
-    "场景": "搜索商品",
-    "问题分类": "反复点击",
-    "故障模式1": "冗余操作：反复点击销量+价格区间选错",
-    "故障模式2": "https://platform.ai.test.huawei.com:2443/service/algorithmTest/analysisJob?id=6bf6ced4c2a1442b8a52348d7b9d57c9&tagJobId=2cc99559-15d9-40cd-8c2c-c8b46e6660ca&templateId=09ee7e80-3b24-4afe-a4e4-9a4dd63ffebe&name=&dataId=1595649e-1dd6-4a3f-93b3-cc6284be6b6d&title=RejectionOpinion&filterValue=1&filterTypeFromQuery=ALL&businessId=7374a8b4-d01c-403e-9e38-7e5dd15376cd&businessType=test"
+    "query": "在京东帮搜一下空调，价格2000元以内，销量最高的，且是京东自营店的，支持百亿补贴",
+    "fault_mode": "冗余操作：反复点击销量+价格区间选错",
+    "app_name": "京东"
   },
   {
-    "dataid": "1b1956ef-cf65-45f2-987c-b10f326923ca",
-    "taskid": "f74220e7eedc429d95940f271b23b8ff",
-    "Query 描述": "去京东下单一台参百亿补贴的华为手机，价格控制在3000以内",
-    "业务场景": null,
-    "场景": "购物",
-    "问题分类": "路径错误",
-    "故障模式1": "路径错误，点击了国家补贴",
-    "故障模式2": "https://platform.ai.test.huawei.com:2443/service/algorithmTest/analysisJob?id=d0137b608dce4f1a867081c47113ad45&tagJobId=20af4bda-72eb-4b1b-9c5b-54fb33ebb86d&templateId=09ee7e80-3b24-4afe-a4e4-9a4dd63ffebe&name=&dataId=1b1956ef-cf65-45f2-987c-b10f326923ca&title=RejectionOpinion&filterValue=1&filterTypeFromQuery=ALL&businessId=7374a8b4-d01c-403e-9e38-7e5dd15376cd&businessType=test"
+    "query": "去京东下单一台参百亿补贴的华为手机，价格控制在3000以内",
+    "fault_mode": "路径错误，点击了国家补贴",
+    "app_name": "京东"
   },
   {
-    "dataid": "22825818-07eb-45c3-b192-a4b599651812",
-    "taskid": "f74220e7eedc429d95940f271b23b8ff",
-    "Query 描述": "用天猫买一个华硕笔记本电脑，价格不超过一万",
-    "业务场景": null,
-    "场景": "购物",
-    "问题分类": "账号登录",
-    "故障模式1": "未登录，不知道华为账号一键登录",
-    "故障模式2": "https://platform.ai.test.huawei.com:2443/service/algorithmTest/analysisJob?id=6bf6ced4c2a1442b8a52348d7b9d57c9&tagJobId=2cc99559-15d9-40cd-8c2c-c8b46e6660ca&templateId=09ee7e80-3b24-4afe-a4e4-9a4dd63ffebe&name=&dataId=22825818-07eb-45c3-b192-a4b599651812&title=RejectionOpinion&filterValue=1&filterTypeFromQuery=ALL&businessId=7374a8b4-d01c-403e-9e38-7e5dd15376cd&businessType=test"
+    "query": "用天猫买一个华硕笔记本电脑，价格不超过一万",
+    "fault_mode": "未登录，不知道华为账号一键登录",
+    "app_name": "天猫"
   },
   {
-    "dataid": "536b6cc3-24c3-45f2-90d1-ff4b3bb39190",
-    "taskid": "f74220e7eedc429d95940f271b23b8ff",
-    "Query 描述": "打开京东搜索一下京东自营的加湿器，选销量最高的下单",
-    "业务场景": null,
-    "场景": "购物",
-    "问题分类": "done错误",
-    "故障模式1": "搜完没有进行下单",
-    "故障模式2": "https://platform.ai.test.huawei.com:2443/service/algorithmTest/analysisJob?id=6bf6ced4c2a1442b8a52348d7b9d57c9&tagJobId=2cc99559-15d9-40cd-8c2c-c8b46e6660ca&templateId=09ee7e80-3b24-4afe-a4e4-9a4dd63ffebe&name=&dataId=536b6cc3-24c3-45f2-90d1-ff4b3bb39190&title=RejectionOpinion&filterValue=1&filterTypeFromQuery=ALL&businessId=7374a8b4-d01c-403e-9e38-7e5dd15376cd&businessType=test"
+    "query": "打开京东搜索一下京东自营的加湿器，选销量最高的下单",
+    "fault_mode": "搜完没有进行下单",
+    "app_name": "京东"
   },
   {
-    "dataid": "5df289bd-c1a4-484e-8e2e-ddb648451500",
-    "taskid": "f74220e7eedc429d95940f271b23b8ff",
-    "Query 描述": "京东下单一双女士乐福鞋，选自营店，价格在300-500区间",
-    "业务场景": null,
-    "场景": "购物",
-    "问题分类": "搜索关键词错误",
-    "故障模式1": "执行错误，直接搜索乐福鞋 300-500 京东自营",
-    "故障模式2": "https://platform.ai.test.huawei.com:2443/service/algorithmTest/analysisJob?id=d0137b608dce4f1a867081c47113ad45&tagJobId=1c8efe2d-5931-4642-b26d-0083ef1b3ff4&templateId=09ee7e80-3b24-4afe-a4e4-9a4dd63ffebe&name=&dataId=5df289bd-c1a4-484e-8e2e-ddb648451500&title=RejectionOpinion&filterValue=1&filterTypeFromQuery=ALL&businessId=7374a8b4-d01c-403e-9e38-7e5dd15376cd&businessType=test"
+    "query": "京东下单一双女士乐福鞋，选自营店，价格在300-500区间",
+    "fault_mode": "执行错误，直接搜索乐福鞋 300-500 京东自营",
+    "app_name": "京东"
   },
   {
-    "dataid": "72086eb8-a363-4c18-9fe1-fa2771a5d3cc",
-    "taskid": "f74220e7eedc429d95940f271b23b8ff",
-    "Query 描述": "华为商城买一个free clip，选玫瑰金色的",
-    "业务场景": null,
-    "场景": "购物",
-    "问题分类": "漏澄清",
-    "故障模式1": "商品未澄清，直接默认选择第一个",
-    "故障模式2": "https://platform.ai.test.huawei.com:2443/service/algorithmTest/analysisJob?id=6bf6ced4c2a1442b8a52348d7b9d57c9&tagJobId=2cc99559-15d9-40cd-8c2c-c8b46e6660ca&templateId=09ee7e80-3b24-4afe-a4e4-9a4dd63ffebe&name=&dataId=72086eb8-a363-4c18-9fe1-fa2771a5d3cc&title=RejectionOpinion&filterValue=1&filterTypeFromQuery=ALL&businessId=7374a8b4-d01c-403e-9e38-7e5dd15376cd&businessType=test"
+    "query": "华为商城买一个free clip，选玫瑰金色的",
+    "fault_mode": "商品未澄清，直接默认选择第一个",
+    "app_name": "华为商城"
   },
   {
-    "dataid": "7bb9474a-ed79-4217-92e0-eb49f3641583",
-    "taskid": "f74220e7eedc429d95940f271b23b8ff",
-    "Query 描述": "帮我在京东上买一瓶海飞丝，价格在50块钱到60块钱之间",
-    "业务场景": null,
-    "场景": "购物",
-    "问题分类": "漏筛选",
-    "故障模式1": "价格漏筛选",
-    "故障模式2": "https://platform.ai.test.huawei.com:2443/service/algorithmTest/analysisJob?id=d0137b608dce4f1a867081c47113ad45&tagJobId=20af4bda-72eb-4b1b-9c5b-54fb33ebb86d&templateId=09ee7e80-3b24-4afe-a4e4-9a4dd63ffebe&name=&dataId=7bb9474a-ed79-4217-92e0-eb49f3641583&title=RejectionOpinion&filterValue=1&filterTypeFromQuery=ALL&businessId=7374a8b4-d01c-403e-9e38-7e5dd15376cd&businessType=test"
+    "query": "帮我在京东上买一瓶海飞丝，价格在50块钱到60块钱之间",
+    "fault_mode": "价格漏筛选",
+    "app_name": "京东"
   },
   {
-    "dataid": "81507637-b00f-48dd-9ef0-74c75487bcd7",
-    "taskid": "f74220e7eedc429d95940f271b23b8ff",
-    "Query 描述": "京东搜索燕窝，支持京东物流的",
-    "业务场景": null,
-    "场景": "搜索商品",
-    "问题分类": "漏筛选",
-    "故障模式1": " 模型漏筛选京东物流",
-    "故障模式2": "https://platform.ai.test.huawei.com:2443/service/algorithmTest/analysisJob?id=f74220e7eedc429d95940f271b23b8ff&tagJobId=65402ce1-4dce-45b7-846e-7c0c8c9f2084&templateId=09ee7e80-3b24-4afe-a4e4-9a4dd63ffebe&name=&dataId=81507637-b00f-48dd-9ef0-74c75487bcd7&title=RejectionOpinion&filterValue=1&filterTypeFromQuery=ALL&businessId=7374a8b4-d01c-403e-9e38-7e5dd15376cd&businessType=test"
+    "query": "京东搜索燕窝，支持京东物流的",
+    "fault_mode": "模型漏筛选京东物流",
+    "app_name": "京东"
   },
   {
-    "dataid": "8851aac8-6880-499d-8e01-ec1c656ac1db",
-    "taskid": "f74220e7eedc429d95940f271b23b8ff",
-    "Query 描述": "给我在淘宝上下单IOS系统且价格不超过5000的平板",
-    "业务场景": null,
-    "场景": "购物",
-    "问题分类": "筛选项不存在",
-    "故障模式1": "冗余操作:没有价格筛选项,反复打开关闭筛选弹窗",
-    "故障模式2": "https://platform.ai.test.huawei.com:2443/service/algorithmTest/analysisJob?id=ae668fb603104980b0a27c9052fa3384&tagJobId=fe9a377f-089a-4512-92a6-a519e14b6100&templateId=09ee7e80-3b24-4afe-a4e4-9a4dd63ffebe&name=&dataId=8851aac8-6880-499d-8e01-ec1c656ac1db&title=RejectionOpinion&filterValue=1&filterTypeFromQuery=ALL&businessId=7374a8b4-d01c-403e-9e38-7e5dd15376cd&businessType=test"
+    "query": "给我在淘宝上下单IOS系统且价格不超过5000的平板",
+    "fault_mode": "冗余操作:没有价格筛选项,反复打开关闭筛选弹窗",
+    "app_name": "淘宝"
   },
   {
-    "dataid": "8e27b3ee-fccd-4547-a788-f53b1ed82344",
-    "taskid": "f74220e7eedc429d95940f271b23b8ff",
-    "Query 描述": "去华为商城购买个价格在5000-10000的手机,",
-    "业务场景": null,
-    "场景": "购物",
-    "问题分类": "规格选择",
-    "故障模式1": "直接购买没选规格",
-    "故障模式2": "https://platform.ai.test.huawei.com:2443/service/algorithmTest/analysisJob?id=ae668fb603104980b0a27c9052fa3384&tagJobId=fe9a377f-089a-4512-92a6-a519e14b6100&templateId=09ee7e80-3b24-4afe-a4e4-9a4dd63ffebe&name=&dataId=8e27b3ee-fccd-4547-a788-f53b1ed82344&title=RejectionOpinion&filterValue=1&filterTypeFromQuery=ALL&businessId=7374a8b4-d01c-403e-9e38-7e5dd15376cd&businessType=test"
+    "query": "去华为商城购买个价格在5000-10000的手机,",
+    "fault_mode": "直接购买没选规格",
+    "app_name": "华为商城"
   },
   {
-    "dataid": "95646041-549e-41ed-8ded-1f1051b7ba36",
-    "taskid": "f74220e7eedc429d95940f271b23b8ff",
-    "Query 描述": "天猫看下卡地亚LOVE系列窄版多少钱，按价格最低排序",
-    "业务场景": null,
-    "场景": "搜索商品",
-    "问题分类": "页面不稳定",
-    "故障模式1": "没等页面稳定就播报",
-    "故障模式2": "https://platform.ai.test.huawei.com:2443/service/algorithmTest/analysisJob?id=d0137b608dce4f1a867081c47113ad45&tagJobId=20af4bda-72eb-4b1b-9c5b-54fb33ebb86d&templateId=09ee7e80-3b24-4afe-a4e4-9a4dd63ffebe&name=&dataId=95646041-549e-41ed-8ded-1f1051b7ba36&title=RejectionOpinion&filterValue=1&filterTypeFromQuery=ALL&businessId=7374a8b4-d01c-403e-9e38-7e5dd15376cd&businessType=test"
+    "query": "天猫看下卡地亚LOVE系列窄版多少钱，按价格最低排序",
+    "fault_mode": "没等页面稳定就播报",
+    "app_name": "天猫"
   },
   {
-    "dataid": "985e64f3-64d7-4bdc-948c-c02c90f070d1",
-    "taskid": "f74220e7eedc429d95940f271b23b8ff",
-    "Query 描述": "打开华为商城下单评论数最多的mate 70 pro手机壳",
-    "业务场景": null,
-    "场景": "购物",
-    "问题分类": "页面不稳定",
-    "故障模式1": "没等页面稳定就随机选了一个+筛选完评论数还下滑选择",
-    "故障模式2": "https://platform.ai.test.huawei.com:2443/service/algorithmTest/analysisJob?id=d0137b608dce4f1a867081c47113ad45&tagJobId=1c8efe2d-5931-4642-b26d-0083ef1b3ff4&templateId=09ee7e80-3b24-4afe-a4e4-9a4dd63ffebe&name=&dataId=985e64f3-64d7-4bdc-948c-c02c90f070d1&title=RejectionOpinion&filterValue=1&filterTypeFromQuery=ALL&businessId=7374a8b4-d01c-403e-9e38-7e5dd15376cd&businessType=test"
+    "query": "打开华为商城下单评论数最多的mate 70 pro手机壳",
+    "fault_mode": "没等页面稳定就随机选了一个+筛选完评论数还下滑选择",
+    "app_name": "华为商城"
   },
   {
-    "dataid": "98d14eb9-ebf8-42bf-9fac-cf4d58caacb0",
-    "taskid": "f74220e7eedc429d95940f271b23b8ff",
-    "Query 描述": "打开淘宝下单最便宜的医疗垃圾桶",
-    "业务场景": null,
-    "场景": "购物",
-    "问题分类": "商品选错误",
-    "故障模式1": "没有选择最便宜的",
-    "故障模式2": "https://platform.ai.test.huawei.com:2443/service/algorithmTest/analysisJob?id=6bf6ced4c2a1442b8a52348d7b9d57c9&tagJobId=be765936-1d0c-484c-bf44-305d1ad6bf1c&templateId=09ee7e80-3b24-4afe-a4e4-9a4dd63ffebe&name=&dataId=98d14eb9-ebf8-42bf-9fac-cf4d58caacb0&title=RejectionOpinion&filterValue=1&filterTypeFromQuery=ALL&businessId=7374a8b4-d01c-403e-9e38-7e5dd15376cd&businessType=test"
+    "query": "打开淘宝下单最便宜的医疗垃圾桶",
+    "fault_mode": "没有选择最便宜的",
+    "app_name": "淘宝"
   },
   {
-    "dataid": "9c925e49-9453-4380-a9c9-28a3760623a9",
-    "taskid": "f74220e7eedc429d95940f271b23b8ff",
-    "Query 描述": "打开淘宝购买哪吒同款金镯子，价格区间在2万-5万之间的",
-    "业务场景": null,
-    "场景": "购物",
-    "问题分类": "价格筛选",
-    "故障模式1": "没有价格区间入口，未播报未找到相关入口",
-    "故障模式2": "https://platform.ai.test.huawei.com:2443/service/algorithmTest/analysisJob?id=6bf6ced4c2a1442b8a52348d7b9d57c9&tagJobId=2cc99559-15d9-40cd-8c2c-c8b46e6660ca&templateId=09ee7e80-3b24-4afe-a4e4-9a4dd63ffebe&name=&dataId=9c925e49-9453-4380-a9c9-28a3760623a9&title=RejectionOpinion&filterValue=1&filterTypeFromQuery=ALL&businessId=7374a8b4-d01c-403e-9e38-7e5dd15376cd&businessType=test"
+    "query": "打开淘宝购买哪吒同款金镯子，价格区间在2万-5万之间的",
+    "fault_mode": "没有价格区间入口，未播报未找到相关入口",
+    "app_name": "淘宝"
   },
   {
-    "dataid": "b0f10890-837a-4a77-b8d3-e3e7b073e0de",
-    "taskid": "f74220e7eedc429d95940f271b23b8ff",
-    "Query 描述": "打开京东购买统一汤达人方便面，选价格最优惠的",
-    "业务场景": null,
-    "场景": "购物",
-    "问题分类": "商品选错误",
-    "故障模式1": " 模型理解错误，回复第一个点击第二个订单",
-    "故障模式2": "https://platform.ai.test.huawei.com:2443/service/algorithmTest/analysisJob?id=6bf6ced4c2a1442b8a52348d7b9d57c9&tagJobId=2cc99559-15d9-40cd-8c2c-c8b46e6660ca&templateId=09ee7e80-3b24-4afe-a4e4-9a4dd63ffebe&name=&dataId=b0f10890-837a-4a77-b8d3-e3e7b073e0de&title=RejectionOpinion&filterValue=1&filterTypeFromQuery=ALL&businessId=7374a8b4-d01c-403e-9e38-7e5dd15376cd&businessType=test"
+    "query": "打开京东购买统一汤达人方便面，选价格最优惠的",
+    "fault_mode": "模型理解错误，回复第一个点击第二个订单",
+    "app_name": "京东"
   },
   {
-    "dataid": "bc7e35ef-9902-4236-8ca6-daf0083b985c",
-    "taskid": "f74220e7eedc429d95940f271b23b8ff",
-    "Query 描述": "看下天猫里戴森V12吸尘器最便宜的多少钱",
-    "业务场景": null,
-    "场景": "搜索商品",
-    "问题分类": "页面无指定商品",
-    "故障模式1": "筛选完最便宜的都是配件，一直滑动都没找到",
-    "故障模式2": "https://platform.ai.test.huawei.com:2443/service/algorithmTest/analysisJob?id=6bf6ced4c2a1442b8a52348d7b9d57c9&tagJobId=2cc99559-15d9-40cd-8c2c-c8b46e6660ca&templateId=09ee7e80-3b24-4afe-a4e4-9a4dd63ffebe&name=&dataId=bc7e35ef-9902-4236-8ca6-daf0083b985c&title=RejectionOpinion&filterValue=1&filterTypeFromQuery=ALL&businessId=7374a8b4-d01c-403e-9e38-7e5dd15376cd&businessType=test"
+    "query": "看下天猫里戴森V12吸尘器最便宜的多少钱",
+    "fault_mode": "筛选完最便宜的都是配件，一直滑动都没找到",
+    "app_name": "天猫"
   },
   {
-    "dataid": "bf7f70ca-3c5c-46f9-8d5b-f0441cbb2ebc",
-    "taskid": "f74220e7eedc429d95940f271b23b8ff",
-    "Query 描述": "帮我在拼多多百亿补贴买一把天堂太阳伞",
-    "业务场景": null,
-    "场景": "购物",
-    "问题分类": "手动介入错误提示",
-    "故障模式1": "在搜索页面提示手动处理",
-    "故障模式2": "https://platform.ai.test.huawei.com:2443/service/algorithmTest/analysisJob?id=6bf6ced4c2a1442b8a52348d7b9d57c9&tagJobId=2cc99559-15d9-40cd-8c2c-c8b46e6660ca&templateId=09ee7e80-3b24-4afe-a4e4-9a4dd63ffebe&name=&dataId=bf7f70ca-3c5c-46f9-8d5b-f0441cbb2ebc&title=RejectionOpinion&filterValue=1&filterTypeFromQuery=ALL&businessId=7374a8b4-d01c-403e-9e38-7e5dd15376cd&businessType=test"
+    "query": "帮我在拼多多百亿补贴买一把天堂太阳伞",
+    "fault_mode": "在搜索页面提示手动处理",
+    "app_name": "拼多多"
   },
   {
-    "dataid": "c0d806be-c5e7-443d-b3bb-d2ca177740d9",
-    "taskid": "f74220e7eedc429d95940f271b23b8ff",
-    "Query 描述": "去淘宝上帮我搜下mate60，要求最高价不超过6000且支持百亿补贴",
-    "业务场景": null,
-    "场景": "搜索商品",
-    "问题分类": "路径错误",
-    "故障模式1": "路径错误，未从百亿补贴入口进入",
-    "故障模式2": "https://platform.ai.test.huawei.com:2443/service/algorithmTest/analysisJob?id=d0137b608dce4f1a867081c47113ad45&tagJobId=20af4bda-72eb-4b1b-9c5b-54fb33ebb86d&templateId=09ee7e80-3b24-4afe-a4e4-9a4dd63ffebe&name=&dataId=c0d806be-c5e7-443d-b3bb-d2ca177740d9&title=RejectionOpinion&filterValue=1&filterTypeFromQuery=ALL&businessId=7374a8b4-d01c-403e-9e38-7e5dd15376cd&businessType=test"
+    "query": "去淘宝上帮我搜下mate60，要求最高价不超过6000且支持百亿补贴",
+    "fault_mode": "路径错误，未从百亿补贴入口进入",
+    "app_name": "淘宝"
   },
   {
-    "dataid": "ccb53aad-0c7b-4d45-9e5c-2a8cc77bdca5",
-    "taskid": "f74220e7eedc429d95940f271b23b8ff",
-    "Query 描述": "去淘宝买一下华硕内存512G的主机，支持百亿补贴的，价格低于1000",
-    "业务场景": null,
-    "场景": "购物",
-    "问题分类": "搜索结果不存在",
-    "故障模式1": "搜索结果页面没有符合要求的价格的商品",
-    "故障模式2": null
+    "query": "去淘宝买一下华硕内存512G的主机，支持百亿补贴的，价格低于1000",
+    "fault_mode": "搜索结果页面没有符合要求的价格的商品",
+    "app_name": "淘宝"
   },
   {
-    "dataid": "d992e390-c4e0-462e-9c19-b2e44aa8e848",
-    "taskid": "f74220e7eedc429d95940f271b23b8ff",
-    "Query 描述": "我需要在淘宝下单一顶帐篷，价格不超过300，销量优先",
-    "业务场景": null,
-    "场景": "购物",
-    "问题分类": "价格筛选",
-    "故障模式1": " 模型价格筛选错误：最低，最高价格都输入了300",
-    "故障模式2": "https://platform.ai.test.huawei.com:2443/service/algorithmTest/analysisJob?id=f74220e7eedc429d95940f271b23b8ff&tagJobId=5cbafb84-4c57-4de0-af74-862ce1bc2c20&templateId=09ee7e80-3b24-4afe-a4e4-9a4dd63ffebe&name=&dataId=d992e390-c4e0-462e-9c19-b2e44aa8e848&title=RejectionOpinion&filterValue=1&filterTypeFromQuery=ALL&businessId=7374a8b4-d01c-403e-9e38-7e5dd15376cd&businessType=test"
+    "query": "我需要在淘宝下单一顶帐篷，价格不超过300，销量优先",
+    "fault_mode": "模型价格筛选错误：最低，最高价格都输入了300",
+    "app_name": "淘宝"
   },
   {
-    "dataid": "e1568275-af12-453a-81ba-8464f1f1527c",
-    "taskid": "f74220e7eedc429d95940f271b23b8ff",
-    "Query 描述": "京东去美的京东自营旗舰店找一个价格低于2000块的滚筒洗衣机",
-    "业务场景": null,
-    "场景": "搜索商品",
-    "问题分类": "搜索关键词错误",
-    "故障模式1": "执行错误，直接搜索美的京东自营旗舰店滚筒洗衣机",
-    "故障模式2": "https://platform.ai.test.huawei.com:2443/service/algorithmTest/analysisJob?id=d0137b608dce4f1a867081c47113ad45&tagJobId=20af4bda-72eb-4b1b-9c5b-54fb33ebb86d&templateId=09ee7e80-3b24-4afe-a4e4-9a4dd63ffebe&name=&dataId=e1568275-af12-453a-81ba-8464f1f1527c&title=RejectionOpinion&filterValue=1&filterTypeFromQuery=ALL&businessId=7374a8b4-d01c-403e-9e38-7e5dd15376cd&businessType=test"
+    "query": "京东去美的京东自营旗舰店找一个价格低于2000块的滚筒洗衣机",
+    "fault_mode": "执行错误，直接搜索美的京东自营旗舰店滚筒洗衣机",
+    "app_name": "京东"
   },
   {
-    "dataid": "e651b5a7-2151-4495-af05-b149b2cafbf9",
-    "taskid": "f74220e7eedc429d95940f271b23b8ff",
-    "Query 描述": "京东从搜一下销量最好的，并且价格不超时2000块的白酒",
-    "业务场景": null,
-    "场景": "搜索商品",
-    "问题分类": "价格筛选",
-    "故障模式1": "选择的低区间",
-    "故障模式2": "https://platform.ai.test.huawei.com:2443/service/algorithmTest/analysisJob?id=6bf6ced4c2a1442b8a52348d7b9d57c9&tagJobId=e7d59f84-a082-48db-862c-071436212cfa&templateId=09ee7e80-3b24-4afe-a4e4-9a4dd63ffebe&name=&dataId=e651b5a7-2151-4495-af05-b149b2cafbf9&title=RejectionOpinion&filterValue=1&filterTypeFromQuery=ALL&businessId=7374a8b4-d01c-403e-9e38-7e5dd15376cd&businessType=test"
+    "query": "京东从搜一下销量最好的，并且价格不超时2000块的白酒",
+    "fault_mode": "选择的低区间",
+    "app_name": "京东"
   },
   {
-    "dataid": "eac58ebf-784e-45eb-b5ae-d23e676d1b8f",
-    "taskid": "f74220e7eedc429d95940f271b23b8ff",
-    "Query 描述": "淘宝搜一下电动牙刷，价格300元以内，且按销量排序，支持国补，送到公司",
-    "业务场景": null,
-    "场景": "搜索商品",
-    "问题分类": "漏筛选",
-    "故障模式1": "漏筛选：国补",
-    "故障模式2": "https://platform.ai.test.huawei.com:2443/service/algorithmTest/analysisJob?id=d0137b608dce4f1a867081c47113ad45&tagJobId=20af4bda-72eb-4b1b-9c5b-54fb33ebb86d&templateId=09ee7e80-3b24-4afe-a4e4-9a4dd63ffebe&name=&dataId=eac58ebf-784e-45eb-b5ae-d23e676d1b8f&title=RejectionOpinion&filterValue=1&filterTypeFromQuery=ALL&businessId=7374a8b4-d01c-403e-9e38-7e5dd15376cd&businessType=test"
+    "query": "淘宝搜一下电动牙刷，价格300元以内，且按销量排序，支持国补，送到公司",
+    "fault_mode": "漏筛选：国补",
+    "app_name": "淘宝"
   },
   {
-    "dataid": "ec1cc169-1435-4cd7-b818-4b37664c95f6",
-    "taskid": "f74220e7eedc429d95940f271b23b8ff",
-    "Query 描述": "去淘宝买最新款手机，价格选最低的，且支持百亿补贴的",
-    "业务场景": null,
-    "场景": "购物",
-    "问题分类": "漏排序",
-    "故障模式1": "搜索结果页面没有按价格排序",
-    "故障模式2": null
+    "query": "去淘宝买最新款手机，价格选最低的，且支持百亿补贴的",
+    "fault_mode": "搜索结果页面没有按价格排序",
+    "app_name": "淘宝"
   },
   {
-    "dataid": "fd233b1f-397a-494f-8079-8da497226b4c",
-    "taskid": "f74220e7eedc429d95940f271b23b8ff",
-    "Query 描述": "我需要在拼多多买两个塑料水果篮，按好评排序",
-    "业务场景": null,
-    "场景": "购物",
-    "问题分类": "done错误",
-    "故障模式1": "模型done错误，播报：已按好评排序展示塑料水果篮商品，请挑选，就结束",
-    "故障模式2": "https://platform.ai.test.huawei.com:2443/service/algorithmTest/analysisJob?id=f74220e7eedc429d95940f271b23b8ff&tagJobId=75bdcdc0-43d7-4074-b333-32c5e0bb7b52&templateId=09ee7e80-3b24-4afe-a4e4-9a4dd63ffebe&name=&dataId=fd233b1f-397a-494f-8079-8da497226b4c&title=RejectionOpinion&filterValue=1&filterTypeFromQuery=ALL&businessId=7374a8b4-d01c-403e-9e38-7e5dd15376cd&businessType=test"
+    "query": "我需要在拼多多买两个塑料水果篮，按好评排序",
+    "fault_mode": "模型done错误，播报：已按好评排序展示塑料水果篮商品，请挑选，就结束",
+    "app_name": "拼多多"
   }
 ]
