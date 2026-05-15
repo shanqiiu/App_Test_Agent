@@ -1035,7 +1035,8 @@ class TextOverlayRenderer(BaseRenderer):
         对每个定位区域：
         1. 从原图裁剪区域
         2. 运行 PaddleOCR 做精确定位
-        3. 构造 modify_text 类型的 EditOp
+        3. 解析指令语义，提取替换文字（而非整个 instruction）
+        4. 构造 modify_text 类型的 EditOp
 
         Returns:
             EditOp 列表，如果无法构建则返回空列表
@@ -1045,6 +1046,18 @@ class TextOverlayRenderer(BaseRenderer):
             print("    ⚠ PaddleOCR 不可用，无法精确定位")
             return []
 
+        # 解析指令语义：提取替换目标文字和替换结果
+        parsed = self._parse_instruction_semantics(instruction)
+
+        def _resolve_content(matched_text: str) -> str:
+            """根据语义解析结果确定 EditOp 的 content（要渲染的文字）"""
+            replacement = parsed.get('replacement', '')
+            if replacement:
+                return replacement  # 显式替换
+            if parsed.get('style_overrides', {}).get('disabled'):
+                return matched_text  # 置灰：保留原文字
+            return matched_text  # 回退：保留匹配文字
+
         import numpy as np
         ops = []
         screenshot = Image.open(screenshot_path).convert('RGB')
@@ -1052,7 +1065,6 @@ class TextOverlayRenderer(BaseRenderer):
 
         for loc in located:
             x1, y1, x2, y2 = loc['crop_bbox']
-            # 安全边界
             x1, y1 = max(0, x1), max(0, y1)
             x2, y2 = min(img_w, x2), min(img_h, y2)
 
@@ -1069,26 +1081,27 @@ class TextOverlayRenderer(BaseRenderer):
                 continue
 
             if not ocr_result or not ocr_result[0]:
-                # 即使 OCR 失败，仍然保存 debug crop 并尝试基于 bounds 构造操作
                 matched = loc['matched_text']
+                # 尝试从 parsed 中获取替换文字
+                replacement = parsed.get('replacement', matched)
+                text_changes = parsed.get('text_changes', [{'from': matched, 'to': replacement}])
 
-                # 构造一个简单的 region-replace 操作
                 op = EditOp(
                     action='modify_text',
                     region={'x': x1, 'y': y1, 'width': x2 - x1, 'height': y2 - y1},
-                    content=instruction,
+                    content=_resolve_content(matched),
                     style_hint={
                         'use_ai_edit': False,
                         'original_instruction': instruction,
                         'matched_text': matched,
+                        'text_changes': text_changes,
                         'source': 'deterministic_locate',
                     }
                 )
                 ops.append(op)
-                print(f"    [定位] OCR 无结果，使用 bounds 构造操作: {matched} @ ({x1},{y1})-({x2},{y2})")
+                print(f"    [定位] OCR 无结果，bounds 构造: \"{matched}\" → \"{_resolve_content(matched)}\"")
                 continue
 
-            # 解析 OCR 结果
             ocr_items = []
             for item in ocr_result[0]:
                 points = item[0]
@@ -1097,8 +1110,7 @@ class TextOverlayRenderer(BaseRenderer):
                 xs = [p[0] for p in points]
                 ys = [p[1] for p in points]
                 ocr_items.append({
-                    'text': text,
-                    'conf': conf,
+                    'text': text, 'conf': conf,
                     'bbox': {
                         'x': int(min(xs)), 'y': int(min(ys)),
                         'width': max(1, int(max(xs) - min(xs))),
@@ -1108,7 +1120,6 @@ class TextOverlayRenderer(BaseRenderer):
 
             print(f"    [定位] OCR 裁剪区检测到 {len(ocr_items)} 个文字区域")
 
-            # 找到与 matched_text 最匹配的 OCR item
             matched = loc['matched_text']
             best_item = None
             best_score = 0
@@ -1119,7 +1130,6 @@ class TextOverlayRenderer(BaseRenderer):
                         best_score = score
                         best_item = item
             if best_item is None:
-                # 模糊匹配
                 for item in ocr_items:
                     score = sum(1 for c in matched if c in item['text'])
                     if score > best_score:
@@ -1127,42 +1137,128 @@ class TextOverlayRenderer(BaseRenderer):
                         best_item = item
 
             if best_item:
-                # 找到精确位置 → 构造细粒度 replace_region 操作
                 bx, by = best_item['bbox']['x'], best_item['bbox']['y']
                 bw, bh = best_item['bbox']['width'], best_item['bbox']['height']
                 abs_bx, abs_by = x1 + bx, y1 + by
 
+                # 从 parsed 获取语义替换
+                replacement = parsed.get('replacement', best_item['text'])
+                text_changes = parsed.get('text_changes', [{'from': best_item['text'], 'to': replacement}])
+
                 op = EditOp(
-                    action='replace_region',
+                    action='modify_text',
                     region={'x': abs_bx, 'y': abs_by, 'width': bw, 'height': bh},
-                    content=instruction,
+                    content=_resolve_content(best_item['text']),
                     style_hint={
                         'use_ai_edit': False,
                         'original_instruction': instruction,
                         'matched_text': best_item['text'],
                         'ocr_confidence': best_item['conf'],
+                        'text_changes': text_changes,
                         'source': 'deterministic_locate_ocr',
                     }
                 )
                 ops.append(op)
-                print(f"    [定位] 精确定位: \"{best_item['text']}\" @ ({abs_bx},{abs_by}) "
-                      f"{bw}x{bh}, conf={best_item['conf']:.2f}")
+                print(f"    [定位] 精确定位: \"{best_item['text']}\" → \"{_resolve_content(best_item['text'])}\" "
+                      f"@ ({abs_bx},{abs_by}) {bw}x{bh}, conf={best_item['conf']:.2f}")
             else:
-                # OCR 有结果但没匹配到目标文字 → 用整个区域
+                replacement = parsed.get('replacement', matched)
+                text_changes = parsed.get('text_changes', [{'from': matched, 'to': replacement}])
                 op = EditOp(
                     action='modify_text',
                     region={'x': x1, 'y': y1, 'width': x2 - x1, 'height': y2 - y1},
-                    content=instruction,
+                    content=_resolve_content(matched),
                     style_hint={
                         'use_ai_edit': False,
                         'original_instruction': instruction,
                         'matched_text': matched,
+                        'text_changes': text_changes,
                         'source': 'deterministic_locate_fallback',
                     }
                 )
                 ops.append(op)
 
         return ops
+
+    def _parse_instruction_semantics(self, instruction: str) -> Dict:
+        """
+        解析指令语义，提取替换目标文字和替换结果。
+
+        支持的指令模式：
+        - "将X改为Y" / "把X改成Y" / "将X修改为Y"
+        - "将X置灰" / "X按钮置灰" → 灰色 + disabled 样式
+        - "将X改为灰色" / "将X改为灰色无票" → 灰色样式
+        - "将X删除" / "去掉X" → 空字符串
+        - "改为降序" / "改成降序" → 检测方向类替换
+
+        Returns:
+            {
+                "replacement": str,       # 替换后的文字
+                "text_changes": [         # 具体文字替换列表
+                    {"from": "原文字", "to": "替换后文字"}
+                ],
+                "style_overrides": {      # 额外样式覆盖
+                    "font_color": str,    # 如 "#999999" 灰
+                    "disabled": bool,     # 是否禁用样式
+                }
+            }
+        """
+        text = instruction.strip()
+
+        result = {
+            'replacement': '',
+            'text_changes': [],
+            'style_overrides': {},
+        }
+
+        # 模式 1: "将X改为Y" / "把X改成Y" / "将X修改为Y" / "修改X为Y"
+        patterns = [
+            (r'将.+?改[为成]\s*(.+?)(?:[，。,\.\s]|$)', 1),
+            (r'把.+?改[成为]\s*(.+?)(?:[，。,\.\s]|$)', 1),
+            (r'修改.+?[为成]\s*(.+?)(?:[，。,\.\s]|$)', 1),
+            (r'改[为成]\s*(.+?)(?:[，。,\.\s]|$)', 1),
+            (r'替换[为成]\s*(.+?)(?:[，。,\.\s]|$)', 1),
+        ]
+
+        for pattern, group_idx in patterns:
+            m = re.search(pattern, text)
+            if m:
+                result['replacement'] = m.group(group_idx).strip().rstrip('.。,，')
+                break
+
+        # 模式 2: "将X置灰" / "X按钮置灰" / "改为灰色" / "置灰"
+        gray_patterns = [
+            r'(置灰|灰色|变灰|disable|不可用|禁用)',
+        ]
+        is_gray = any(re.search(p, text) for p in gray_patterns)
+        if is_gray:
+            result['style_overrides']['font_color'] = '#999999'
+            result['style_overrides']['disabled'] = True
+            # 置灰操作不改变文字内容，replacement 留空由调用方用 matched_text 填充
+
+        # 模式 3: "X按钮背景置灰" / "将X背景改为灰色"
+        bg_gray = re.search(r'(背景|按钮).*?(置灰|灰色)', text)
+        if bg_gray and not result['replacement']:
+            result['style_overrides']['background_color'] = '#CCCCCC'
+            result['style_overrides']['disabled'] = True
+
+        # 模式 4: "改为降序" / "改成升序" / "价格选最低"
+        sort_patterns = {
+            '降序': '价格降序',
+            '升序': '价格升序',
+            '最低': '价格最低',
+            '最高': '价格最高',
+        }
+        for keyword, replacement in sort_patterns.items():
+            if keyword in text and not result.get('replacement'):
+                result['replacement'] = replacement
+                break
+
+        # 回退：使用整个 instruction 作为 replacement
+        if not result.get('replacement'):
+            result['replacement'] = text
+
+        return result
 
     @staticmethod
     def _is_seat_specific_instruction(instruction: str) -> bool:
