@@ -991,10 +991,10 @@ class TextOverlayRenderer(BaseRenderer):
 
         # 按上下文得分排序，过滤低相关性结果
         unique_results.sort(key=lambda r: r['context_score'], reverse=True)
-        filtered = [r for r in unique_results if r['context_score'] >= 0.2]
+        filtered = [r for r in unique_results if r['context_score'] >= 0.4]
 
         if len(filtered) < len(unique_results):
-            print(f"    [定位] 上下文过滤: {len(unique_results)} → {len(filtered)} 个 (阈值 0.2)")
+            print(f"    [定位] 上下文过滤: {len(unique_results)} → {len(filtered)} 个 (阈值 0.4)")
             for r in unique_results:
                 if r not in filtered:
                     print(f"      ✗ 丢弃: \"{r['matched_text']}\" (score={r['context_score']:.2f})")
@@ -1055,9 +1055,13 @@ class TextOverlayRenderer(BaseRenderer):
         原理：收集组件 source_indices 覆盖的所有 OCR 文字，
               统计其中有多少个指令关键词出现 → 归一化得分。
 
+        反关键词惩罚：如果指令含唯一标识符（如车次号"z112"），
+        但组件中出现其他同类标识符（如"z156"），说明匹配到了错误卡片 → 直接 0 分。
+
         例如指令 "将z112次车硬卧改为灰色无票"：
-        - 组件含 "z112次" "硬卧" "¥328" "有票" → 4 个关键词命中 → 高分
-        - 组件含 "硬卧" "¥200" "有票" → 1 个关键词命中 → 低分
+        - 组件含 "z112次" "硬卧" "¥328" "有票" → 无冲突 → 高分
+        - 组件含 "z156次" "硬卧" "¥200" → 车次冲突 → 0 分
+        - 组件仅含 "硬卧" → 无冲突但低相关性 → 低分
 
         Returns:
             0.0 ~ 1.0 的相关性得分
@@ -1086,6 +1090,13 @@ class TextOverlayRenderer(BaseRenderer):
         # 归一化：命中数 / 总关键词数
         score = hits / max(1, len(keywords))
 
+        # 反关键词惩罚：检测组件中是否有与指令标识符冲突的同类标识符
+        penalty = self._detect_context_conflict(instruction, full_context)
+        if penalty > 0:
+            print(f"      ⚠ 上下文冲突检测: 组件含冲突标识符，得分清零 "
+                  f"(原score={score:.2f})")
+            return 0.0
+
         # 额外加分：组件 class 与指令隐含类型匹配
         comp_class = component.get('class', '')
         if self._is_seat_specific_instruction(instruction):
@@ -1093,6 +1104,31 @@ class TextOverlayRenderer(BaseRenderer):
                 score = min(1.0, score + 0.15)
 
         return score
+
+    def _detect_context_conflict(self, instruction: str, component_context: str) -> int:
+        """
+        检测组件上下文是否与指令存在语义冲突。
+
+        场景：指令指定了 "z112次"，但组件 OCR 文字中出现 "z156次" →
+              说明匹配到了错误的卡片，不应编辑。
+
+        Returns:
+            >0 表示发现冲突，0 表示无冲突
+        """
+        id_patterns = [
+            (r'\b([gGdDkKzZtT]\d{2,4})\b', '车次'),
+            (r'\b(\d{4,})\b', '数字ID'),
+        ]
+
+        for pattern, _ in id_patterns:
+            inst_ids = set(re.findall(pattern, instruction, re.IGNORECASE))
+            if not inst_ids:
+                continue
+            ctx_ids = set(re.findall(pattern, component_context, re.IGNORECASE))
+            if ctx_ids and not (inst_ids & ctx_ids):
+                return 1
+
+        return 0
 
     def _build_plan_from_locations(
         self,
@@ -1131,7 +1167,7 @@ class TextOverlayRenderer(BaseRenderer):
             crop = screenshot.crop((x1, y1, x2, y2))
             ctx_score = loc.get('context_score', 0)
 
-            if i < MAX_VLM_CROPS and ctx_score >= 0.3:
+            if i < MAX_VLM_CROPS and ctx_score >= 0.4:
                 # 高相关性 → VLM 精分析
                 print(f"    [VLM] 分析裁剪区 #{i+1}: \"{matched}\" "
                       f"(ctx={ctx_score:.2f}) @ ({x1},{y1})-({x2},{y2})")
