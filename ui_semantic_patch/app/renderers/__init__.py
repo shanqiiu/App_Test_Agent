@@ -7,6 +7,7 @@ from .area_loading import AreaLoadingRenderer
 from .content_duplicate import ContentDuplicateRenderer
 from .patch import PatchRenderer
 from .text_overlay import TextOverlayRenderer
+from .image_broken import ImageBrokenRenderer
 
 __all__ = [
     "BaseRenderer",
@@ -15,4 +16,5 @@ __all__ = [
     "ContentDuplicateRenderer",
     "PatchRenderer",
     "TextOverlayRenderer",
+    "ImageBrokenRenderer",
 ]

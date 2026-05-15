@@ -587,6 +587,7 @@ def run_pipeline(
         from app.renderers.content_duplicate import ContentDuplicateRenderer
         from app.renderers.text_overlay import TextOverlayRenderer
         from app.renderers.patch import PatchRenderer
+        from app.renderers.image_broken import ImageBrokenRenderer
         from PIL import Image
 
         RENDERER_MAP = {
@@ -598,6 +599,7 @@ def run_pipeline(
             'modify_text_ai':    TextOverlayRenderer,
             'modify_text_ocr':   TextOverlayRenderer,
             'modify_text_e2e':   TextOverlayRenderer,
+            'image_broken':      ImageBrokenRenderer,
         }
 
         if anomaly_mode not in RENDERER_MAP:
@@ -628,6 +630,8 @@ def run_pipeline(
                 vlm_model=vlm_model,
                 fonts_dir=fonts_dir,
             )
+        elif anomaly_mode == 'image_broken':
+            renderer = renderer_cls()
         else:  # dialog
             renderer = renderer_cls(
                 api_key=api_key,
@@ -671,6 +675,10 @@ def run_pipeline(
             elif anomaly_mode in ('modify_text_ocr', 'modify_text'):
                 extra_kwargs['mode'] = 'modify_text_ocr'
             # 传递 Stage 1 原始检测结果，供确定性文字定位使用
+            if 'omni_raw_result' in dir() and omni_raw_result:
+                extra_kwargs['omni_components'] = omni_raw_result.get('components', [])
+        elif anomaly_mode == 'image_broken':
+            extra_kwargs['screenshot_path'] = screenshot_path
             if 'omni_raw_result' in dir() and omni_raw_result:
                 extra_kwargs['omni_components'] = omni_raw_result.get('components', [])
         elif anomaly_mode == 'dialog':
