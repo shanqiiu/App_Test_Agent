@@ -1,0 +1,238 @@
+{
+  "version": "3.0",
+  "description": "Query到异常注入参数的映射配置（基于异常修复说明.txt重新生成）",
+  "last_updated": "2026-05-15",
+  "changelog": [
+    "2026-05-15: 根据异常修复说明.txt重新生成21个query条目",
+    "1. 天猫-卡地亚LOVE系列：保持转圈 -> area_loading",
+    "2. 淘宝-电动牙刷：国补按钮置灰 -> modify_text",
+    "3. 天猫-运动鞋：购买页遮挡鞋码 -> image_broken",
+    "4. 京东-华为手机：百亿补贴按钮背景置灰 -> modify_text",
+    "6. 淘宝-mate60：百亿补贴按钮背景置灰 -> modify_text",
+    "7. 淘宝-最新款手机：改成降序 -> modify_text",
+    "8. 京东-空调：反复筛选，需要沟通 -> dialog",
+    "9. 京东-海飞丝：需要沟通 -> dialog",
+    "11. 拼多多-水果篮：需要沟通 -> dialog",
+    "13. 京东-加湿器：连续播放详情页 -> area_loading",
+    "14. 京东-方便面：将原始错误图替换进来 -> image_broken",
+    "16. 淘宝-医疗垃圾桶：改成0.85价格，需要沟通 -> dialog",
+    "17. 淘宝-金镯子：先不要了，需要沟通 -> dialog",
+    "18. 天猫-华硕笔记本：异常模式有问题，需要沟通 -> dialog",
+    "20. 淘宝-IOS平板：替换价格区间筛选区域为其他，instruction不对 -> image_broken"
+  ],
+  "statistics": {
+    "total_queries": 15,
+    "total_mappings": 15,
+    "by_anomaly_mode": {
+      "area_loading": 2,
+      "modify_text": 4,
+      "image_broken": 3,
+      "dialog": 6
+    },
+    "app_distribution": {
+      "天猫": 3,
+      "淘宝": 6,
+      "京东": 5,
+      "拼多多": 1
+    }
+  },
+  "mappings": [
+    {
+      "query": "(天猫)看下卡地亚LOVE系列窄版多少钱，按价格最低排序",
+      "anomaly_description": "保持转圈",
+      "injection_config": {
+        "anomaly_mode": "area_loading",
+        "instruction": "在搜索结果页面或详情页面模拟加载中的转圈状态，使页面保持加载中不响应"
+      },
+      "query_id": "95646041-549e-41ed-8ded-1f1051b7ba36",
+      "app_name": "天猫",
+      "fault_mode": "没等页面稳定就播报",
+      "fault_mode_key": "mode_1",
+      "example_dir": "injection_demo_06"
+    },
+    {
+      "query": "(淘宝)搜一下电动牙刷，价格300元以内，且按销量排序，支持国补，送到公司",
+      "anomaly_description": "国补按钮置灰",
+      "injection_config": {
+        "anomaly_mode": "modify_text",
+        "instruction": "将国家补贴按钮文字修改为灰色，模拟按钮不可用状态"
+      },
+      "query_id": "eac58ebf-784e-45eb-b5ae-d23e676d1b8f",
+      "app_name": "淘宝",
+      "fault_mode": "漏筛选：国补",
+      "fault_mode_key": "mode_1",
+      "example_dir": "injection_demo_07"
+    },
+    {
+      "query": "到(天猫)帮买一双黑色的37码运动鞋",
+      "anomaly_description": "购买页遮挡鞋码",
+      "injection_config": {
+        "anomaly_mode": "image_broken",
+        "instruction": "在购买页面注入遮挡层，覆盖鞋码选择区域，使鞋码选项无法正常显示和点击"
+      },
+      "query_id": "14a37b63-550e-489d-a55b-50e8cfc6b38a",
+      "app_name": "天猫",
+      "fault_mode": "详情页面，鞋码需下滑被遮挡",
+      "fault_mode_key": "mode_1",
+      "example_dir": "injection_demo_08"
+    },
+    {
+      "query": "去(京东)下单一台参百亿补贴的华为手机，价格控制在3000以内",
+      "anomaly_description": "百亿补贴按钮背景置灰",
+      "injection_config": {
+        "anomaly_mode": "modify_text",
+        "instruction": "将百亿补贴按钮的背景色修改为灰色，模拟按钮不可用状态"
+      },
+      "query_id": "1b1956ef-cf65-45f2-987c-b10f326923ca",
+      "app_name": "京东",
+      "fault_mode": "路径错误，点击了国家补贴",
+      "fault_mode_key": "mode_1",
+      "example_dir": "injection_demo_09"
+    },
+    {
+      "query": "去(淘宝)上帮我搜下mate60，要求最高价不超过6000且支持百亿补贴",
+      "anomaly_description": "百亿补贴按钮背景置灰",
+      "injection_config": {
+        "anomaly_mode": "modify_text",
+        "instruction": "将百亿补贴按钮的背景色修改为灰色，模拟按钮不可用状态"
+      },
+      "query_id": "c0d806be-c5e7-443d-b3bb-d2ca177740d9",
+      "app_name": "淘宝",
+      "fault_mode": "路径错误，未从百亿补贴入口进入",
+      "fault_mode_key": "mode_1",
+      "example_dir": "injection_demo_11"
+    },
+    {
+      "query": "去(淘宝)买最新款手机，价格选最低的，且支持百亿补贴的",
+      "anomaly_description": "改成降序",
+      "injection_config": {
+        "anomaly_mode": "modify_text",
+        "instruction": "修改价格排序文字，将'价格升序'改为'价格降序'，使排序方向与用户需求相反"
+      },
+      "query_id": "ec1cc169-1435-4cd7-b818-4b37664c95f6",
+      "app_name": "淘宝",
+      "fault_mode": "搜索结果页面没有按价格排序",
+      "fault_mode_key": "mode_1",
+      "example_dir": "injection_demo_13"
+    },
+    {
+      "query": "在(京东)帮搜一下空调，价格2000元以内，销量最高的，且是京东自营店的，支持百亿补贴",
+      "anomaly_description": "反复筛选，需要沟通",
+      "injection_config": {
+        "anomaly_mode": "dialog",
+        "instruction": "弹窗提示用户：模型反复执行筛选操作，需要人工介入确认筛选条件"
+      },
+      "query_id": "1595649e-1dd6-4a3f-93b3-cc6284be6b6d",
+      "app_name": "京东",
+      "fault_mode": "冗余操作：反复点击销量+价格区间选错",
+      "fault_mode_key": "mode_1",
+      "example_dir": "injection_demo_14"
+    },
+    {
+      "query": "帮我在(京东)上买一瓶海飞丝，价格在50块钱到60块钱之间",
+      "anomaly_description": "需要沟通",
+      "injection_config": {
+        "anomaly_mode": "dialog",
+        "instruction": "弹窗提示用户：当前价格区间筛选异常，需要人工确认价格范围"
+      },
+      "query_id": "7bb9474a-ed79-4217-92e0-eb49f3641583",
+      "app_name": "京东",
+      "fault_mode": "价格漏筛选",
+      "fault_mode_key": "mode_1",
+      "example_dir": "injection_demo_15"
+    },
+    {
+      "query": "我需要在(拼多多)买两个塑料水果篮，按好评排序",
+      "anomaly_description": "需要沟通",
+      "injection_config": {
+        "anomaly_mode": "dialog",
+        "instruction": "弹窗提示用户：模型在执行好评排序后未进行下一步操作，需要人工介入"
+      },
+      "query_id": "fd233b1f-397a-494f-8079-8da497226b4c",
+      "app_name": "拼多多",
+      "fault_mode": "模型done错误，播报：已按好评排序展示塑料水果篮商品，请挑选，就结束",
+      "fault_mode_key": "mode_1",
+      "example_dir": "injection_demo_17"
+    },
+    {
+      "query": "打开(京东)搜索一下京东自营的加湿器，选销量最高的下单",
+      "anomaly_description": "连续播放详情页",
+      "injection_config": {
+        "anomaly_mode": "area_loading",
+        "instruction": "在详情页注入连续加载状态，使页面持续播放加载动画无法稳定"
+      },
+      "query_id": "536b6cc3-24c3-45f2-90d1-ff4b3bb39190",
+      "app_name": "京东",
+      "fault_mode": "搜完没有进行下单",
+      "fault_mode_key": "mode_1",
+      "example_dir": "injection_demo_19"
+    },
+    {
+      "query": "打开(京东)购买统一汤达人方便面，选价格最优惠的",
+      "anomaly_description": "将原始错误图替换进来",
+      "injection_config": {
+        "anomaly_mode": "image_broken",
+        "instruction": "替换价格区域为错误图片，显示价格异常或乱码状态"
+      },
+      "query_id": "b0f10890-837a-4a77-b8d3-e3e7b073e0de",
+      "app_name": "京东",
+      "fault_mode": "模型理解错误，回复第一个点击第二个订单",
+      "fault_mode_key": "mode_1",
+      "example_dir": "injection_demo_20"
+    },
+    {
+      "query": "打开(淘宝)下单最便宜的医疗垃圾桶",
+      "anomaly_description": "改成0.85价格，需要沟通",
+      "injection_config": {
+        "anomaly_mode": "dialog",
+        "instruction": "弹窗提示用户：价格显示异常（显示为0.85），需要人工确认商品价格"
+      },
+      "query_id": "98d14eb9-ebf8-42bf-9fac-cf4d58caacb0",
+      "app_name": "淘宝",
+      "fault_mode": "没有选择最便宜的",
+      "fault_mode_key": "mode_1",
+      "example_dir": "injection_demo_22"
+    },
+    {
+      "query": "打开(淘宝)购买哪吒同款金镯子，价格区间在2万-5万之间的",
+      "anomaly_description": "先不要了，需要沟通",
+      "injection_config": {
+        "anomaly_mode": "dialog",
+        "instruction": "弹窗提示用户：价格区间2万-5万范围较大，需要人工确认具体价格范围"
+      },
+      "query_id": "9c925e49-9453-4380-a9c9-28a3760623a9",
+      "app_name": "淘宝",
+      "fault_mode": "没有价格区间入口，未播报未找到相关入口",
+      "fault_mode_key": "mode_1",
+      "example_dir": "injection_demo_23"
+    },
+    {
+      "query": "用(天猫)买一个华硕笔记本电脑，价格不超过一万",
+      "anomaly_description": "异常模式有问题，需要沟通",
+      "injection_config": {
+        "anomaly_mode": "dialog",
+        "instruction": "弹窗提示用户：检测到异常模式，需要人工介入确认操作流程"
+      },
+      "query_id": "22825818-07eb-45c3-b192-a4b599651812",
+      "app_name": "天猫",
+      "fault_mode": "未登录，不知道华为账号一键登录",
+      "fault_mode_key": "mode_1",
+      "example_dir": "injection_demo_24"
+    },
+    {
+      "query": "给我在(淘宝)上下单IOS系统且价格不超过5000的平板",
+      "anomaly_description": "替换价格区间筛选区域为其他，instruction不对",
+      "injection_config": {
+        "anomaly_mode": "image_broken",
+        "instruction": "替换价格区间筛选区域为其他不相关内容，使筛选条件无法正确设置"
+      },
+      "query_id": "8851aac8-6880-499d-8e01-ec1c656ac1db",
+      "app_name": "淘宝",
+      "fault_mode": "冗余操作:没有价格筛选项,反复打开关闭筛选弹窗",
+      "fault_mode_key": "mode_1",
+      "example_dir": "injection_demo_26"
+    }
+  ],
+  "total_mappings": 15,
+  "total_queries": 15
+}
