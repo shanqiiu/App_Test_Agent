@@ -1,0 +1,45 @@
+{
+  "description": "在(瑞幸咖啡)购买一杯{product}，选择{store_preference}取餐",
+  "app_name": "瑞幸咖啡",
+  "preconditions": [
+    "App已安装",
+    "用户已登录",
+    "网络可用",
+    "定位权限已开启"
+  ],
+  "parameters": {
+    "product": {
+      "type": "string",
+      "required": true,
+      "example": "生椰拿铁"
+    },
+    "brand": {
+      "type": "string",
+      "required": true,
+      "example": "瑞幸咖啡"
+    },
+    "store_preference": {
+      "type": "string",
+      "default": "最近门店"
+    }
+  },
+  "element_mapping": {
+    "搜索框": {
+      "selector": "xpath=//EditText[@text='搜索饮品']",
+      "timeout": 5000
+    },
+    "门店选择": {
+      "selector": "xpath=//TextView[@text='选择门店']",
+      "timeout": 5000
+    },
+    "加入购物车": {
+      "selector": "xpath=//Button[@text='去结算']",
+      "timeout": 5000
+    }
+  },
+  "error_recovery": {
+    "门店已售罄": "搜索附近其他门店，自动切换",
+    "商品下架": "提示用户选择其他饮品",
+    "支付超时": "保留购物车，支持15分钟内续付"
+  }
+}
