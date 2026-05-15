@@ -1033,32 +1033,13 @@ class TextOverlayRenderer(BaseRenderer):
         从确定性定位结果构建 EditOp 编辑计划。
 
         对每个定位区域：
-        1. 从原图裁剪区域
-        2. 运行 PaddleOCR 做精确定位
-        3. 解析指令语义，提取替换文字（而非整个 instruction）
-        4. 构造 modify_text 类型的 EditOp
+        1. 裁剪目标区域
+        2. 调用 VLM 分析裁剪区（获取语义 text_changes + 样式）
+        3. 用确定性定位的 region + VLM 的 content/style_hint 构造 EditOp
 
         Returns:
             EditOp 列表，如果无法构建则返回空列表
         """
-        ocr_engine = self._get_paddle_ocr()
-        if ocr_engine is None:
-            print("    ⚠ PaddleOCR 不可用，无法精确定位")
-            return []
-
-        # 解析指令语义：提取替换目标文字和替换结果
-        parsed = self._parse_instruction_semantics(instruction)
-
-        def _resolve_content(matched_text: str) -> str:
-            """根据语义解析结果确定 EditOp 的 content（要渲染的文字）"""
-            replacement = parsed.get('replacement', '')
-            if replacement:
-                return replacement  # 显式替换
-            if parsed.get('style_overrides', {}).get('disabled'):
-                return matched_text  # 置灰：保留原文字
-            return matched_text  # 回退：保留匹配文字
-
-        import numpy as np
         ops = []
         screenshot = Image.open(screenshot_path).convert('RGB')
         img_w, img_h = screenshot.size
@@ -1071,116 +1052,191 @@ class TextOverlayRenderer(BaseRenderer):
             if x2 <= x1 or y2 <= y1:
                 continue
 
-            crop = screenshot.crop((x1, y1, x2, y2))
-            crop_np = np.array(crop)
-
-            try:
-                ocr_result = ocr_engine.ocr(crop_np, cls=False)
-            except Exception as e:
-                print(f"    ⚠ PaddleOCR 裁剪区运行失败: {e}")
-                continue
-
-            if not ocr_result or not ocr_result[0]:
-                matched = loc['matched_text']
-                # 尝试从 parsed 中获取替换文字
-                replacement = parsed.get('replacement', matched)
-                text_changes = parsed.get('text_changes', [{'from': matched, 'to': replacement}])
-
-                op = EditOp(
-                    action='modify_text',
-                    region={'x': x1, 'y': y1, 'width': x2 - x1, 'height': y2 - y1},
-                    content=_resolve_content(matched),
-                    style_hint={
-                        'use_ai_edit': False,
-                        'original_instruction': instruction,
-                        'matched_text': matched,
-                        'text_changes': text_changes,
-                        'source': 'deterministic_locate',
-                    }
-                )
-                ops.append(op)
-                print(f"    [定位] OCR 无结果，bounds 构造: \"{matched}\" → \"{_resolve_content(matched)}\"")
-                continue
-
-            ocr_items = []
-            for item in ocr_result[0]:
-                points = item[0]
-                text = item[1][0]
-                conf = item[1][1]
-                xs = [p[0] for p in points]
-                ys = [p[1] for p in points]
-                ocr_items.append({
-                    'text': text, 'conf': conf,
-                    'bbox': {
-                        'x': int(min(xs)), 'y': int(min(ys)),
-                        'width': max(1, int(max(xs) - min(xs))),
-                        'height': max(1, int(max(ys) - min(ys))),
-                    }
-                })
-
-            print(f"    [定位] OCR 裁剪区检测到 {len(ocr_items)} 个文字区域")
-
             matched = loc['matched_text']
-            best_item = None
-            best_score = 0
-            for item in ocr_items:
-                if matched in item['text']:
-                    score = len(matched)
-                    if score > best_score:
-                        best_score = score
-                        best_item = item
-            if best_item is None:
-                for item in ocr_items:
-                    score = sum(1 for c in matched if c in item['text'])
-                    if score > best_score:
-                        best_score = score
-                        best_item = item
+            crop = screenshot.crop((x1, y1, x2, y2))
 
-            if best_item:
-                bx, by = best_item['bbox']['x'], best_item['bbox']['y']
-                bw, bh = best_item['bbox']['width'], best_item['bbox']['height']
-                abs_bx, abs_by = x1 + bx, y1 + by
+            # 调用 VLM 分析裁剪区 → 获取语义内容 + 样式
+            print(f"    [VLM] 分析裁剪区: \"{matched}\" @ ({x1},{y1})-({x2},{y2})")
+            vlm_result = self._vlm_plan_on_crop(
+                crop_image=crop,
+                crop_bbox=(x1, y1, x2, y2),
+                instruction=instruction,
+                matched_text=matched,
+            )
 
-                # 从 parsed 获取语义替换
-                replacement = parsed.get('replacement', best_item['text'])
-                text_changes = parsed.get('text_changes', [{'from': best_item['text'], 'to': replacement}])
+            if vlm_result:
+                # VLM 成功 → 用 VLM 的语义 + 我们的确定性 region
+                content = vlm_result.get('content', matched)
+                style_hint = vlm_result.get('style_hint', {})
+                text_changes = vlm_result.get('text_changes', [{'from': matched, 'to': content}])
 
-                op = EditOp(
-                    action='modify_text',
-                    region={'x': abs_bx, 'y': abs_by, 'width': bw, 'height': bh},
-                    content=_resolve_content(best_item['text']),
-                    style_hint={
-                        'use_ai_edit': False,
-                        'original_instruction': instruction,
-                        'matched_text': best_item['text'],
-                        'ocr_confidence': best_item['conf'],
-                        'text_changes': text_changes,
-                        'source': 'deterministic_locate_ocr',
-                    }
-                )
-                ops.append(op)
-                print(f"    [定位] 精确定位: \"{best_item['text']}\" → \"{_resolve_content(best_item['text'])}\" "
-                      f"@ ({abs_bx},{abs_by}) {bw}x{bh}, conf={best_item['conf']:.2f}")
-            else:
-                replacement = parsed.get('replacement', matched)
-                text_changes = parsed.get('text_changes', [{'from': matched, 'to': replacement}])
                 op = EditOp(
                     action='modify_text',
                     region={'x': x1, 'y': y1, 'width': x2 - x1, 'height': y2 - y1},
-                    content=_resolve_content(matched),
+                    content=content,
                     style_hint={
+                        **style_hint,
                         'use_ai_edit': False,
                         'original_instruction': instruction,
                         'matched_text': matched,
                         'text_changes': text_changes,
-                        'source': 'deterministic_locate_fallback',
+                        'source': 'deterministic_locate_vlm',
                     }
                 )
                 ops.append(op)
+                print(f"    [VLM] → \"{content}\" @ ({x1},{y1}) "
+                      f"{x2-x1}x{y2-y1}, style={style_hint.get('font_color', 'default')}")
+            else:
+                # VLM 失败 → 用整个裁剪区域做 modify_text，保持原文字
+                op = EditOp(
+                    action='modify_text',
+                    region={'x': x1, 'y': y1, 'width': x2 - x1, 'height': y2 - y1},
+                    content=matched,
+                    style_hint={
+                        'use_ai_edit': True,  # fallback 到 AI 编辑
+                        'original_instruction': instruction,
+                        'matched_text': matched,
+                        'source': 'deterministic_locate_vlm_fallback',
+                    }
+                )
+                ops.append(op)
+                print(f"    [VLM] 调用失败，AI 编辑 fallback: \"{matched}\"")
 
         return ops
 
-    def _parse_instruction_semantics(self, instruction: str) -> Dict:
+    def _vlm_plan_on_crop(
+        self,
+        crop_image: Image.Image,
+        crop_bbox: Tuple[int, int, int, int],
+        instruction: str,
+        matched_text: str,
+    ) -> Optional[Dict]:
+        """
+        对裁剪区域调用 VLM，获取精确的 text_changes 和样式。
+
+        相比全图 VLM，裁剪区域更小，VLM 可以更精确地判断文字内容和坐标。
+
+        Args:
+            crop_image: 裁剪后的 PIL Image
+            crop_bbox: 裁剪区域在原图中的绝对坐标 (x1, y1, x2, y2)
+            instruction: 用户编辑指令
+            matched_text: Stage 1 OCR 匹配到的文字
+
+        Returns:
+            {"content": str, "text_changes": [...], "style_hint": {...}} 或 None
+        """
+        import io
+        import base64 as b64
+
+        # 将 crop 保存为临时 base64
+        buf = io.BytesIO()
+        crop_image.convert('RGB').save(buf, format='PNG')
+        crop_b64 = b64.b64encode(buf.getvalue()).decode('utf-8')
+
+        crop_w, crop_h = crop_image.size
+
+        prompt = f"""你是一个App UI像素级编辑专家。下面是一张App截图的局部裁剪区域，已经为你定位到目标文字附近。
+
+## 裁剪区域信息
+- 裁剪区域在原图中的位置: x={crop_bbox[0]}, y={crop_bbox[1]}, 宽度={crop_w}, 高度={crop_h}
+- 已匹配到的目标文字: "{matched_text}"
+
+## 用户编辑指令
+{instruction}
+
+## 任务
+分析裁剪区域，确定需要如何修改文字。输出修改计划。
+
+## 输出格式（严格JSON数组，只输出JSON不要其他内容）
+```json
+[
+  {{
+    "action": "modify_text",
+    "region": {{
+      "x": <裁剪区内x坐标>,
+      "y": <裁剪区内y坐标>,
+      "width": <文字宽度>,
+      "height": <文字高度>
+    }},
+    "content": "<替换后的文字内容>",
+    "style_hint": {{
+      "font_size": <字号(像素)>,
+      "font_color": "<#十六进制颜色>",
+      "original_text": "<原文字>"
+    }}
+  }}
+]
+```
+
+## 注意事项
+1. region 坐标基于裁剪区域（不是原图），从 (0,0) 开始
+2. content 是替换后应该显示的文字（不是完整指令）
+3. 如果指令要求置灰/禁用，font_color 设为 "#999999"
+4. 只返回JSON数组"""
+
+        try:
+            result = self._call_vlm_with_image_base64(crop_b64, 'image/png', prompt)
+        except Exception as e:
+            print(f"    ⚠ VLM crop 调用失败: {e}")
+            return None
+
+        if not result:
+            return None
+
+        # 解析 JSON
+        try:
+            plan_data = self._extract_json_array(result)
+        except Exception:
+            # 直接解析
+            try:
+                plan_data = json.loads(result)
+            except Exception:
+                return None
+
+        if not plan_data or not isinstance(plan_data, list) or len(plan_data) == 0:
+            return None
+
+        item = plan_data[0]
+        return {
+            'content': item.get('content', matched_text),
+            'text_changes': item.get('text_changes', [{'from': matched_text, 'to': item.get('content', '')}]),
+            'style_hint': item.get('style_hint', {}),
+            'crop_region': item.get('region', {}),
+        }
+
+    def _call_vlm_with_image_base64(
+        self,
+        image_b64: str,
+        mime_type: str,
+        prompt: str,
+    ) -> Optional[str]:
+        """使用 base64 图片调用 VLM"""
+        payload = {
+            "model": self.vlm_model,
+            "messages": [
+                {
+                    "role": "user",
+                    "content": [
+                        {"type": "text", "text": prompt},
+                        {"type": "image_url", "image_url": {"url": f"data:{mime_type};base64,{image_b64}"}},
+                    ]
+                }
+            ],
+            "max_tokens": 2048,
+            "temperature": 0.1,
+        }
+        headers = {'Content-Type': 'application/json'}
+        if self.api_key and self.api_key != 'not-needed':
+            headers['Authorization'] = f'Bearer {self.api_key}'
+
+        try:
+            resp = requests.post(self.vlm_api_url, headers=headers, json=payload, timeout=120)
+            resp.raise_for_status()
+            data = resp.json()
+            return data['choices'][0]['message']['content']
+        except Exception as e:
+            print(f"    ⚠ VLM API 调用失败: {e}")
+            return None
         """
         解析指令语义，提取替换目标文字和替换结果。
 
