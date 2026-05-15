@@ -670,6 +670,9 @@ def run_pipeline(
                 extra_kwargs['e2e_full_image'] = bool(e2e_full_image)
             elif anomaly_mode in ('modify_text_ocr', 'modify_text'):
                 extra_kwargs['mode'] = 'modify_text_ocr'
+            # 传递 Stage 1 原始检测结果，供确定性文字定位使用
+            if 'omni_raw_result' in dir() and omni_raw_result:
+                extra_kwargs['omni_components'] = omni_raw_result.get('components', [])
         elif anomaly_mode == 'dialog':
             extra_kwargs['gt_category'] = gt_category
             extra_kwargs['gt_sample'] = gt_sample

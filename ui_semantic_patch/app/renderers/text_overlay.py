@@ -867,6 +867,303 @@ class TextOverlayRenderer(BaseRenderer):
             print(f"    ⚠ 保存调试裁剪失败: {exc}")
             return None
 
+    # ==================== 确定性文字定位 ====================
+
+    def _locate_text_by_instruction(
+        self,
+        instruction: str,
+        omni_components: List[Dict],
+        ui_json: dict,
+        screenshot_path: str,
+    ) -> List[Dict]:
+        """
+        确定性文字定位：从指令中提取关键词 → Stage 1 OCR 匹配 → 查语义分组 → 返回裁剪区域。
+
+        链路：
+          instruction ("将硬卧改为灰色无票")
+            → 提取关键词 ["硬卧", "无票"]
+            → 在 omni_components[].text 中搜索
+            → 找到匹配的 index → 在 ui_json merged component 中查 source_indices
+            → 返回 component bounds + matched_text
+
+        Args:
+            instruction: 用户指令
+            omni_components: Stage 1 OmniParser 原始检测结果 (含 OCR text)
+            ui_json: Stage 2 VLM 语义分组后的合并 UI-JSON
+            screenshot_path: 截图路径（用于确定图片尺寸和裁剪）
+
+        Returns:
+            List of {
+                "matched_text": str,           # 匹配到的文字
+                "omni_index": int,             # Stage 1 中的 index
+                "component": dict,             # Stage 2 merged component
+                "crop_bbox": (x1, y1, x2, y2), # 绝对坐标，用于裁剪
+                "score": float,                # 匹配得分
+            }
+        """
+        if not omni_components:
+            print("    ℹ 无 omni_components，跳过确定性定位")
+            return []
+
+        # 1. 提取指令中的关键词（中文 + 数字 + 英文词）
+        keywords = self._extract_keywords(instruction)
+        if not keywords:
+            print("    ℹ 未能从指令提取关键词")
+            return []
+
+        print(f"    [定位] 指令关键词: {keywords}")
+
+        # 2. 在 Stage 1 omni_components 中搜索匹配
+        img = Image.open(screenshot_path)
+        img_w, img_h = img.size
+
+        matches = []
+        for comp in omni_components:
+            text = (comp.get('text') or '').strip()
+            if not text:
+                continue
+            score = self._match_score(text, keywords)
+            if score > 0:
+                matches.append({
+                    'omni_index': comp.get('index', -1),
+                    'text': text,
+                    'score': score,
+                    'bounds': comp.get('bounds', {}),
+                })
+
+        if not matches:
+            print("    ⚠ Stage 1 OCR 未匹配到任何关键词")
+            return []
+
+        # 按得分排序
+        matches.sort(key=lambda m: m['score'], reverse=True)
+        print(f"    [定位] Stage 1 匹配到 {len(matches)} 个候选: "
+              f"{[(m['text'], m['omni_index']) for m in matches[:5]]}")
+
+        # 3. 查找每个匹配的 index 属于哪个 Stage 2 merged component
+        merged_components = ui_json.get('components', [])
+        results = []
+        seen_indices = set()
+
+        for match in matches:
+            omni_idx = match['omni_index']
+            if omni_idx in seen_indices:
+                continue
+
+            # 查找包含此 index 的 merged component
+            for comp in merged_components:
+                source_indices = comp.get('source_indices', [])
+                if omni_idx in source_indices:
+                    b = comp.get('bounds', {})
+                    cx1 = max(0, b.get('x', 0))
+                    cy1 = max(0, b.get('y', 0))
+                    cx2 = min(img_w, cx1 + b.get('width', 0))
+                    cy2 = min(img_h, cy1 + b.get('height', 0))
+
+                    if cx2 > cx1 and cy2 > cy1:
+                        results.append({
+                            'matched_text': match['text'],
+                            'omni_index': omni_idx,
+                            'component': comp,
+                            'crop_bbox': (cx1, cy1, cx2, cy2),
+                            'score': match['score'],
+                        })
+                        seen_indices.add(omni_idx)
+                        break
+
+        # 去重：同一 merged component 只保留最高分匹配
+        unique_results = []
+        seen_comps = set()
+        for r in results:
+            comp_id = id(r['component'])
+            if comp_id not in seen_comps:
+                unique_results.append(r)
+                seen_comps.add(comp_id)
+
+        print(f"    [定位] 确定 {len(unique_results)} 个目标区域")
+        return unique_results
+
+    def _extract_keywords(self, instruction: str) -> List[str]:
+        """从指令中提取关键词用于 OCR 匹配"""
+        # 移除常见前缀/后缀噪音
+        cleaned = instruction
+        for noise in ['将', '改为', '修改', '替换', '模拟', '异常场景',
+                       '的', '了', '在', '把', '被', '让', '使', '到', '和']:
+            cleaned = cleaned.replace(noise, ' ')
+
+        # 提取中文词（2字以上）+ 数字 + 英文词
+        words = []
+        # 中文词
+        chinese_words = re.findall(r'[\u4e00-\u9fff]{2,}', cleaned)
+        words.extend(chinese_words)
+        # 英文/数字词
+        en_words = re.findall(r'[a-zA-Z0-9]+', cleaned)
+        words.extend(en_words)
+
+        # 去重并过滤太短的
+        seen = set()
+        result = []
+        for w in words:
+            if w not in seen and len(w) >= 2:
+                seen.add(w)
+                result.append(w)
+        return result
+
+    def _match_score(self, ocr_text: str, keywords: List[str]) -> float:
+        """计算 OCR 文字与关键词的匹配得分"""
+        score = 0.0
+        for kw in keywords:
+            if kw in ocr_text:
+                score += len(kw) / len(ocr_text) * 2  # 精确匹配高分
+            else:
+                # 子串部分匹配
+                for i in range(len(kw) - 1):
+                    sub = kw[i:i+2]
+                    if sub in ocr_text:
+                        score += 0.3
+        return score
+
+    def _build_plan_from_locations(
+        self,
+        located: List[Dict],
+        instruction: str,
+        screenshot_path: str,
+    ) -> List[EditOp]:
+        """
+        从确定性定位结果构建 EditOp 编辑计划。
+
+        对每个定位区域：
+        1. 从原图裁剪区域
+        2. 运行 PaddleOCR 做精确定位
+        3. 构造 modify_text 类型的 EditOp
+
+        Returns:
+            EditOp 列表，如果无法构建则返回空列表
+        """
+        ocr_engine = self._get_paddle_ocr()
+        if ocr_engine is None:
+            print("    ⚠ PaddleOCR 不可用，无法精确定位")
+            return []
+
+        import numpy as np
+        ops = []
+        screenshot = Image.open(screenshot_path).convert('RGB')
+        img_w, img_h = screenshot.size
+
+        for loc in located:
+            x1, y1, x2, y2 = loc['crop_bbox']
+            # 安全边界
+            x1, y1 = max(0, x1), max(0, y1)
+            x2, y2 = min(img_w, x2), min(img_h, y2)
+
+            if x2 <= x1 or y2 <= y1:
+                continue
+
+            crop = screenshot.crop((x1, y1, x2, y2))
+            crop_np = np.array(crop)
+
+            try:
+                ocr_result = ocr_engine.ocr(crop_np, cls=False)
+            except Exception as e:
+                print(f"    ⚠ PaddleOCR 裁剪区运行失败: {e}")
+                continue
+
+            if not ocr_result or not ocr_result[0]:
+                # 即使 OCR 失败，仍然保存 debug crop 并尝试基于 bounds 构造操作
+                matched = loc['matched_text']
+
+                # 构造一个简单的 region-replace 操作
+                op = EditOp(
+                    action='modify_text',
+                    region={'x': x1, 'y': y1, 'width': x2 - x1, 'height': y2 - y1},
+                    content=instruction,
+                    style_hint={
+                        'use_ai_edit': False,
+                        'original_instruction': instruction,
+                        'matched_text': matched,
+                        'source': 'deterministic_locate',
+                    }
+                )
+                ops.append(op)
+                print(f"    [定位] OCR 无结果，使用 bounds 构造操作: {matched} @ ({x1},{y1})-({x2},{y2})")
+                continue
+
+            # 解析 OCR 结果
+            ocr_items = []
+            for item in ocr_result[0]:
+                points = item[0]
+                text = item[1][0]
+                conf = item[1][1]
+                xs = [p[0] for p in points]
+                ys = [p[1] for p in points]
+                ocr_items.append({
+                    'text': text,
+                    'conf': conf,
+                    'bbox': {
+                        'x': int(min(xs)), 'y': int(min(ys)),
+                        'width': max(1, int(max(xs) - min(xs))),
+                        'height': max(1, int(max(ys) - min(ys))),
+                    }
+                })
+
+            print(f"    [定位] OCR 裁剪区检测到 {len(ocr_items)} 个文字区域")
+
+            # 找到与 matched_text 最匹配的 OCR item
+            matched = loc['matched_text']
+            best_item = None
+            best_score = 0
+            for item in ocr_items:
+                if matched in item['text']:
+                    score = len(matched)
+                    if score > best_score:
+                        best_score = score
+                        best_item = item
+            if best_item is None:
+                # 模糊匹配
+                for item in ocr_items:
+                    score = sum(1 for c in matched if c in item['text'])
+                    if score > best_score:
+                        best_score = score
+                        best_item = item
+
+            if best_item:
+                # 找到精确位置 → 构造细粒度 replace_region 操作
+                bx, by = best_item['bbox']['x'], best_item['bbox']['y']
+                bw, bh = best_item['bbox']['width'], best_item['bbox']['height']
+                abs_bx, abs_by = x1 + bx, y1 + by
+
+                op = EditOp(
+                    action='replace_region',
+                    region={'x': abs_bx, 'y': abs_by, 'width': bw, 'height': bh},
+                    content=instruction,
+                    style_hint={
+                        'use_ai_edit': False,
+                        'original_instruction': instruction,
+                        'matched_text': best_item['text'],
+                        'ocr_confidence': best_item['conf'],
+                        'source': 'deterministic_locate_ocr',
+                    }
+                )
+                ops.append(op)
+                print(f"    [定位] 精确定位: \"{best_item['text']}\" @ ({abs_bx},{abs_by}) "
+                      f"{bw}x{bh}, conf={best_item['conf']:.2f}")
+            else:
+                # OCR 有结果但没匹配到目标文字 → 用整个区域
+                op = EditOp(
+                    action='modify_text',
+                    region={'x': x1, 'y': y1, 'width': x2 - x1, 'height': y2 - y1},
+                    content=instruction,
+                    style_hint={
+                        'use_ai_edit': False,
+                        'original_instruction': instruction,
+                        'matched_text': matched,
+                        'source': 'deterministic_locate_fallback',
+                    }
+                )
+                ops.append(op)
+
+        return ops
+
     @staticmethod
     def _is_seat_specific_instruction(instruction: str) -> bool:
         text = instruction or ''
@@ -2564,6 +2861,7 @@ class TextOverlayRenderer(BaseRenderer):
         kwargs:
             screenshot_path (str): 截图文件路径（必需）
             edit_plan (list):      预设编辑计划（可选）
+            omni_components (list): Stage 1 原始检测结果（可选，用于确定性文字定位）
         """
         screenshot_path = kwargs.get('screenshot_path')
         if not screenshot_path:
@@ -2572,6 +2870,7 @@ class TextOverlayRenderer(BaseRenderer):
         edit_plan = kwargs.get('edit_plan')
         mode = kwargs.get('mode', 'default')
         e2e_full_image = kwargs.get('e2e_full_image', False)
+        omni_components = kwargs.get('omni_components', None)
         ts = datetime.now().strftime('%Y%m%d_%H%M%S')
         self._debug_crop_root = Path(output_dir) / f"debug_component_crops_{ts}"
         self._debug_crop_counter = 0
@@ -2583,6 +2882,7 @@ class TextOverlayRenderer(BaseRenderer):
             edit_plan=edit_plan,
             mode=mode,
             e2e_full_image=e2e_full_image,
+            omni_components=omni_components,
         )
 
         timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
@@ -2622,6 +2922,7 @@ class TextOverlayRenderer(BaseRenderer):
         edit_plan: List[EditOp] = None,
         mode: str = 'default',
         e2e_full_image: bool = False,
+        omni_components: List[Dict] = None,
     ) -> Tuple[Image.Image, List[EditOp]]:
         """
         完整渲染流程：规划编辑 → 逐步执行 → 返回结果
@@ -2655,7 +2956,52 @@ class TextOverlayRenderer(BaseRenderer):
             }]
             return edited, executed_ops
 
-        # 规划编辑操作
+        # ===== 确定性文字定位（优先于 VLM 规划） =====
+        if edit_plan is None and omni_components:
+            located = self._locate_text_by_instruction(
+                instruction=instruction,
+                omni_components=omni_components,
+                ui_json=ui_json,
+                screenshot_path=screenshot_path,
+            )
+            if located:
+                print(f"    [定位] 确定性定位成功，尝试创建编辑计划...")
+                # 为每个定位区域保存 debug crop
+                for loc in located:
+                    try:
+                        x1, y1, x2, y2 = loc['crop_bbox']
+                        crop = Image.open(screenshot_path).crop((x1, y1, x2, y2))
+                        self._debug_crop_counter += 1
+                        crop_dir = self._debug_crop_root / f"loc_{self._debug_crop_counter:02d}_{loc['matched_text']}"
+                        crop_dir.mkdir(parents=True, exist_ok=True)
+                        crop.save(crop_dir / "crop.png")
+                        # 保存定位信息
+                        (crop_dir / "info.json").write_text(
+                            json.dumps({
+                                'matched_text': loc['matched_text'],
+                                'omni_index': loc['omni_index'],
+                                'crop_bbox': list(loc['crop_bbox']),
+                                'component_class': loc['component'].get('class', ''),
+                                'source_indices': loc['component'].get('source_indices', []),
+                            }, ensure_ascii=False, indent=2),
+                            encoding='utf-8'
+                        )
+                    except Exception as exc:
+                        print(f"    ⚠ 保存定位 crop 失败: {exc}")
+
+                # 尝试从定位区域构建 edit_plan
+                located_plan = self._build_plan_from_locations(
+                    located=located,
+                    instruction=instruction,
+                    screenshot_path=screenshot_path,
+                )
+                if located_plan:
+                    edit_plan = located_plan
+                    print(f"    ✓ 使用确定性定位编辑计划 ({len(edit_plan)} 个操作)")
+                else:
+                    print(f"    ⚠ 确定性定位未能生成有效编辑计划，回退 VLM")
+
+        # 规划编辑操作（VLM fallback）
         if edit_plan is None:
             edit_plan = self.plan_edits(screenshot_path, ui_json, instruction, mode=mode)
 
