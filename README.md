@@ -4,7 +4,7 @@
 
 [![Project Status](https://img.shields.io/badge/status-prototype-blue)]()
 [![Phase](https://img.shields.io/badge/phase-2_prototype-green)]()
-[![Last Updated](https://img.shields.io/badge/updated-2026--03--26-brightgreen)]()
+[![Last Updated](https://img.shields.io/badge/updated-2026--05--15-brightgreen)]()
 
 ---
 
@@ -78,57 +78,27 @@ DASHSCOPE_IMAGE_GEN_MODEL=qwen-image-max
 LOCAL_IMAGE_API_URL=http://10.85.177.2:8042/generate
 ```
 
-### 1.1 `omn` Conda 环境恢复（已导出）
-
-仓库已提供 `omn` 环境快照文件（根目录）：
-
-- `omn.environment.yml`：Conda 环境导出（推荐）
-- `omn.pip-freeze.txt`：pip 冻结快照（兜底）
-
-推荐恢复方式：
-
-```bash
-conda env create -f omn.environment.yml
-conda activate omn
-```
-
-如需快速验证 OmniParser 环境：
-
-```bash
-cd prototypes/ui_semantic_patch/third_party/OmniParser
-python omni_inference.py --image 05.jpg --output results/
-```
-
-若遇到 conda 解析冲突，可使用 pip 快照兜底：
-
-```bash
-conda create -n omn python=3.12 -y
-conda activate omn
-python -m pip install -r omn.pip-freeze.txt
-```
-
 ### 2. 运行示例
 
 ```bash
 cd ui_semantic_patch/scripts
 
 # 一键启动（交互式菜单）
-bash launch.sh
+bash start.sh
 
 # 或直接运行单图生成
 python run_pipeline.py \
-  --screenshot ../data/原图/app首页类-开屏广告弹窗/携程旅行01.jpg \
+  --screenshot ../../data/gt-category/dialog/美团-神券页面-权益升级引导弹窗.jpg \
   --instruction "生成优惠券广告弹窗" \
-  --gt-category "弹窗覆盖原UI" \
-  --gt-sample "弹出广告.jpg" \
+  --gt-category "dialog" \
   --output ./output/demo
 ```
 
 ### 3. 探索更多
 
 - 异常模式与文字编辑系列详解 → [ui_semantic_patch README](./ui_semantic_patch/README.md)
-- 脚本命令行参数速查 → [scripts README](./ui_semantic_patch/scripts/README.md)
-- 模块架构与接口文档 → [代码手册](./docs/plans/2026-03-06-code-manual.md)
+- 系统架构文档 → [docs/architecture.md](./docs/architecture.md)
+- 技术难题分析 → [docs/技术难题.md](./docs/技术难题.md)
 
 ---
 
@@ -136,34 +106,96 @@ python run_pipeline.py \
 
 ```
 App_Test_Agent/
-├── README.md                              # 项目概览（本文件）
-├── Claude.md                              # AI 协作配置（CLAUDE.md）
-├── .env.example                           # 环境变量模板
+├── README.md                                    # 项目概览（本文件）
+├── .env.example                                 # 环境变量模板
+├── .gitignore
 │
-├── ui_semantic_patch/          # 核心原型框架
-│   ├── scripts/
-│   │   ├── run_pipeline.py                # 三阶段主流水线
-│   │   ├── batch_pipeline.py              # 批量生成
-│   │   ├── injection_pipeline.py          # 注入决策流水线
-│   │   ├── launch.sh                      # 一键启动
-│   │   ├── analysis/                      # AI 感知层（OmniParser + VLM）
-│   │   ├── renderers/                     # 异常渲染层（dialog 等 + 文字编辑）
-│   │   ├── generators/                    # 元数据生成层
-│   │   ├── injection/                     # 注入决策层
-│   │   ├── utils/                         # 工具库
-│   │   └── tests/                         # 测试
-│   ├── data/                              # GT 模板与原图数据
-│   └── third_party/OmniParser/            # 本地集成
+├── data/                                        # 数据与示例
+│   ├── data_process/                            # 数据处理脚本、模板与测试数据
+│   ├── examples/                                # 注入演示截图序列（3 组示例）
+│   │   ├── injection_demo_01/                   # Demo 1: 携程旅行
+│   │   ├── injection_demo_02/                   # Demo 2: 铁路12306
+│   │   └── injection_demo_03/                   # Demo 3: 哔哩哔哩
+│   └── gt-category/                             # GT 模板（按异常类型分类）
+│       ├── dialog/                              # 弹窗模板集
+│       ├── area_loading/                        # 加载异常模板
+│       └── content_duplicate/                   # 内容重复模板
 │
-├── docs/
-│   ├── research/                          # 调研文档（5 篇）
-│   ├── technical/                         # 技术栈、术语表
-│   ├── references/                        # 学术研究、开源项目
-│   ├── planning/                          # 研究路线图、待研究问题
-│   ├── plans/                             # 设计文档与实施计划
-│   └── setup/                             # 环境搭建指南
+├── docs/                                        # 文档
+│   ├── architecture.md                          # 系统架构文档
+│   ├── 技术难题.md                              # 技术难题分析
+│   ├── 技术难题业界与项目方案对照.md
+│   ├── 总结.md                                  # 项目总结
+│   ├── 优化说明.md                              # 异常注入与弹窗优化
+│   ├── 异常模式输出序列分析.md
+│   ├── rule-engine-plan.md                      # 规则引擎实施计划
+│   └── plans/                                   # 设计文档
+│       ├── mapping-auto-generation-plan.md      # 映射自动生成方案
+│       └── page-type-redesign.md                # 页面类型分类 v3
 │
-└── third_party/GUI-Odyssey/               # UI 数据集
+├── outputs/                                     # 流水线输出目录
+├── tmp/                                         # 临时文件
+│
+├── ui_semantic_patch/                           # 核心框架
+│   ├── README.md                                # 框架详细说明
+│   ├── requirements.txt                         # Python 依赖
+│   ├── 异常query说明.md                         # 异常 Query 质量说明
+│   │
+│   ├── app/                                     # 核心应用代码（Python 包）
+│   │   ├── cli/pipeline.py                      # CLI 命令行入口
+│   │   ├── core/                                # 核心配置 (config.py) 与数据结构 (schemas.py)
+│   │   ├── stages/                              # 三阶段流水线
+│   │   │   ├── omni_extractor.py                # Stage 1: OmniParser UI 元素检测
+│   │   │   ├── omni_vlm_fusion.py               # Stage 2: VLM 语义分组与融合
+│   │   │   ├── gt_bounds.py                     # GT 模板边界匹配
+│   │   │   └── visualize.py                     # 可视化输出
+│   │   ├── renderers/                           # 异常渲染器
+│   │   │   ├── base.py                          # 渲染器统一基类
+│   │   │   ├── dialog.py                        # 弹窗覆盖渲染
+│   │   │   ├── area_loading.py                  # 区域加载异常
+│   │   │   ├── content_duplicate.py             # 内容重复
+│   │   │   ├── text_overlay.py                  # 文字覆盖
+│   │   │   └── patch.py                         # AI 图像编辑渲染
+│   │   ├── injection/                           # 注入决策引擎
+│   │   │   ├── sequence_analyzer.py             # 操作序列分析
+│   │   │   ├── page_classifier.py               # 页面类型分类
+│   │   │   ├── anomaly_mapping_resolver.py      # 异常映射解析
+│   │   │   ├── anomaly_recommender.py           # 异常类型推荐
+│   │   │   ├── sequence_rewriter.py             # 序列改写
+│   │   │   ├── rule_engine.py                   # 规则引擎
+│   │   │   ├── rules.json                       # 规则定义
+│   │   │   └── quality_verifier.py              # 质量验证
+│   │   ├── generators/                          # 元数据生成
+│   │   └── utils/                               # 工具库（GT 管理、历史管理、日志等）
+│   │
+│   ├── config/                                  # 异常映射配置
+│   │   ├── mapping.json                         # 综合映射
+│   │   ├── mapping_dialog.json                  # 弹窗映射
+│   │   ├── mapping_area_loading.json            # 加载异常映射
+│   │   ├── mapping_content_duplicate.json       # 内容重复映射
+│   │   ├── mapping_text_overlay.json            # 文字覆盖映射
+│   │   ├── mapping_modify_text.json             # 文字编辑映射
+│   │   ├── mapping_modify_text_ai.json          # AI 文字编辑映射
+│   │   ├── mapping_response_delay.json          # 响应延迟映射
+│   │   └── query_anomaly_mapping.json           # Query 异常映射
+│   │
+│   ├── scripts/                                 # 入口脚本
+│   │   ├── run_pipeline.py                      # 三阶段主流水线
+│   │   ├── batch_pipeline.py                    # 批量生成
+│   │   ├── injection_pipeline.py                # 注入决策流水线
+│   │   ├── batch_injection.py                   # 批量注入
+│   │   ├── batch_injection_with_mapping.py     # 带映射的批量注入
+│   │   ├── start.sh                             # 一键启动脚本
+│   │   └── web_ui/                              # Web 管理界面
+│   │       ├── server.py                        # Flask 后端
+│   │       └── index.html                       # 前端界面
+│   │
+│   └── third_party/OmniParser/                  # OmniParser 本地集成
+│       ├── omni_inference.py                    # 推理入口
+│       └── weights/                             # 模型权重
+│           ├── icon_detect/                     # YOLO 图标检测
+│           ├── icon_caption_florence/           # Florence2 图标描述
+│           └── ocr/                             # PaddleOCR
 ```
 
 ---
@@ -172,13 +204,14 @@ App_Test_Agent/
 
 | 类别 | 链接 | 说明 |
 |------|------|------|
-| 调研文档 | [docs/research/](./docs/research/) | 方案可行性分析、异常生成技术调研（5 篇） |
-| 技术文档 | [docs/technical/](./docs/technical/) | 技术栈与工具、术语表 |
-| 参考资源 | [docs/references/](./docs/references/) | 学术论文（15 篇）、开源项目（12 个） |
-| 研究规划 | [docs/planning/](./docs/planning/) | 路线图、待研究问题清单 |
-| 设计文档 | [docs/plans/](./docs/plans/) | 重构设计、注入决策模块设计、代码手册 |
-| 原型代码 | [ui_semantic_patch/](./ui_semantic_patch/) | 框架架构、使用说明 |
-| 环境搭建 | [docs/setup/环境搭建指南.md](./docs/setup/环境搭建指南.md) | 开发环境配置 |
+| 架构文档 | [docs/architecture.md](./docs/architecture.md) | 系统架构、模块设计、数据流 |
+| 技术难题 | [docs/技术难题.md](./docs/技术难题.md) | 核心挑战与解决方案 |
+| 业界对照 | [docs/技术难题业界与项目方案对照.md](./docs/技术难题业界与项目方案对照.md) | 业界方案与本项目方案对比 |
+| 项目总结 | [docs/总结.md](./docs/总结.md) | 项目整体总结 |
+| 优化说明 | [docs/优化说明.md](./docs/优化说明.md) | 异常注入与弹窗优化记录 |
+| 设计文档 | [docs/plans/](./docs/plans/) | 映射生成方案、页面分类设计 |
+| 框架说明 | [ui_semantic_patch/README.md](./ui_semantic_patch/README.md) | 框架架构、使用说明 |
+| 异常 Query | [ui_semantic_patch/异常query说明.md](./ui_semantic_patch/异常query说明.md) | 异常 Query 质量与问题说明 |
 
 ---
 
@@ -189,6 +222,13 @@ App_Test_Agent/
 
 ### 最新里程碑
 
+**Milestone 6: 项目结构重组** (2026-05-15)
+- 核心框架重构为 `ui_semantic_patch/app/` 标准 Python 包结构（`cli/`、`core/`、`stages/`、`renderers/`、`injection/`、`generators/`、`utils/`）
+- 数据目录独立到根级 `data/`（`data_process/`、`examples/`、`gt-category/`）
+- 文档归集到 `docs/`，新增技术难题分析、架构文档等
+- 配置文件集中到 `ui_semantic_patch/config/`，支持 8 种异常映射配置
+- 清理过时输出文件，新增 Web UI 实时日志流
+
 **Milestone 5: 多后端图像生成支持** (2026-05-07)
 - 新增 **华为 MLOps** 图像生成后端支持（OpenAI 兼容格式）
 - 新增通用 **IMAGE_GEN_*** 配置变量，兼容任意 OpenAI 格式 API 提供商
@@ -197,10 +237,10 @@ App_Test_Agent/
 - 向后兼容：现有 `DASHSCOPE_*` 配置无需修改即可继续工作
 
 **Milestone 4: 架构重构与注入决策** (2026-03-09)
-- 完成脚本层重构：拆分为 `analysis/`、`renderers/`、`generators/`、`injection/` 四个子包
+- 完成脚本层重构：拆分为 `stages/`、`renderers/`、`generators/`、`injection/` 四个子包
 - 实现渲染器统一基类（`renderers/base.py`）
 - 新增 `text_overlay` 文字覆盖模式；扩展 `modify_text_ai` / `modify_text_ocr` / `modify_text_e2e` 等细粒度文字编辑路径
-- 持续扩充 GT 模板与 bounds；文档示例与根目录 `Claude.md` 对齐（如 `弹窗覆盖原UI/05.jpg` + `modify_text_ai`）
+- 持续扩充 GT 模板与 bounds
 - 实现异常注入决策模块：操作序列分析 → 异常推荐 → 序列改写
 - 新增 `injection_pipeline.py` 注入决策流水线
 
@@ -243,7 +283,6 @@ App_Test_Agent/
 
 ---
 
-**最后更新**: 2026-05-07
-**文档同步**: AI 协作、环境与 `run_pipeline` 示例以 [Claude.md](./Claude.md) 为准。
+**最后更新**: 2026-05-15
 **项目状态**: Phase 2 进行中
-**里程碑**: Milestone 5 完成
+**里程碑**: Milestone 6 完成

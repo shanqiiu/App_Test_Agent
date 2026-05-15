@@ -8,6 +8,7 @@ web_ui/server.py — Web UI 后端
 3. 提供本地输出图片的只读访问，供前端预览生成结果
 """
 
+import argparse
 import asyncio
 import json
 import mimetypes
@@ -930,7 +931,25 @@ async def health():
     }
 
 
-PORT = 8767
+def _parse_port() -> int:
+    """解析端口：CLI 参数 > WEB_UI_PORT 环境变量 > 默认 8767"""
+    parser = argparse.ArgumentParser(description="UI Semantic Patch Web UI")
+    parser.add_argument(
+        "port",
+        nargs="?",
+        type=int,
+        default=None,
+        help="监听端口（默认 8767，可通过 WEB_UI_PORT 环境变量覆盖）",
+    )
+    parser.add_argument("--port", "-p", dest="port_flag", type=int, default=None, help="监听端口")
+    args = parser.parse_args()
+    cli_port = args.port_flag or args.port
+    if cli_port is not None:
+        return cli_port
+    return int(os.getenv("WEB_UI_PORT", "8767"))
+
+
+PORT = _parse_port()
 
 
 def _kill_existing():
@@ -969,7 +988,6 @@ if __name__ == "__main__":
         print("  [!] VLM_API_KEY 未设置")
     else:
         print(f"  [+] VLM 已配置: {os.getenv('VLM_MODEL', 'gpt-4o')}")
-    print(f"  [+] Mapping script: {'ok' if _GEN_SCRIPT.exists() else 'missing'}")
     print(f"  [+] Batch script: {'ok' if _BATCH_SCRIPT.exists() else 'missing'}")
     print(f"  [+] Pipeline script: {'ok' if _RUN_PIPELINE_SCRIPT.exists() else 'missing'}")
     print("  [+] 按 Ctrl+C 停止服务器")
