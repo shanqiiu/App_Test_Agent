@@ -980,8 +980,27 @@ class TextOverlayRenderer(BaseRenderer):
                 unique_results.append(r)
                 seen_comps.add(comp_id)
 
-        print(f"    [定位] 确定 {len(unique_results)} 个目标区域")
-        return unique_results
+        # 上下文相关性打分：基于组件内所有 OCR 文字与指令关键词的匹配度
+        for r in unique_results:
+            r['context_score'] = self._score_context_relevance(
+                instruction=instruction,
+                keywords=keywords,
+                component=r['component'],
+                omni_components=omni_components,
+            )
+
+        # 按上下文得分排序，过滤低相关性结果
+        unique_results.sort(key=lambda r: r['context_score'], reverse=True)
+        filtered = [r for r in unique_results if r['context_score'] >= 0.2]
+
+        if len(filtered) < len(unique_results):
+            print(f"    [定位] 上下文过滤: {len(unique_results)} → {len(filtered)} 个 (阈值 0.2)")
+            for r in unique_results:
+                if r not in filtered:
+                    print(f"      ✗ 丢弃: \"{r['matched_text']}\" (score={r['context_score']:.2f})")
+
+        print(f"    [定位] 确定 {len(filtered)} 个目标区域")
+        return filtered
 
     def _extract_keywords(self, instruction: str) -> List[str]:
         """从指令中提取关键词用于 OCR 匹配"""
@@ -1023,6 +1042,58 @@ class TextOverlayRenderer(BaseRenderer):
                         score += 0.3
         return score
 
+    def _score_context_relevance(
+        self,
+        instruction: str,
+        keywords: List[str],
+        component: Dict,
+        omni_components: List[Dict],
+    ) -> float:
+        """
+        计算组件与指令的上下文相关性得分。
+
+        原理：收集组件 source_indices 覆盖的所有 OCR 文字，
+              统计其中有多少个指令关键词出现 → 归一化得分。
+
+        例如指令 "将z112次车硬卧改为灰色无票"：
+        - 组件含 "z112次" "硬卧" "¥328" "有票" → 4 个关键词命中 → 高分
+        - 组件含 "硬卧" "¥200" "有票" → 1 个关键词命中 → 低分
+
+        Returns:
+            0.0 ~ 1.0 的相关性得分
+        """
+        source_indices = set(component.get('source_indices', []))
+        if not source_indices or not keywords:
+            return 0.0
+
+        # 收集组件内所有 OCR 文字
+        context_texts = []
+        for comp in omni_components:
+            if comp.get('index') in source_indices:
+                text = (comp.get('text') or '').strip()
+                if text:
+                    context_texts.append(text)
+
+        # 合并为大文本
+        full_context = ' '.join(context_texts)
+
+        # 统计命中关键词数
+        hits = 0
+        for kw in keywords:
+            if kw in full_context:
+                hits += 1
+
+        # 归一化：命中数 / 总关键词数
+        score = hits / max(1, len(keywords))
+
+        # 额外加分：组件 class 与指令隐含类型匹配
+        comp_class = component.get('class', '')
+        if self._is_seat_specific_instruction(instruction):
+            if comp_class in ('Card', 'ListItem'):
+                score = min(1.0, score + 0.15)
+
+        return score
+
     def _build_plan_from_locations(
         self,
         located: List[Dict],
@@ -1044,7 +1115,11 @@ class TextOverlayRenderer(BaseRenderer):
         screenshot = Image.open(screenshot_path).convert('RGB')
         img_w, img_h = screenshot.size
 
-        for loc in located:
+        # 按 context_score 排序（已在 _locate_text_by_instruction 中排好）
+        # 仅对前 MAX_VLM_CROPS 个调用 VLM，其余用 AI 编辑 fallback
+        MAX_VLM_CROPS = 3
+
+        for i, loc in enumerate(located):
             x1, y1, x2, y2 = loc['crop_bbox']
             x1, y1 = max(0, x1), max(0, y1)
             x2, y2 = min(img_w, x2), min(img_h, y2)
@@ -1054,53 +1129,59 @@ class TextOverlayRenderer(BaseRenderer):
 
             matched = loc['matched_text']
             crop = screenshot.crop((x1, y1, x2, y2))
+            ctx_score = loc.get('context_score', 0)
 
-            # 调用 VLM 分析裁剪区 → 获取语义内容 + 样式
-            print(f"    [VLM] 分析裁剪区: \"{matched}\" @ ({x1},{y1})-({x2},{y2})")
-            vlm_result = self._vlm_plan_on_crop(
-                crop_image=crop,
-                crop_bbox=(x1, y1, x2, y2),
-                instruction=instruction,
-                matched_text=matched,
+            if i < MAX_VLM_CROPS and ctx_score >= 0.3:
+                # 高相关性 → VLM 精分析
+                print(f"    [VLM] 分析裁剪区 #{i+1}: \"{matched}\" "
+                      f"(ctx={ctx_score:.2f}) @ ({x1},{y1})-({x2},{y2})")
+                vlm_result = self._vlm_plan_on_crop(
+                    crop_image=crop,
+                    crop_bbox=(x1, y1, x2, y2),
+                    instruction=instruction,
+                    matched_text=matched,
+                )
+
+                if vlm_result:
+                    content = vlm_result.get('content', matched)
+                    style_hint = vlm_result.get('style_hint', {})
+                    text_changes = vlm_result.get('text_changes',
+                                                   [{'from': matched, 'to': content}])
+
+                    op = EditOp(
+                        action='modify_text',
+                        region={'x': x1, 'y': y1, 'width': x2 - x1, 'height': y2 - y1},
+                        content=content,
+                        style_hint={
+                            **style_hint,
+                            'use_ai_edit': False,
+                            'original_instruction': instruction,
+                            'matched_text': matched,
+                            'text_changes': text_changes,
+                            'context_score': ctx_score,
+                            'source': 'deterministic_locate_vlm',
+                        }
+                    )
+                    ops.append(op)
+                    print(f"    [VLM] → \"{content}\" "
+                          f"style={style_hint.get('font_color', 'default')}")
+                    continue
+
+            # 低相关性或 VLM 失败 → AI 编辑 fallback
+            print(f"    [定位] #{i+1}: \"{matched}\" (ctx={ctx_score:.2f}) → AI 编辑 fallback")
+            op = EditOp(
+                action='modify_text',
+                region={'x': x1, 'y': y1, 'width': x2 - x1, 'height': y2 - y1},
+                content=matched,
+                style_hint={
+                    'use_ai_edit': True,
+                    'original_instruction': instruction,
+                    'matched_text': matched,
+                    'context_score': ctx_score,
+                    'source': 'deterministic_locate_fallback',
+                }
             )
-
-            if vlm_result:
-                # VLM 成功 → 用 VLM 的语义 + 我们的确定性 region
-                content = vlm_result.get('content', matched)
-                style_hint = vlm_result.get('style_hint', {})
-                text_changes = vlm_result.get('text_changes', [{'from': matched, 'to': content}])
-
-                op = EditOp(
-                    action='modify_text',
-                    region={'x': x1, 'y': y1, 'width': x2 - x1, 'height': y2 - y1},
-                    content=content,
-                    style_hint={
-                        **style_hint,
-                        'use_ai_edit': False,
-                        'original_instruction': instruction,
-                        'matched_text': matched,
-                        'text_changes': text_changes,
-                        'source': 'deterministic_locate_vlm',
-                    }
-                )
-                ops.append(op)
-                print(f"    [VLM] → \"{content}\" @ ({x1},{y1}) "
-                      f"{x2-x1}x{y2-y1}, style={style_hint.get('font_color', 'default')}")
-            else:
-                # VLM 失败 → 用整个裁剪区域做 modify_text，保持原文字
-                op = EditOp(
-                    action='modify_text',
-                    region={'x': x1, 'y': y1, 'width': x2 - x1, 'height': y2 - y1},
-                    content=matched,
-                    style_hint={
-                        'use_ai_edit': True,  # fallback 到 AI 编辑
-                        'original_instruction': instruction,
-                        'matched_text': matched,
-                        'source': 'deterministic_locate_vlm_fallback',
-                    }
-                )
-                ops.append(op)
-                print(f"    [VLM] 调用失败，AI 编辑 fallback: \"{matched}\"")
+            ops.append(op)
 
         return ops
 
