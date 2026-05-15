@@ -980,27 +980,8 @@ class TextOverlayRenderer(BaseRenderer):
                 unique_results.append(r)
                 seen_comps.add(comp_id)
 
-        # 上下文相关性打分：基于组件内所有 OCR 文字与指令关键词的匹配度
-        for r in unique_results:
-            r['context_score'] = self._score_context_relevance(
-                instruction=instruction,
-                keywords=keywords,
-                component=r['component'],
-                omni_components=omni_components,
-            )
-
-        # 按上下文得分排序，过滤低相关性结果
-        unique_results.sort(key=lambda r: r['context_score'], reverse=True)
-        filtered = [r for r in unique_results if r['context_score'] >= 0.4]
-
-        if len(filtered) < len(unique_results):
-            print(f"    [定位] 上下文过滤: {len(unique_results)} → {len(filtered)} 个 (阈值 0.4)")
-            for r in unique_results:
-                if r not in filtered:
-                    print(f"      ✗ 丢弃: \"{r['matched_text']}\" (score={r['context_score']:.2f})")
-
-        print(f"    [定位] 确定 {len(filtered)} 个目标区域")
-        return filtered
+        print(f"    [定位] 确定 {len(unique_results)} 个目标区域")
+        return unique_results
 
     def _extract_keywords(self, instruction: str) -> List[str]:
         """从指令中提取关键词用于 OCR 匹配"""
@@ -1042,94 +1023,6 @@ class TextOverlayRenderer(BaseRenderer):
                         score += 0.3
         return score
 
-    def _score_context_relevance(
-        self,
-        instruction: str,
-        keywords: List[str],
-        component: Dict,
-        omni_components: List[Dict],
-    ) -> float:
-        """
-        计算组件与指令的上下文相关性得分。
-
-        原理：收集组件 source_indices 覆盖的所有 OCR 文字，
-              统计其中有多少个指令关键词出现 → 归一化得分。
-
-        反关键词惩罚：如果指令含唯一标识符（如车次号"z112"），
-        但组件中出现其他同类标识符（如"z156"），说明匹配到了错误卡片 → 直接 0 分。
-
-        例如指令 "将z112次车硬卧改为灰色无票"：
-        - 组件含 "z112次" "硬卧" "¥328" "有票" → 无冲突 → 高分
-        - 组件含 "z156次" "硬卧" "¥200" → 车次冲突 → 0 分
-        - 组件仅含 "硬卧" → 无冲突但低相关性 → 低分
-
-        Returns:
-            0.0 ~ 1.0 的相关性得分
-        """
-        source_indices = set(component.get('source_indices', []))
-        if not source_indices or not keywords:
-            return 0.0
-
-        # 收集组件内所有 OCR 文字
-        context_texts = []
-        for comp in omni_components:
-            if comp.get('index') in source_indices:
-                text = (comp.get('text') or '').strip()
-                if text:
-                    context_texts.append(text)
-
-        # 合并为大文本
-        full_context = ' '.join(context_texts)
-
-        # 统计命中关键词数
-        hits = 0
-        for kw in keywords:
-            if kw in full_context:
-                hits += 1
-
-        # 归一化：命中数 / 总关键词数
-        score = hits / max(1, len(keywords))
-
-        # 反关键词惩罚：检测组件中是否有与指令标识符冲突的同类标识符
-        penalty = self._detect_context_conflict(instruction, full_context)
-        if penalty > 0:
-            print(f"      ⚠ 上下文冲突检测: 组件含冲突标识符，得分清零 "
-                  f"(原score={score:.2f})")
-            return 0.0
-
-        # 额外加分：组件 class 与指令隐含类型匹配
-        comp_class = component.get('class', '')
-        if self._is_seat_specific_instruction(instruction):
-            if comp_class in ('Card', 'ListItem'):
-                score = min(1.0, score + 0.15)
-
-        return score
-
-    def _detect_context_conflict(self, instruction: str, component_context: str) -> int:
-        """
-        检测组件上下文是否与指令存在语义冲突。
-
-        场景：指令指定了 "z112次"，但组件 OCR 文字中出现 "z156次" →
-              说明匹配到了错误的卡片，不应编辑。
-
-        Returns:
-            >0 表示发现冲突，0 表示无冲突
-        """
-        id_patterns = [
-            (r'\b([gGdDkKzZtT]\d{2,4})\b', '车次'),
-            (r'\b(\d{4,})\b', '数字ID'),
-        ]
-
-        for pattern, _ in id_patterns:
-            inst_ids = set(re.findall(pattern, instruction, re.IGNORECASE))
-            if not inst_ids:
-                continue
-            ctx_ids = set(re.findall(pattern, component_context, re.IGNORECASE))
-            if ctx_ids and not (inst_ids & ctx_ids):
-                return 1
-
-        return 0
-
     def _build_plan_from_locations(
         self,
         located: List[Dict],
@@ -1151,10 +1044,6 @@ class TextOverlayRenderer(BaseRenderer):
         screenshot = Image.open(screenshot_path).convert('RGB')
         img_w, img_h = screenshot.size
 
-        # 按 context_score 排序（已在 _locate_text_by_instruction 中排好）
-        # 仅对前 MAX_VLM_CROPS 个调用 VLM，其余用 AI 编辑 fallback
-        MAX_VLM_CROPS = 3
-
         for i, loc in enumerate(located):
             x1, y1, x2, y2 = loc['crop_bbox']
             x1, y1 = max(0, x1), max(0, y1)
@@ -1165,59 +1054,43 @@ class TextOverlayRenderer(BaseRenderer):
 
             matched = loc['matched_text']
             crop = screenshot.crop((x1, y1, x2, y2))
-            ctx_score = loc.get('context_score', 0)
 
-            if i < MAX_VLM_CROPS and ctx_score >= 0.4:
-                # 高相关性 → VLM 精分析
-                print(f"    [VLM] 分析裁剪区 #{i+1}: \"{matched}\" "
-                      f"(ctx={ctx_score:.2f}) @ ({x1},{y1})-({x2},{y2})")
-                vlm_result = self._vlm_plan_on_crop(
-                    crop_image=crop,
-                    crop_bbox=(x1, y1, x2, y2),
-                    instruction=instruction,
-                    matched_text=matched,
-                )
-
-                if vlm_result:
-                    content = vlm_result.get('content', matched)
-                    style_hint = vlm_result.get('style_hint', {})
-                    text_changes = vlm_result.get('text_changes',
-                                                   [{'from': matched, 'to': content}])
-
-                    op = EditOp(
-                        action='modify_text',
-                        region={'x': x1, 'y': y1, 'width': x2 - x1, 'height': y2 - y1},
-                        content=content,
-                        style_hint={
-                            **style_hint,
-                            'use_ai_edit': False,
-                            'original_instruction': instruction,
-                            'matched_text': matched,
-                            'text_changes': text_changes,
-                            'context_score': ctx_score,
-                            'source': 'deterministic_locate_vlm',
-                        }
-                    )
-                    ops.append(op)
-                    print(f"    [VLM] → \"{content}\" "
-                          f"style={style_hint.get('font_color', 'default')}")
-                    continue
-
-            # 低相关性或 VLM 失败 → AI 编辑 fallback
-            print(f"    [定位] #{i+1}: \"{matched}\" (ctx={ctx_score:.2f}) → AI 编辑 fallback")
-            op = EditOp(
-                action='modify_text',
-                region={'x': x1, 'y': y1, 'width': x2 - x1, 'height': y2 - y1},
-                content=matched,
-                style_hint={
-                    'use_ai_edit': True,
-                    'original_instruction': instruction,
-                    'matched_text': matched,
-                    'context_score': ctx_score,
-                    'source': 'deterministic_locate_fallback',
-                }
+            # VLM 分析裁剪区 — VLM 自行判断是否相关、如何编辑
+            print(f"    [VLM] 分析裁剪区 #{i+1}: \"{matched}\" "
+                  f"@ ({x1},{y1})-({x2},{y2})")
+            vlm_result = self._vlm_plan_on_crop(
+                crop_image=crop,
+                crop_bbox=(x1, y1, x2, y2),
+                instruction=instruction,
+                matched_text=matched,
             )
-            ops.append(op)
+
+            if vlm_result and vlm_result.get('relevant', True):
+                # VLM 确认相关 → 用 VLM 的语义 + 确定性 region
+                content = vlm_result.get('content', matched)
+                style_hint = vlm_result.get('style_hint', {})
+                text_changes = vlm_result.get('text_changes',
+                                               [{'from': matched, 'to': content}])
+
+                op = EditOp(
+                    action='modify_text',
+                    region={'x': x1, 'y': y1, 'width': x2 - x1, 'height': y2 - y1},
+                    content=content,
+                    style_hint={
+                        **style_hint,
+                        'use_ai_edit': False,
+                        'original_instruction': instruction,
+                        'matched_text': matched,
+                        'text_changes': text_changes,
+                        'source': 'deterministic_locate_vlm',
+                    }
+                )
+                ops.append(op)
+                print(f"    [VLM] ✓ 相关 → \"{content}\" "
+                      f"style={style_hint.get('font_color', 'default')}")
+            else:
+                reason = (vlm_result or {}).get('skip_reason', 'VLM 判定不相关') if vlm_result else 'VLM 调用失败'
+                print(f"    [VLM] ✗ 跳过: {reason}")
 
         return ops
 
@@ -1252,7 +1125,7 @@ class TextOverlayRenderer(BaseRenderer):
 
         crop_w, crop_h = crop_image.size
 
-        prompt = f"""你是一个App UI像素级编辑专家。下面是一张App截图的局部裁剪区域，已经为你定位到目标文字附近。
+        prompt = f"""你是一个App UI像素级编辑专家。下面是一张App截图的局部裁剪区域。
 
 ## 裁剪区域信息
 - 裁剪区域在原图中的位置: x={crop_bbox[0]}, y={crop_bbox[1]}, 宽度={crop_w}, 高度={crop_h}
@@ -1262,34 +1135,50 @@ class TextOverlayRenderer(BaseRenderer):
 {instruction}
 
 ## 任务
-分析裁剪区域，确定需要如何修改文字。输出修改计划。
+第一步：判断这个裁剪区域是否需要编辑。
+- 分析这个区域在原图中的功能角色（按钮/标签/标题/卡片/列表项/横幅等）
+- 判断编辑这个区域是否真的符合指令意图
+- 如果区域功能角色与指令意图不匹配（如指令要求修改按钮、但这里是商品标题），则不应该编辑
 
-## 输出格式（严格JSON数组，只输出JSON不要其他内容）
+第二步：如果确定需要编辑，输出修改计划。
+
+## 输出格式（严格JSON对象，只输出JSON不要其他内容）
+
+如果**不需要编辑**，输出：
 ```json
-[
-  {{
-    "action": "modify_text",
-    "region": {{
-      "x": <裁剪区内x坐标>,
-      "y": <裁剪区内y坐标>,
-      "width": <文字宽度>,
-      "height": <文字高度>
-    }},
-    "content": "<替换后的文字内容>",
-    "style_hint": {{
-      "font_size": <字号(像素)>,
-      "font_color": "<#十六进制颜色>",
-      "original_text": "<原文字>"
+{{"relevant": false, "skip_reason": "<简短说明为何跳过，如：这是商品标题而非按钮>"}}
+```
+
+如果**需要编辑**，输出：
+```json
+{{
+  "relevant": true,
+  "component_role": "<该区域在原图中的功能角色>",
+  "edits": [
+    {{
+      "action": "modify_text",
+      "region": {{
+        "x": <裁剪区内x坐标>,
+        "y": <裁剪区内y坐标>,
+        "width": <文字宽度>,
+        "height": <文字高度>
+      }},
+      "content": "<替换后的文字内容>",
+      "style_hint": {{
+        "font_size": <字号(像素)>,
+        "font_color": "<#十六进制颜色>",
+        "original_text": "<原文字>"
+      }}
     }}
-  }}
-]
+  ]
+}}
 ```
 
 ## 注意事项
 1. region 坐标基于裁剪区域（不是原图），从 (0,0) 开始
 2. content 是替换后应该显示的文字（不是完整指令）
 3. 如果指令要求置灰/禁用，font_color 设为 "#999999"
-4. 只返回JSON数组"""
+4. 优先判断相关性，不相关的果断跳过"""
 
         try:
             result = self._call_vlm_with_image_base64(crop_b64, 'image/png', prompt)
@@ -1300,25 +1189,41 @@ class TextOverlayRenderer(BaseRenderer):
         if not result:
             return None
 
-        # 解析 JSON
+        # 解析 VLM 响应
         try:
-            plan_data = self._extract_json_array(result)
-        except Exception:
-            # 直接解析
+            vlm_data = json.loads(result)
+        except json.JSONDecodeError:
             try:
-                plan_data = json.loads(result)
+                vlm_data = self._extract_json_array(result)
+                if isinstance(vlm_data, list) and len(vlm_data) > 0:
+                    vlm_data = vlm_data[0]
+                else:
+                    return None
             except Exception:
                 return None
 
-        if not plan_data or not isinstance(plan_data, list) or len(plan_data) == 0:
+        if not vlm_data or not isinstance(vlm_data, dict):
             return None
 
-        item = plan_data[0]
+        # 检查 VLM 相关性判定
+        if not vlm_data.get('relevant', True):
+            return {
+                'relevant': False,
+                'skip_reason': vlm_data.get('skip_reason', 'VLM 判定不相关'),
+            }
+
+        # 提取编辑计划
+        edits = vlm_data.get('edits', [])
+        if not edits:
+            return None
+
+        item = edits[0]
         return {
+            'relevant': True,
             'content': item.get('content', matched_text),
             'text_changes': item.get('text_changes', [{'from': matched_text, 'to': item.get('content', '')}]),
             'style_hint': item.get('style_hint', {}),
-            'crop_region': item.get('region', {}),
+            'component_role': vlm_data.get('component_role', ''),
         }
 
     def _call_vlm_with_image_base64(
