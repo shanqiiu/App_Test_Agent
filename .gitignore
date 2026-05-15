@@ -64,9 +64,6 @@ htmlcov/
 .env
 .env.local
 
-# 临时目录
-tmp/
-
 # Node.js（如果使用）
 node_modules/
 
