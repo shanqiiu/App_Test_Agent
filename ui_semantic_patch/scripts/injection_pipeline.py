@@ -256,8 +256,8 @@ def main():
     parser.add_argument(
         "--min-steps",
         type=int,
-        default=2,
-        help="最少分析步数后才考虑注入（默认 2）"
+        default=0,
+        help="最少分析步数后才考虑注入（默认 0，不跳过）"
     )
 
     parser.add_argument(
@@ -278,6 +278,13 @@ def main():
         type=float,
         default=6.0,
         help="质量阈值，quality_score >= threshold 才算通过（默认 6.0）"
+    )
+
+    parser.add_argument(
+        "--injection-point",
+        type=int,
+        default=None,
+        help="手动指定注入位置（截图索引，从0开始）。指定后跳过规则引擎自动判定"
     )
 
     args = parser.parse_args()
@@ -383,6 +390,14 @@ def main():
     anomaly_type = result["anomaly_type"]
     instruction = result["instruction"]
     reasoning = result["reasoning"]
+
+    # 手动指定注入位置（优先级最高）
+    if args.injection_point is not None:
+        injection_point = args.injection_point
+        print(f"\n  [注入点] 手动指定: Step {injection_point} (跳过规则引擎判定)")
+        # 将手动指定的注入点写入 decision log
+        result["injection_point"] = injection_point
+        result["injection_point_manual"] = True
 
     if interactive:
         confirm_result = user_confirm(

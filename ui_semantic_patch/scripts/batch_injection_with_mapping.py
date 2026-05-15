@@ -155,20 +155,26 @@ def batch_process(
             print(f"\n⚠ 跳过: {demo_dir.name} (未找到截图)")
             continue
 
-        # ===== 规则引擎决定注入点（全局一次，跨所有 fault_mode） =====
-        if enable_rules and rule_engine and page_classifier:
+        # ===== 检查是否有手动指定注入位置 =====
+        manual_points = [m.get('injection_point') for m in mappings if m.get('injection_point') is not None]
+        all_manual = len(manual_points) == len(mappings) and len(manual_points) > 0
+
+        # ===== 规则引擎决定注入点（仅当未全部手动指定时运行） =====
+        if not all_manual and enable_rules and rule_engine and page_classifier:
             print(f"\n--- 语义分析: {demo_dir.name} ---")
             analyzer = SequenceAnalyzer(
                 rule_engine=rule_engine,
                 page_classifier=page_classifier,
                 task_description=query,
-                min_steps_before_inject=2
+                min_steps_before_inject=0
             )
-            # 按第一个映射的异常模式强制对齐：规则推荐的模式必须匹配才作为候选
             _expected_mode = mappings[0].get('injection_config', {}).get('anomaly_mode') if mappings else None
             decision = analyzer.run(screenshots, expected_anomaly_mode=_expected_mode)
             injection_point = decision.get("injection_point", len(screenshots) // 2)
             print(f"  => 注入点: Step {injection_point}")
+        elif not all_manual:
+            injection_point = len(screenshots) // 2
+            decision = None
         else:
             injection_point = len(screenshots) // 2
             decision = None
@@ -183,7 +189,14 @@ def batch_process(
             output_dir = output_base_dir / f"{demo_dir.name}_{current_fault_mode_key}"
             output_dir.mkdir(parents=True, exist_ok=True)
 
-            print(f"\n处理: {demo_dir.name} - {fault_mode}")
+            # 手动指定注入位置优先
+            manual_pt = mapping.get('injection_point')
+            if manual_pt is not None:
+                current_injection_point = manual_pt
+                print(f"\n处理: {demo_dir.name} - {fault_mode} [手动注入点: Step {manual_pt}]")
+            else:
+                current_injection_point = injection_point
+                print(f"\n处理: {demo_dir.name} - {fault_mode}")
 
             try:
                 # 初始化序列改写器
@@ -197,15 +210,17 @@ def batch_process(
                 instruction = injection_config.get('instruction')
                 gt_category = injection_config.get('gt_category', '')
                 gt_sample = injection_config.get('gt_sample', '')
-                if decision and decision.get("success"):
-                    print(f"  [注入点] 规则引擎: Step {injection_point} "
+                if manual_pt is not None:
+                    print(f"  [注入点] 手动指定: Step {current_injection_point}")
+                elif decision and decision.get("success"):
+                    print(f"  [注入点] 规则引擎: Step {current_injection_point} "
                           f"(规则: {decision.get('matched_rule_id', '?')})")
                 else:
-                    print(f"  [注入点] 中间位置: Step {injection_point}")
+                    print(f"  [注入点] 中间位置: Step {current_injection_point}")
 
                 rewrite_result = rewriter.rewrite(
                     original_screenshots=screenshots,
-                    injection_point=injection_point,
+                    injection_point=current_injection_point,
                     anomaly_type=anomaly_mode,
                     instruction=instruction,
                     gt_sample=gt_sample,
@@ -221,7 +236,7 @@ def batch_process(
                 )
 
                 if rewrite_result['success']:
-                    print(f"  ✓ 成功: 注入点={injection_point}, 生成图片={len(rewrite_result.get('anomaly_images', []))}")
+                    print(f"  ✓ 成功: 注入点={current_injection_point}, 生成图片={len(rewrite_result.get('anomaly_images', []))}")
 
                     # ===== VLM 质量验证 =====
                     if enable_verification and rewrite_result.get('anomaly_images'):
@@ -232,7 +247,7 @@ def batch_process(
                                 max_retries=max_verification_retries
                             )
 
-                            base_screenshot = screenshots[injection_point]
+                            base_screenshot = screenshots[current_injection_point]
                             verification_result = verifier.verify(
                                 base_screenshot=base_screenshot,
                                 generated_images=rewrite_result["anomaly_images"],
