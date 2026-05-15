@@ -877,36 +877,33 @@ class TextOverlayRenderer(BaseRenderer):
         screenshot_path: str,
     ) -> List[Dict]:
         """
-        确定性文字定位：从指令中提取关键词 → Stage 1 OCR 匹配 → 查语义分组 → 返回裁剪区域。
+        确定性文字定位：VLM 归一化指令 → 正则提取关键词 → Stage 1 OCR 匹配 → 查语义分组。
 
         链路：
-          instruction ("将硬卧改为灰色无票")
-            → 提取关键词 ["硬卧", "无票"]
+          instruction ("将z112次车硬卧改为灰色无票")
+            → VLM 归一化 → {"target": "z112次硬卧席位", "action": "replace_text", ...}
+            → 正则提取 target 关键词 ["z112", "硬卧", "席位"]
             → 在 omni_components[].text 中搜索
             → 找到匹配的 index → 在 ui_json merged component 中查 source_indices
             → 返回 component bounds + matched_text
 
-        Args:
-            instruction: 用户指令
-            omni_components: Stage 1 OmniParser 原始检测结果 (含 OCR text)
-            ui_json: Stage 2 VLM 语义分组后的合并 UI-JSON
-            screenshot_path: 截图路径（用于确定图片尺寸和裁剪）
-
-        Returns:
-            List of {
-                "matched_text": str,           # 匹配到的文字
-                "omni_index": int,             # Stage 1 中的 index
-                "component": dict,             # Stage 2 merged component
-                "crop_bbox": (x1, y1, x2, y2), # 绝对坐标，用于裁剪
-                "score": float,                # 匹配得分
-            }
+        如果 VLM 调用失败，回退到对原始 instruction 的正则提取。
         """
         if not omni_components:
             print("    ℹ 无 omni_components，跳过确定性定位")
             return []
 
-        # 1. 提取指令中的关键词（中文 + 数字 + 英文词）
-        keywords = self._extract_keywords(instruction)
+        # Step 0: VLM 归一化指令 → 提取结构化 spec
+        spec = self._normalize_instruction(instruction)
+        if spec and spec.get('target'):
+            search_text = spec['target']
+            print(f"    [定位] VLM 归一化: target=\"{search_text}\", action={spec.get('action', '?')}")
+        else:
+            search_text = instruction
+            print(f"    [定位] VLM 未返回 target，回退原始指令")
+
+        # Step 1: 正则提取关键词
+        keywords = self._extract_keywords(search_text)
         if not keywords:
             print("    ℹ 未能从指令提取关键词")
             return []
@@ -980,8 +977,67 @@ class TextOverlayRenderer(BaseRenderer):
                 unique_results.append(r)
                 seen_comps.add(comp_id)
 
+        # 附加 VLM spec 到每个结果
+        if spec:
+            for r in unique_results:
+                r['vlm_spec'] = spec
+
         print(f"    [定位] 确定 {len(unique_results)} 个目标区域")
         return unique_results
+
+    def _normalize_instruction(self, instruction: str) -> Optional[Dict]:
+        """
+        VLM 归一化：将模糊指令转为结构化 spec，提取 target 用于后续关键词匹配。
+
+        例如：
+          "在购买页面注入遮挡层，覆盖鞋码选择区域" → {"target": "鞋码选择区域", "action": "overlay"}
+          "将z112次车硬卧改为灰色无票" → {"target": "z112次硬卧席位", "action": "replace_text", "style": "gray"}
+
+        Returns:
+            {"target": str, "action": str, ...} 或 None (VLM 失败时回退原始指令)
+        """
+        if not self.api_key or self.api_key == 'not-needed':
+            return None
+
+        prompt = f"""你是一个指令解析器。从用户指令中提取编辑目标和操作类型。
+
+## 用户指令
+{instruction}
+
+## 输出格式（严格JSON，不要其他内容）
+{{
+  "target": "<用户想要修改的目标区域描述，精简到核心名词，如：鞋码选择区域、z112次硬卧席位、国家补贴按钮>",
+  "action": "<操作类型：overlay(遮挡)、replace_text(替换文字)、gray_out(置灰)、modify_button(修改按钮样式)>",
+  "style": "<可选样式提示：solid/blur/gray/#999999>"
+}}
+
+## 规则
+1. target 只包含目标区域的核心名词描述，不要动词和虚词
+2. 如果指令描述的是遮挡/覆盖操作，action 为 overlay
+3. 如果指令描述的是文字替换，action 为 replace_text
+4. 如果指令描述的是置灰，action 为 gray_out"""
+
+        payload = {
+            "model": self.vlm_model,
+            "messages": [{"role": "user", "content": prompt}],
+            "max_tokens": 256,
+            "temperature": 0.0,
+        }
+        headers = {'Content-Type': 'application/json'}
+        if self.api_key and self.api_key != 'not-needed':
+            headers['Authorization'] = f'Bearer {self.api_key}'
+
+        try:
+            resp = requests.post(self.vlm_api_url, headers=headers, json=payload, timeout=30)
+            resp.raise_for_status()
+            content = resp.json()['choices'][0]['message']['content']
+            spec = json.loads(content) if content.strip().startswith('{') else None
+            if spec and isinstance(spec, dict) and spec.get('target'):
+                return spec
+        except Exception as e:
+            print(f"    ⚠ VLM 归一化失败: {e}")
+
+        return None
 
     def _extract_keywords(self, instruction: str) -> List[str]:
         """从指令中提取关键词用于 OCR 匹配"""
