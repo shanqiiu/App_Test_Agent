@@ -7,7 +7,7 @@ generate_mapping.py — 自动生成异常注入映射配置
 
 三级决策流水线：
   1. fault_mode → anomaly_mode     （规则引擎，确定性关键词匹配）
-  2. fault_mode → instruction       （VLM 展开，场景化措辞）
+  2. fault_mode → instruction       （VLM 展开，场景化措辞；兼容 VLM_* / HUAWEI_MLOPS_* 环境变量）
   3. anomaly_mode → GT 模板匹配     （仅 dialog 模式，按 app_name 查找参考图）
 
 用法：
@@ -55,11 +55,16 @@ try:
 except ImportError:
     pass
 
-# UTF-8 输出
+# UTF-8 输出（仅当 stdout 是原生文件对象时包装）
 if sys.platform == 'win32':
     import io
-    sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8')
-    sys.stderr = io.TextIOWrapper(sys.stderr.buffer, encoding='utf-8')
+    try:
+        if hasattr(sys.stdout, 'buffer'):
+            sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8')
+        if hasattr(sys.stderr, 'buffer'):
+            sys.stderr = io.TextIOWrapper(sys.stderr.buffer, encoding='utf-8')
+    except (AttributeError, ValueError):
+        pass  # stdout 已被重定向（如 StringIO、uvicorn logger），跳过包装
 
 # ============================================================================
 # Step 1: fault_mode → anomaly_mode 规则映射
@@ -172,6 +177,51 @@ ANOMALY_MODE_DESC = {
 }
 
 
+def _resolve_vlm_api_key(cli_api_key: Optional[str] = None) -> str:
+    """解析 VLM API Key，兼容 Huawei MLOps 环境变量。"""
+    return (
+        cli_api_key
+        or os.getenv('VLM_API_KEY', '')
+        or os.getenv('HUAWEI_MLOPS_API_KEY', '')
+    )
+
+
+def _resolve_vlm_api_url(cli_api_url: Optional[str] = None) -> str:
+    """解析 VLM API URL，兼容 Huawei MLOps 环境变量。"""
+    return (
+        cli_api_url
+        or os.getenv('VLM_API_URL', '')
+        or os.getenv('HUAWEI_MLOPS_API_URL', '')
+        or 'https://api.openai-next.com/v1/chat/completions'
+    )
+
+
+def _resolve_vlm_model(cli_model: Optional[str] = None) -> str:
+    """解析 VLM 模型名，兼容 Huawei MLOps 环境变量。"""
+    return (
+        cli_model
+        or os.getenv('VLM_MODEL', '')
+        or os.getenv('HUAWEI_MLOPS_MODEL', '')
+        or 'gpt-4o'
+    )
+
+
+def _is_text_output_model(model: str) -> bool:
+    """粗略判断模型是否更可能返回文本而不是图像/base64。"""
+    if not model:
+        return True
+
+    model_lower = model.lower()
+    image_model_markers = [
+        'txt_to_image',
+        'text_to_image',
+        'image-edit',
+        'image_edit',
+        'flux',
+    ]
+    return not any(marker in model_lower for marker in image_model_markers)
+
+
 def _extract_constraints(query: str) -> str:
     """从 query 中提取关键约束条件（时间、地点、航司、价格等）。
 
@@ -269,13 +319,17 @@ def expand_instruction(
     if dry_run:
         return _template_instruction(query, fault_mode, anomaly_mode)
 
-    api_key = api_key or os.getenv('VLM_API_KEY', '')
+    api_key = _resolve_vlm_api_key(api_key)
     if not api_key:
-        print("  ⚠ VLM_API_KEY 未设置，使用模板生成 instruction")
+        print("  ⚠ 未设置 VLM_API_KEY / HUAWEI_MLOPS_API_KEY，使用模板生成 instruction")
         return _template_instruction(query, fault_mode, anomaly_mode)
 
-    api_url = api_url or os.getenv('VLM_API_URL', 'https://api.openai-next.com/v1/chat/completions')
-    model = model or os.getenv('VLM_MODEL', 'gpt-4o')
+    api_url = _resolve_vlm_api_url(api_url)
+    model = _resolve_vlm_model(model)
+
+    if not _is_text_output_model(model):
+        print(f"  ⚠ 当前模型 {model} 更像图像生成模型，无法用于文本 instruction 展开，使用模板生成")
+        return _template_instruction(query, fault_mode, anomaly_mode)
 
     constraints = _extract_constraints(query)
     mode_desc = ANOMALY_MODE_DESC.get(anomaly_mode, "修改页面元素")
@@ -832,7 +886,12 @@ def main():
     # 自定义 VLM 配置
     python generate_mapping.py \\
         --query "..." --fault-mode "..." \\
-        --api-key sk-xxx --api-url https://api.example.com/v1 --model gpt-4o
+        --api-key sk-xxx --api-url https://api.example.com/v1/chat/completions --model gpt-4o
+
+    # 使用 Huawei MLOps 环境变量（仅当模型返回文本时有效）
+    set HUAWEI_MLOPS_API_KEY=your-huawei-mlops-key-here
+    set HUAWEI_MLOPS_API_URL=http://mlops.huawei.com/mlops-service/api/v2/agentService/v1/chat/completions
+    set HUAWEI_MLOPS_MODEL=qwen35-9b-vl
         """
     )
 
@@ -845,13 +904,24 @@ def main():
     parser.add_argument('--config-dir', type=str, default=None, help='config 目录路径')
     parser.add_argument('--gt-template-dir', type=str, default=None, help='GT 模板目录路径')
 
-    parser.add_argument('--api-key', type=str, default=None, help='VLM API Key')
-    parser.add_argument('--api-url', type=str, default=None, help='VLM API URL')
-    parser.add_argument('--model', type=str, default=None, help='VLM 模型名')
+    parser.add_argument('--api-key', type=str, default=None, help='VLM API Key（兼容 HUAWEI_MLOPS_API_KEY）')
+    parser.add_argument('--api-url', type=str, default=None, help='VLM API URL（兼容 HUAWEI_MLOPS_API_URL）')
+    parser.add_argument('--model', type=str, default=None, help='VLM 模型名（兼容 HUAWEI_MLOPS_MODEL）')
 
     parser.add_argument('--dry-run', action='store_true', help='预览模式，不写入文件')
+    parser.add_argument('--output-json', action='store_true', help='末尾输出 JSON 结果（供服务端解析）')
+    parser.add_argument('--stdin', action='store_true', help='从 stdin 读取 JSON 输入（供服务端调用）')
 
     args = parser.parse_args()
+
+    # stdin 模式：从标准输入读取 JSON 参数
+    if args.stdin:
+        stdin_data = json.loads(sys.stdin.read())
+        args.query = stdin_data.get("query", args.query)
+        args.fault_mode = stdin_data.get("fault_mode", args.fault_mode)
+        args.app_name = stdin_data.get("app_name", args.app_name)
+        args.dry_run = stdin_data.get("dry_run", args.dry_run)
+        args.example_dir = stdin_data.get("example_dir", "")
 
     kwargs = {
         "gt_template_dir": Path(args.gt_template_dir) if args.gt_template_dir else None,
@@ -865,13 +935,16 @@ def main():
     if args.input:
         batch_generate(args.input, **kwargs)
     elif args.query and args.fault_mode:
-        generate(
+        result = generate(
             query=args.query,
             fault_mode=args.fault_mode,
             app_name=args.app_name,
             example_dir=args.example_dir,
             **kwargs,
         )
+        if args.output_json:
+            print("\n__JSON_RESULT__")
+            print(json.dumps(result.get("entry", {}), ensure_ascii=False))
     else:
         parser.print_help()
         print("\n❌ 请提供 --query + --fault-mode（单条）或 --input（批量）")

@@ -384,9 +384,83 @@
     padding: 14px 16px;
     font: 12px/1.7 Consolas, "Cascadia Code", monospace;
     white-space: pre-wrap;
-    max-height: 360px;
+    max-height: 480px;
     overflow-y: auto;
+    scroll-behavior: smooth;
   }
+
+  /* ---- 终端仿真器 ---- */
+  .terminal-card { border-radius: var(--radius); overflow: hidden; box-shadow: var(--shadow); }
+  .terminal-titlebar {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 16px;
+    background: #1a1a1a;
+    border: 1px solid #2a2a2a;
+    border-bottom: none;
+    border-radius: var(--radius) var(--radius) 0 0;
+  }
+  .terminal-dot { width: 12px; height: 12px; border-radius: 50%; flex-shrink: 0; }
+  .terminal-dot.red { background: #ff5f57; }
+  .terminal-dot.yellow { background: #febc2e; }
+  .terminal-dot.green { background: #28c840; }
+  .terminal-title {
+    flex: 1;
+    text-align: center;
+    font-size: 11px;
+    color: #808080;
+    font-family: Consolas, "Cascadia Code", monospace;
+  }
+  .terminal-status {
+    font-size: 10px;
+    color: #555;
+    font-weight: 600;
+    text-transform: uppercase;
+  }
+  .terminal-status.active { color: var(--success); }
+  .terminal-status.done { color: var(--primary-2); }
+  .terminal-status.error { color: var(--error); }
+  .terminal-body {
+    background: #0c0c0c;
+    border: 1px solid #2a2a2a;
+    border-top: none;
+    border-radius: 0 0 var(--radius) var(--radius);
+    padding: 12px 16px;
+    font: 12px/1.65 "Cascadia Code", "Fira Code", "JetBrains Mono", Consolas, "Microsoft YaHei", monospace;
+    color: #b0b0b0;
+    white-space: pre-wrap;
+    word-break: break-all;
+    min-height: 320px;
+    max-height: 540px;
+    overflow-y: auto;
+    scroll-behavior: smooth;
+    position: relative;
+  }
+  .terminal-body .line      { color: #b0b0b0; }
+  .terminal-body .line.info   { color: #6fcf97; }   /* 成功 / info */
+  .terminal-body .line.warn   { color: #f2c94c; }   /* 警告 */
+  .terminal-body .line.error  { color: #f06b6b; }   /* 错误 */
+  .terminal-body .line.muted  { color: #555; }      /* 次要 */
+  .terminal-body .line.hl     { color: #2fbf9f; font-weight: 600; } /* 高亮 */
+  .terminal-body .line.header { color: #8de1c7; font-weight: 600; } /* 标题 */
+  .terminal-placeholder {
+    color: #444;
+    text-align: center;
+    padding-top: 60px;
+  }
+  .terminal-spinner {
+    display: inline-block;
+    width: 14px;
+    height: 14px;
+    border: 2px solid #333;
+    border-top-color: var(--primary);
+    border-radius: 50%;
+    animation: spin .7s linear infinite;
+    vertical-align: middle;
+    margin-right: 8px;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
 
   .run-grid {
     display: grid;
@@ -603,10 +677,18 @@
           </div>
         </div>
 
-        <div class="card" id="batchLogsCard" style="display:none;">
-          <div class="card-header"><h3>完整日志</h3></div>
-          <div class="card-body">
-            <div class="raw-log" id="batchLogsRaw"></div>
+        <div class="card terminal-card" id="batchLogsCard" style="display:none;">
+          <div class="terminal-titlebar">
+            <span class="terminal-dot red"></span>
+            <span class="terminal-dot yellow"></span>
+            <span class="terminal-dot green"></span>
+            <span class="terminal-title">batch_injection_with_mapping.py</span>
+            <span class="terminal-status active" id="terminalStatus">RUNNING</span>
+          </div>
+          <div class="terminal-body" id="batchTerminalBody">
+            <div class="terminal-placeholder" id="terminalPlaceholder">
+              <span class="terminal-spinner"></span>等待任务启动...
+            </div>
           </div>
         </div>
       </section>
@@ -786,6 +868,17 @@ function toggleLog(id) {
   $(id).classList.toggle('show');
 }
 
+// 根据步骤 ID + 状态返回人类可读的描述
+function stepDesc(stepId, status) {
+  const map = {
+    b1: { pending: '等待执行...', running: '加载参数中...', success: '配置加载完成', error: '配置加载失败' },
+    b2: { pending: '等待执行...', running: 'VLM 语义分析中...', success: '语义分析完成', error: '语义分析失败' },
+    b3: { pending: '等待执行...', running: '异常注入生成中...', success: '批量注入完成', error: '批量注入失败' },
+    b4: { pending: '等待执行...', running: '汇总结果中...', success: '汇总完成', error: '汇总失败' },
+  };
+  return (map[stepId] && map[stepId][status]) || status;
+}
+
 function updateStep(containerId, stepId, status, desc, logs) {
   const card = $(`${containerId}-${stepId}`);
   if (!card) return;
@@ -793,7 +886,11 @@ function updateStep(containerId, stepId, status, desc, logs) {
   const badgeSlot = card.querySelector('.step-badge');
   if (badgeSlot) badgeSlot.outerHTML = badge(status);
   const descNode = card.querySelector('.step-desc');
-  if (desc) descNode.textContent = desc;
+  if (desc) {
+    descNode.textContent = desc;
+  } else if (status) {
+    descNode.textContent = stepDesc(stepId, status);
+  }
   if (logs !== undefined) {
     const logEl = $(`${containerId}-${stepId}-log`);
     logEl.textContent = Array.isArray(logs) ? logs.join('\n') : String(logs || '');
@@ -961,7 +1058,43 @@ function renderBatchResult(data) {
   renderBatchRuns(data.runs || []);
 
   $('batchLogsCard').style.display = 'block';
-  $('batchLogsRaw').textContent = logs.join('\n');
+  const termBody = $('batchTerminalBody');
+  termBody.innerHTML = logs.map(colorizeLine).join('\n');
+  termBody.scrollTop = termBody.scrollHeight;
+  $('terminalStatus').textContent = data.success ? 'DONE' : 'FAILED';
+  $('terminalStatus').className = data.success ? 'terminal-status done' : 'terminal-status';
+}
+
+// 流式完成后收尾（不重建 pipeline，只更新状态和展示结果）
+function finalizeBatchResult(data) {
+  const summary = data.summary || {};
+  const logs = data.logs || [];
+  const grouped = splitBatchLogs(logs);
+
+  const statuses = data.success
+    ? ['success', 'success', 'success', 'success']
+    : ['success', 'success', 'error', 'error'];
+  const descs = [
+    `映射配置: ${summary.mapping_config || '-'}`,
+    `处理模式: ${summary.fault_mode || 'all'} | 规则引擎: ${summary.enable_rules ? 'on' : 'off'}`,
+    `成功 ${summary.success ?? 0} / 失败 ${summary.failed ?? 0} / 新产物 ${summary.produced_runs ?? 0}`,
+    `输出目录: ${summary.output_dir || '-'}`,
+  ];
+  batchSteps.forEach((s, idx) => {
+    updateStep('batchPipeline', s.id, statuses[idx], descs[idx], grouped[idx] || logs || []);
+  });
+
+  $('batchSummaryCard').style.display = 'block';
+  $('batchMetrics').innerHTML = [
+    metric('成功', summary.success ?? 0),
+    metric('失败', summary.failed ?? 0),
+    metric('跳过', summary.skipped ?? 0),
+    metric('新产物', summary.produced_runs ?? 0),
+  ].join('');
+  $('batchSummaryJson').textContent = prettyJson(summary);
+
+  $('batchRunsCard').style.display = 'block';
+  renderBatchRuns(data.runs || []);
 }
 
 function renderSingleResult(data) {
@@ -1108,6 +1241,23 @@ function escapeHtml(value) {
     .replaceAll("'", '&#39;');
 }
 
+// 终端日志行着色
+function colorizeLine(raw) {
+  const line = escapeHtml(raw);
+  const lower = raw.toLowerCase();
+  if (lower.includes('error') || lower.includes('fail') || lower.includes('❌') || lower.includes('traceback') || lower.includes('exception'))
+    return `<span class="line error">${line}</span>`;
+  if (lower.includes('warn') || lower.includes('⚠') || lower.includes('跳过'))
+    return `<span class="line warn">${line}</span>`;
+  if (lower.includes('成功') || lower.includes('✓') || lower.includes('ok') || lower.includes('done') || lower.includes('completed'))
+    return `<span class="line info">${line}</span>`;
+  if (raw.startsWith('===') || raw.startsWith('---') || lower.includes('stage') || lower.includes('开始'))
+    return `<span class="line hl">${line}</span>`;
+  if (raw.startsWith('#') || raw.startsWith('[+]') || raw.startsWith('[*]') || lower.includes('vlm') || lower.includes('model'))
+    return `<span class="line header">${line}</span>`;
+  return `<span class="line">${line}</span>`;
+}
+
 async function runMappingMock() {
   buildPipeline('mappingPipeline', mappingSteps);
   const q = $('mapQuery').value || sampleQueries[0][0];
@@ -1225,44 +1375,128 @@ async function runBatch() {
     enable_rules: $('batchEnableRules').checked,
   };
 
+  // 初始化 UI
   buildPipeline('batchPipeline', batchSteps);
-  batchSteps.forEach((s, idx) => updateStep('batchPipeline', s.id, idx === 0 ? 'running' : 'pending', '等待执行...', ['...']));
+  batchSteps.forEach((s, idx) => {
+    const status = idx === 0 ? 'running' : 'pending';
+    updateStep('batchPipeline', s.id, status, stepDesc(s.id, status), ['...']);
+  });
   $('batchSummaryCard').style.display = 'none';
   $('batchRunsCard').style.display = 'none';
-  $('batchLogsCard').style.display = 'none';
+  $('batchLogsCard').style.display = 'block';
 
-  try {
-    const resp = await fetch('/api/batch-run', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(form),
-    });
-    const data = await resp.json();
-    if (!resp.ok) {
-      throw new Error(data.error || `HTTP ${resp.status}`);
+  const termBody = $('batchTerminalBody');
+  const termPlaceholder = $('terminalPlaceholder');
+  termBody.scrollTop = 0;
+  const stepLogs = [[], [], [], []];
+  let currentPhase = 0;
+  let lineCount = 0;
+
+  const proto = location.protocol === 'https:' ? 'wss:' : 'ws:';
+  const ws = new WebSocket(`${proto}//${location.host}/ws/batch-run`);
+  let doneReceived = false;
+
+  ws.onopen = () => {
+    ws.send(JSON.stringify(form));
+    $('btnBatchRun').disabled = true;
+    $('btnBatchRun').textContent = '执行中...';
+    $('terminalStatus').textContent = 'CONNECTED';
+    $('terminalStatus').className = 'terminal-status active';
+  };
+
+  ws.onmessage = (event) => {
+    const msg = JSON.parse(event.data);
+
+    if (msg.type === 'log') {
+      lineCount++;
+      // 清除占位符
+      if (termPlaceholder) {
+        termPlaceholder.remove();
+      }
+
+      const colored = colorizeLine(msg.line);
+      termBody.insertAdjacentHTML('beforeend', colored + '\n');
+      termBody.scrollTop = termBody.scrollHeight;
+
+      // 更新终端状态行数
+      $('terminalStatus').textContent = `L${lineCount}`;
+      $('terminalStatus').className = 'terminal-status active';
+
+      // 按阶段路由到对应 step 的日志区
+      if (msg.line.includes('--- 语义分析:')) currentPhase = 1;
+      else if (msg.line.includes('处理:') || msg.line.includes('=== ')) currentPhase = 2;
+      else if (msg.line.includes('批量处理完成') || msg.line.includes('成功:') || msg.line.includes('失败:') || msg.line.includes('总计:')) currentPhase = 3;
+
+      stepLogs[currentPhase].push(msg.line);
+      const stepId = batchSteps[currentPhase].id;
+      const stepLogEl = $(`batchPipeline-${stepId}-log`);
+      if (stepLogEl) {
+        stepLogEl.textContent = stepLogs[currentPhase].join('\n');
+        stepLogEl.scrollTop = stepLogEl.scrollHeight;
+        stepLogEl.classList.add('show');
+      }
+    } else if (msg.type === 'status') {
+      updateStep('batchPipeline', msg.step, msg.status, undefined, undefined);
+    } else if (msg.type === 'done') {
+      doneReceived = true;
+      // 补一行完成标记
+      termBody.insertAdjacentHTML('beforeend', colorizeLine('✓ 批量生成完成') + '\n');
+      termBody.scrollTop = termBody.scrollHeight;
+      $('terminalStatus').textContent = 'DONE';
+      $('terminalStatus').className = 'terminal-status done';
+
+      const data = {
+        success: msg.success,
+        summary: msg.summary,
+        runs: msg.runs || [],
+        logs: msg.logs || [],
+        error: msg.error || '',
+      };
+      finalizeBatchResult(data);
+
+      addHistory({
+        type: 'batch',
+        title: `批量生成 ${data.summary.fault_mode || 'all'}`,
+        subtitle: data.summary.output_dir || form.output_dir,
+        meta1: `成功 ${data.summary.success ?? 0}`,
+        meta2: `新产物 ${data.summary.produced_runs ?? 0}`,
+        time: new Date().toLocaleTimeString(),
+        form,
+        result: data,
+      });
+
+      ws.close();
+    } else if (msg.type === 'error') {
+      termBody.insertAdjacentHTML('beforeend', colorizeLine(`❌ ${msg.message}`) + '\n');
+      termBody.scrollTop = termBody.scrollHeight;
+      $('terminalStatus').textContent = 'ERROR';
+      $('terminalStatus').className = 'terminal-status error';
+
+      batchSteps.forEach((s, idx) => updateStep(
+        'batchPipeline', s.id,
+        idx === 0 ? 'error' : 'pending',
+        '执行失败',
+        [msg.message]
+      ));
+      ws.close();
     }
+  };
 
-    renderBatchResult(data);
+  ws.onerror = () => {
+    if (!doneReceived) {
+      batchSteps.forEach((s, idx) => updateStep(
+        'batchPipeline', s.id,
+        idx === 0 ? 'error' : 'pending',
+        'WebSocket 连接失败',
+        ['请确认 web_ui/server.py 已启动']
+      ));
+    }
+  };
 
-    addHistory({
-      type: 'batch',
-      title: `批量生成 ${data.summary?.fault_mode || 'all'}`,
-      subtitle: data.summary?.output_dir || form.output_dir,
-      meta1: `成功 ${data.summary?.success ?? 0}`,
-      meta2: `新产物 ${data.summary?.produced_runs ?? 0}`,
-      time: new Date().toLocaleTimeString(),
-      form,
-      result: data,
-    });
-  } catch (err) {
-    batchSteps.forEach((s, idx) => updateStep(
-      'batchPipeline',
-      s.id,
-      idx === 0 ? 'error' : 'pending',
-      '执行失败',
-      [`[ERROR] ${err.message}`, '请检查后端日志或脚本依赖']
-    ));
-  }
+  ws.onclose = () => {
+    $('btnBatchRun').disabled = false;
+    $('btnBatchRun').textContent = '执行完整生成';
+  };
 }
 
 async function runSingle() {
@@ -1348,6 +1582,10 @@ function clearBatch() {
   $('batchSummaryCard').style.display = 'none';
   $('batchRunsCard').style.display = 'none';
   $('batchLogsCard').style.display = 'none';
+  const termBody = $('batchTerminalBody');
+  termBody.innerHTML = '<div class="terminal-placeholder" id="terminalPlaceholder"><span class="terminal-spinner"></span>等待任务启动...</div>';
+  $('terminalStatus').textContent = 'IDLE';
+  $('terminalStatus').className = 'terminal-status';
 }
 
 function restoreSingleDefaults() {

@@ -8,6 +8,7 @@ web_ui/server.py — Web UI 后端
 3. 提供本地输出图片的只读访问，供前端预览生成结果
 """
 
+import asyncio
 import json
 import mimetypes
 import os
@@ -18,7 +19,7 @@ from pathlib import Path
 from typing import Dict, List, Optional, Set
 from urllib.parse import quote
 
-from fastapi import FastAPI, HTTPException, Query
+from fastapi import FastAPI, HTTPException, Query, WebSocket, WebSocketDisconnect
 from fastapi.responses import FileResponse, HTMLResponse
 from pydantic import BaseModel, Field
 import uvicorn
@@ -549,6 +550,139 @@ def _run_batch_script(req: BatchRunRequest) -> Dict:
     }
 
 
+# ---------------------------------------------------------------------------
+# 流式版本：batch 生成实时日志推送
+# ---------------------------------------------------------------------------
+
+def _build_batch_cmd(req: BatchRunRequest, examples_dir: Path, output_dir: Path,
+                     mapping_config: Path, gt_template_dir: Path) -> List[str]:
+    """构建 batch_injection_with_mapping.py 的命令行参数"""
+    cmd = [
+        sys.executable,
+        str(_BATCH_SCRIPT),
+        "--examples-dir", str(examples_dir),
+        "--output-dir", str(output_dir),
+        "--mapping-config", str(mapping_config),
+        "--gt-template-dir", str(gt_template_dir),
+        "--quality-threshold", str(req.quality_threshold),
+        "--verification-retries", str(req.verification_retries),
+    ]
+    if req.fault_mode in {"mode_1", "mode_2"}:
+        cmd.extend(["--fault-mode", req.fault_mode])
+    if req.enable_verification:
+        cmd.append("--enable-verification")
+    if not req.enable_rules:
+        cmd.append("--no-rules")
+    return cmd
+
+
+async def _stream_subprocess_lines(proc: asyncio.subprocess.Process,
+                                    websocket: WebSocket) -> List[str]:
+    """逐行读取子进程 stdout 并通过 WebSocket 推送"""
+    collected: List[str] = []
+    while True:
+        line_bytes = await proc.stdout.readline()
+        if not line_bytes:
+            break
+        line = line_bytes.decode("utf-8", errors="replace").rstrip("\n").rstrip("\r")
+        collected.append(line)
+        try:
+            await websocket.send_json({"type": "log", "line": line})
+        except Exception:
+            # 客户端断开连接时，直接终止子进程
+            proc.kill()
+            raise
+    return collected
+
+
+async def _run_batch_script_streaming(req: BatchRunRequest, websocket: WebSocket):
+    """流式执行 batch_injection_with_mapping.py，通过 WebSocket 实时回传每行输出"""
+    examples_dir = _resolve_path(req.examples_dir, _DEFAULT_EXAMPLES_DIR)
+    output_dir = _resolve_path(req.output_dir, _DEFAULT_OUTPUT_DIR)
+    mapping_config = _resolve_path(req.mapping_config, _DEFAULT_MAPPING_CONFIG)
+    gt_template_dir = _resolve_path(req.gt_template_dir, _DEFAULT_GT_TEMPLATE_DIR)
+    cmd = _build_batch_cmd(req, examples_dir, output_dir, mapping_config, gt_template_dir)
+
+    before_snapshot = _snapshot_metadata_files(output_dir)
+    env = os.environ.copy()
+    env["PYTHONIOENCODING"] = "utf-8"
+
+    # 步骤 b1 → 配置加载完成
+    await websocket.send_json({"type": "status", "step": "b1", "status": "success"})
+    await websocket.send_json({"type": "status", "step": "b2", "status": "running"})
+
+    try:
+        proc = await asyncio.create_subprocess_exec(
+            *cmd,
+            stdout=asyncio.subprocess.PIPE,
+            stderr=asyncio.subprocess.STDOUT,
+            cwd=str(_SCRIPTS_DIR),
+            env=env,
+        )
+    except Exception as exc:
+        await websocket.send_json({
+            "type": "error",
+            "message": f"Failed to start batch script: {exc}",
+        })
+        return
+
+    try:
+        collected = await _stream_subprocess_lines(proc, websocket)
+    except (WebSocketDisconnect, ConnectionResetError):
+        try:
+            proc.kill()
+        except Exception:
+            pass
+        return
+    finally:
+        await proc.wait()
+
+    # 步骤 b4 → 汇总中
+    await websocket.send_json({"type": "status", "step": "b4", "status": "running"})
+
+    # 从日志中解析语义分析 / 注入阶段的行，更新步骤状态
+    for line in collected:
+        if "语义分析" in line:
+            await websocket.send_json({"type": "status", "step": "b2", "status": "success"})
+            await websocket.send_json({"type": "status", "step": "b3", "status": "running"})
+        elif "批量处理完成" in line:
+            await websocket.send_json({"type": "status", "step": "b3", "status": "success"})
+
+    runs = _collect_generated_runs(output_dir, before_snapshot)
+    counters = _extract_batch_counters(collected)
+
+    summary = {
+        "examples_dir": str(examples_dir),
+        "output_dir": str(output_dir),
+        "mapping_config": str(mapping_config),
+        "gt_template_dir": str(gt_template_dir),
+        "fault_mode": req.fault_mode or "all",
+        "enable_verification": req.enable_verification,
+        "enable_rules": req.enable_rules,
+        "quality_threshold": req.quality_threshold,
+        "verification_retries": req.verification_retries,
+        "produced_runs": len(runs),
+        **counters,
+    }
+
+    success = proc.returncode == 0
+    error = "" if success else f"Script exited with code {proc.returncode}"
+
+    await websocket.send_json({
+        "type": "done",
+        "success": success,
+        "summary": summary,
+        "runs": runs,
+        "logs": collected,
+        "error": error,
+    })
+
+    # 最终步骤状态
+    status_map = {("b2", "success"), ("b3", "success"), ("b4", "success" if success else "error")}
+    for step, st in status_map:
+        await websocket.send_json({"type": "status", "step": step, "status": st})
+
+
 def _collect_pipeline_result(output_dir: Path, before_snapshot: Set[str]) -> Dict:
     output_dir = output_dir.resolve()
     if not output_dir.exists():
@@ -734,6 +868,26 @@ async def api_run(req: RunRequest):
 async def api_batch_run(req: BatchRunRequest):
     result = _run_batch_script(req)
     return BatchRunResponse(**result)
+
+
+@app.websocket("/ws/batch-run")
+async def ws_batch_run(websocket: WebSocket):
+    """WebSocket 端点：实时流式推送 batch 脚本终端输出"""
+    await websocket.accept()
+    try:
+        data = await websocket.receive_json()
+        req = BatchRunRequest(**data)
+        await _run_batch_script_streaming(req, websocket)
+    except WebSocketDisconnect:
+        pass
+    except Exception as exc:
+        try:
+            await websocket.send_json({
+                "type": "error",
+                "message": f"Batch streaming failed: {exc}",
+            })
+        except Exception:
+            pass
 
 
 @app.post("/api/pipeline-run", response_model=PipelineRunResponse)
