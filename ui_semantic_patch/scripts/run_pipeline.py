@@ -866,7 +866,7 @@ Auto-Meta 模式示例（推荐！无需预先生成 meta.json）:
                         help='OmniParser 设备 (cuda/cpu)')
     parser.add_argument('--no-visualize', action='store_true',
                         help='禁用 OmniParser 检测结果可视化')
-    parser.add_argument('--anomaly-mode', choices=['dialog', 'area_loading', 'content_duplicate', 'text_overlay', 'modify_text', 'modify_text_ai', 'modify_text_ocr', 'modify_text_e2e'],
+    parser.add_argument('--anomaly-mode', choices=['dialog', 'area_loading', 'content_duplicate', 'text_overlay', 'modify_text', 'modify_text_ai', 'modify_text_ocr', 'modify_text_e2e', 'image_broken'],
                         default='dialog',
                         help='异常模式: dialog=全屏弹窗(默认), area_loading=区域加载图标, content_duplicate=内容重复, text_overlay=局部文字编辑, modify_text=OCR精定位文字替换(同modify_text_ocr), modify_text_ai=AI图像编辑文字替换, modify_text_ocr=OCR精定位+PIL渲染文字替换, modify_text_e2e=端到端全图AI编辑(跳过检测分组)')
     parser.add_argument('--target-component',
