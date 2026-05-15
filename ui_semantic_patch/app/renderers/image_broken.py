@@ -88,12 +88,20 @@ class ImageBrokenRenderer(BaseRenderer):
         img_size: Tuple[int, int],
     ) -> List[Dict]:
         """从指令中定位需要遮挡的目标区域"""
+        print(f"  [image_broken] 指令: {instruction[:60]}")
+
         if not omni_components:
-            return []
+            print("  [image_broken] ⚠ omni_components 为空 → 无法定位，使用全屏 fallback")
+            return self._fallback_full_region(ui_json, img_size)
+
+        print(f"  [image_broken] Stage 1 组件数: {len(omni_components)}")
 
         keywords = self._extract_keywords(instruction)
+        print(f"  [image_broken] 关键词: {keywords}")
+
         if not keywords:
-            return []
+            print("  [image_broken] ⚠ 关键词为空 → 使用全屏 fallback")
+            return self._fallback_full_region(ui_json, img_size)
 
         img_w, img_h = img_size
 
@@ -108,12 +116,20 @@ class ImageBrokenRenderer(BaseRenderer):
                 matches.append({'omni_index': comp.get('index', -1), 'text': text, 'score': score})
 
         if not matches:
-            return []
+            print(f"  [image_broken] ⚠ OCR 未匹配到任何关键词 (OCR 文字数: "
+                  f"{sum(1 for c in omni_components if c.get('text', '').strip())})")
+            # 打印前 10 个 OCR 文字供调试
+            ocr_texts = [c.get('text', '') for c in omni_components if c.get('text', '').strip()][:10]
+            print(f"  [image_broken] 前10个OCR文字: {ocr_texts}")
+            print(f"  [image_broken] → 使用全屏 fallback")
+            return self._fallback_full_region(ui_json, img_size)
 
         matches.sort(key=lambda m: m['score'], reverse=True)
+        print(f"  [image_broken] OCR 匹配: {[(m['text'], round(m['score'], 2)) for m in matches[:5]]}")
 
         # 查 Stage 2 group
         merged_components = ui_json.get('components', [])
+        print(f"  [image_broken] Stage 2 合并组件数: {len(merged_components)}")
         regions = []
         seen = set()
 
@@ -121,6 +137,7 @@ class ImageBrokenRenderer(BaseRenderer):
             idx = match['omni_index']
             if idx in seen:
                 continue
+            found = False
             for comp in merged_components:
                 if idx in comp.get('source_indices', []):
                     b = comp.get('bounds', {})
@@ -134,28 +151,58 @@ class ImageBrokenRenderer(BaseRenderer):
                             'matched_text': match['text'],
                         })
                         seen.add(idx)
+                        found = True
                     break
+            if not found:
+                print(f"  [image_broken] ⚠ index={idx} 未在任何 Stage 2 组件中")
 
-            if len(regions) >= 3:  # 最多 3 个区域
+            if len(regions) >= 3:
                 break
+
+        if not regions:
+            print(f"  [image_broken] ⚠ 匹配到 OCR 文字但未找到对应语义组件 → 全屏 fallback")
+            return self._fallback_full_region(ui_json, img_size)
 
         return regions
 
+    def _fallback_full_region(self, ui_json: dict, img_size: Tuple[int, int]) -> List[Dict]:
+        """全屏区域 fallback — 找最大的非导航组件"""
+        img_w, img_h = img_size
+        components = ui_json.get('components', [])
+        # 排除顶部导航栏和底部 TabBar
+        candidates = [c for c in components
+                      if c.get('class') not in ('StatusBar', 'NavigationBar', 'TabBar', 'SearchBar')]
+        if not candidates:
+            candidates = components
+
+        # 选面积最大的
+        largest = max(candidates, key=lambda c: c.get('bounds', {}).get('width', 0) * c.get('bounds', {}).get('height', 0))
+        b = largest.get('bounds', {})
+        print(f"  [image_broken] fallback 区域: [{largest.get('class')}] ({b.get('x')},{b.get('y')}) {b.get('width')}x{b.get('height')}")
+        return [{'x': b.get('x', 0), 'y': b.get('y', 0), 'width': b.get('width', img_w), 'height': b.get('height', img_h)}]
+
     def _extract_keywords(self, instruction: str) -> List[str]:
         cleaned = instruction
-        for noise in ['将', '改为', '修改', '替换', '模拟', '注入', '遮挡', '覆盖',
-                       '的', '了', '在', '把', '被', '让', '使', '到', '和', '区域', '异常场景']:
+        for noise in ['将', '改为', '修改', '替换', '模拟', '注入',
+                       '的', '了', '在', '把', '被', '让', '使', '到', '和',
+                       '异常场景', '无法', '正常', '显示', '点击']:
             cleaned = cleaned.replace(noise, ' ')
+        # 保留 "遮挡" "覆盖" "区域" 等空间定位词
         words = re.findall(r'[\u4e00-\u9fff]{2,}', cleaned)
         words.extend(re.findall(r'[a-zA-Z0-9]+', cleaned))
         return list(dict.fromkeys(w for w in words if len(w) >= 2))
 
     def _match_score(self, text: str, keywords: List[str]) -> float:
+        """双向匹配：关键词在 OCR 中，或 OCR 文字在关键词中"""
         score = 0.0
         for kw in keywords:
             if kw in text:
-                score += len(kw) / len(text) * 2
+                score += len(kw) / max(1, len(text)) * 2
+            elif text in kw:
+                # OCR "鞋码" 在关键词 "鞋码选择" 中
+                score += len(text) / max(1, len(kw)) * 1.5
             else:
+                # 2-gram 模糊匹配
                 for i in range(len(kw) - 1):
                     if kw[i:i+2] in text:
                         score += 0.3
