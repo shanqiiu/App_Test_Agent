@@ -720,6 +720,28 @@ def run_pipeline(
     results['timing']['stage3'] = round(stage3_elapsed, 2)
     print(f"  ⏱ Stage 3 耗时: {stage3_elapsed:.2f}s")
 
+    # ===== 保存目标区域坐标信息（独立文件）=====
+    render_info = render_result.metadata.get('render_info', {}) if render_result.metadata else {}
+    if render_info:
+        target_coords = {
+            'screenshot': str(screenshot_path),
+            'timestamp': timestamp,
+            'anomaly_mode': anomaly_mode,
+            'dialog_bounds': render_info.get('dialog_bounds'),
+            'close_button': render_info.get('close_button'),
+            'close_button_drawn': render_info.get('close_button_drawn', False),
+            'matched_component': render_info.get('matched_component'),
+            'screen_size': render_info.get('screen_size'),
+            'position_method': render_info.get('position_method'),
+        }
+        # 去除 None 值字段，保持文件简洁
+        target_coords = {k: v for k, v in target_coords.items() if v is not None}
+        coords_path = output_dir / f"{screenshot_name}_target_coords_{timestamp}.json"
+        with open(coords_path, 'w', encoding='utf-8') as f:
+            json.dump(target_coords, f, ensure_ascii=False, indent=2)
+        results['outputs']['target_coords'] = str(coords_path)
+        print(f"  ✓ 目标区域坐标: {coords_path.name}")
+
     # ===== 保存流水线元数据 =====
     meta_path = output_dir / f"{screenshot_name}_pipeline_meta_{timestamp}.json"
     with open(meta_path, 'w', encoding='utf-8') as f:
@@ -751,6 +773,8 @@ def run_pipeline(
     else:
         print("  [Stage 2]  VLM 语义分组结果:   (已跳过)")
     print(f"  [Stage 3]  最终异常截图:       {final_output}")
+    if results['outputs'].get('target_coords'):
+        print(f"  [Stage 3]  目标区域坐标:       {results['outputs']['target_coords']}")
     print(f"  [Meta]     流水线元数据:       {meta_path}")
 
     return results
