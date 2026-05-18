@@ -28,9 +28,7 @@ from datetime import datetime
 
 from .base import BaseRenderer, RenderResult
 from app.generators.prompts import PROMPT_AREA_LOADING_STYLE, PROMPT_AREA_LOADING_ICON
-
-# 图像生成 API Key（优先使用 IMAGE_GEN_API_KEY，回退到 DASHSCOPE_API_KEY）
-IMAGE_GEN_API_KEY = os.environ.get('IMAGE_GEN_API_KEY') or os.environ.get('DASHSCOPE_API_KEY')
+from app.utils.semantic_dialog_generator import generate_image
 
 
 class AreaLoadingRenderer(BaseRenderer):
@@ -402,71 +400,31 @@ class AreaLoadingRenderer(BaseRenderer):
 
 Generate the icon image now."""
 
-        # 调用 DashScope 生成（需要 dashscope SDK）
+        # 调用统一图像生成后端（与 dialog 模式一致，支持 IMAGE_GEN_BACKEND 切换）
         try:
-            # 导入生成函数
-            import dashscope
-            from dashscope import MultiModalConversation
-
-            # 使用环境变量的图像生成 API Key（优先 IMAGE_GEN_API_KEY，回退 DASHSCOPE_API_KEY）
-            dashscope_key = IMAGE_GEN_API_KEY
-            if not dashscope_key:
-                print("  ⚠ IMAGE_GEN_API_KEY 或 DASHSCOPE_API_KEY 环境变量未设置")
-                return None
-
-            # 优先使用 IMAGE_GEN_API_URL，回退到 DASHSCOPE_API_URL 或默认
-            api_url = os.environ.get('IMAGE_GEN_API_URL') or os.environ.get('DASHSCOPE_API_URL', 'https://dashscope.aliyuncs.com/api/v1')
-            dashscope.base_http_api_url = api_url
-
-            messages = [{
-                "role": "user",
-                "content": [{"text": prompt}]
-            }]
-
-            response = MultiModalConversation.call(
-                api_key=dashscope_key,
-                model="qwen-image-max",
-                messages=messages,
-                result_format='message',
-                stream=False,
-                watermark=False,
-                prompt_extend=True,
+            icon = generate_image(
+                prompt=prompt,
+                size=f"{generation_size}*{generation_size}",
                 negative_prompt="blurry text, distorted text, wrong colors, generic style, low quality",
-                size=f"{generation_size}*{generation_size}"
             )
 
-            if response.status_code == 200:
-                # 提取图片URL
-                content_list = response.output.choices[0].message.content
-                for item in content_list:
-                    if "image" in item:
-                        image_url = item["image"]
+            if icon is None:
+                print("  ⚠ AI 图标生成失败（生成函数返回 None）")
+                return None
 
-                        # 下载图片
-                        img_response = requests.get(image_url, timeout=60)
-                        if img_response.status_code == 200:
-                            import io
-                            icon = Image.open(io.BytesIO(img_response.content)).convert('RGBA')
+            # 确保背景透明
+            icon = self._ensure_transparent_bg(icon)
 
-                            # 确保背景透明
-                            icon = self._ensure_transparent_bg(icon)
+            # 缩小到目标尺寸（如果生成尺寸 > 目标尺寸）
+            if target_size < generation_size:
+                icon = icon.resize(
+                    (target_size, target_size),
+                    Image.Resampling.LANCZOS
+                )
+                print(f"    ℹ 生成尺寸 512→{target_size}px (质量优先)")
 
-                            # 缩小到目标尺寸（如果生成尺寸 > 目标尺寸）
-                            if target_size < generation_size:
-                                icon = icon.resize(
-                                    (target_size, target_size),
-                                    Image.Resampling.LANCZOS
-                                )
-                                print(f"    ℹ 生成尺寸 512→{target_size}px (质量优先)")
+            return icon
 
-                            return icon
-
-            print(f"  ⚠ AI生成失败: {response.message if hasattr(response, 'message') else 'Unknown error'}")
-            return None
-
-        except ImportError:
-            print("  ⚠ dashscope 模块未安装，请先安装: pip install dashscope")
-            return None
         except Exception as e:
             print(f"  ⚠ 图标生成异常: {e}")
             return None
