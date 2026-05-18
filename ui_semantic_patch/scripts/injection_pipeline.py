@@ -287,6 +287,13 @@ def main():
         help="手动指定注入位置（截图索引，从0开始）。指定后跳过规则引擎自动判定"
     )
 
+    parser.add_argument(
+        "--utg",
+        type=str,
+        default=None,
+        help="UTG 模式：指定 utg.json 路径，基于全量 ui_summary 文本 LLM 决策（代替逐帧 VLM 图像分析）"
+    )
+
     args = parser.parse_args()
 
     # 处理交互模式参数
@@ -335,21 +342,42 @@ def main():
     # 初始化组件
     print("\n初始化组件...")
 
+    is_utg_mode = bool(args.utg)
+
     try:
         recommender = AnomalyRecommender(gt_template_dir)
         print(f"  ✓ 异常推荐器: {len(recommender.get_available_categories())} 个类别")
 
-        # 语义分析器：始终使用真实 VLM（多模态视觉理解）
-        analyzer = SequenceAnalyzer(
-            recommender=recommender,
-            task_description=task_description,
-            max_history_steps=args.max_history,
-            min_steps_before_inject=args.min_steps
-        )
-        print(f"  ✓ 语义分析器 (VLM)")
+        if is_utg_mode:
+            # UTG 模式：基于全量 ui_summary 文本 LLM 决策
+            from app.injection.utg_loader import UTGLoader
+            from app.injection.utg_decision import UTGDecisionMaker
+
+            if not Path(args.utg).exists():
+                print(f"❌ utg.json 不存在: {args.utg}")
+                sys.exit(1)
+
+            utga_loader = UTGLoader(args.utg)
+            print(f"  ✓ UTG 加载器: {utga_loader.total_steps} 原始步骤, "
+                  f"{utga_loader.valid_count} 有效步骤")
+
+            utga_maker = UTGDecisionMaker()
+            print(f"  ✓ UTG 决策器 (文本 LLM)")
+
+            analyzer = None  # UTG 模式不使用 SequenceAnalyzer
+        else:
+            # 原有模式：逐帧 VLM 图像分析
+            analyzer = SequenceAnalyzer(
+                recommender=recommender,
+                task_description=task_description,
+                max_history_steps=args.max_history,
+                min_steps_before_inject=args.min_steps
+            )
+            print(f"  ✓ 语义分析器 (VLM)")
+            utga_loader = None
+            utga_maker = None
 
         if mock_mode:
-            # Mock 模式：仅 mock 生成器（不调用 run_pipeline.py 生成异常图片）
             mock_config = MockConfig(args.mock_config)
             rewriter = MockSequenceRewriter(
                 output_dir=output_dir,
@@ -358,7 +386,6 @@ def main():
             )
             print(f"  ✓ 序列改写器 [Mock — 跳过图像生成]")
         else:
-            # 正常模式：调用 run_pipeline.py 生成异常图片
             rewriter = SequenceRewriter(
                 output_dir=output_dir,
                 gt_template_dir=gt_template_dir
@@ -371,7 +398,28 @@ def main():
 
     # 执行分析
     print("\n开始分析...")
-    result = analyzer.run(screenshots)
+    if is_utg_mode:
+        # UTG 模式：文本 LLM 一次性分析全量 ui_summary
+        utga_result = utga_maker.decide(utga_loader)
+
+        if not utga_result["success"]:
+            print("\n❌ UTG 决策失败")
+            print(f"  错误: {utga_result.get('error', '未知错误')}")
+            sys.exit(1)
+
+        # 映射到统一 result 格式
+        result = {
+            "success": True,
+            "injection_point": utga_result["injection_step"],
+            "anomaly_type": utga_result["anomaly_mode"],
+            "instruction": utga_result["instruction"],
+            "reasoning": utga_result["reason"],
+            "utg_mode": True,
+            "utg_decision": utga_result,
+        }
+    else:
+        # 原有模式：SequenceAnalyzer 逐帧分析
+        result = analyzer.run(screenshots)
 
     if not result["success"]:
         print("\n❌ 未找到合适的注入点")
