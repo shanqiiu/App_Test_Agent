@@ -294,6 +294,13 @@ def main():
         help="UTG 模式：指定 utg.json 路径，基于全量 ui_summary 文本 LLM 决策（代替逐帧 VLM 图像分析）"
     )
 
+    parser.add_argument(
+        "--mapping-config",
+        type=str,
+        default=None,
+        help="异常注入映射配置 JSON 路径。UTG 模式下提供后启用约束模式（LLM 只决策 injection_step）"
+    )
+
     args = parser.parse_args()
 
     # 处理交互模式参数
@@ -399,23 +406,56 @@ def main():
     # 执行分析
     print("\n开始分析...")
     if is_utg_mode:
-        # UTG 模式：文本 LLM 一次性分析全量 ui_summary
-        utga_result = utga_maker.decide(utga_loader)
+        # UTG 模式：文本 LLM 批量打分分析全量 ui_summary
+        mapping_cfg = args.mapping_config if hasattr(args, 'mapping_config') else None
+        utga_result = utga_maker.decide(
+            utga_loader, task_override=task_description,
+            mapping_config=mapping_cfg,
+        )
 
         if not utga_result["success"]:
             print("\n❌ UTG 决策失败")
             print(f"  错误: {utga_result.get('error', '未知错误')}")
             sys.exit(1)
 
+        injection_step = utga_result.get("injection_step")
+        if injection_step is not None and injection_step < 0:
+            # LLM 评分后认为没有合适的注入点
+            print("\n⚠ UTG 评分完成，但无合适注入点（所有 step 得分均低于阈值）")
+            if utga_result.get("scores"):
+                print("  各步得分:")
+                for s in utga_result["scores"]:
+                    print(f"    Step {s['step']}: {s['score']} — {s['reason'][:60]}")
+            if utga_result.get("best_candidate"):
+                bc = utga_result["best_candidate"]
+                print(f"  最高分: Step {bc['step']} ({bc['score']}) — {bc['reason'][:60]}")
+
+            # 保存日志并退出
+            output_dir.mkdir(parents=True, exist_ok=True)
+            log_path = output_dir / "decision_log_no_injection.json"
+            with open(log_path, 'w', encoding='utf-8') as f:
+                json.dump(utga_result, f, ensure_ascii=False, indent=2)
+            print(f"日志: {log_path}")
+            sys.exit(0)
+
+        # 打印打分摘要
+        if utga_result.get("scores"):
+            print("  [UTG打分] 各步评估:")
+            for s in utga_result["scores"]:
+                mark = " ← 选中" if s["step"] == injection_step else ""
+                print(f"    Step {s['step']:2d}: {s['score']}/10 — {s['reason'][:60]}{mark}")
+
         # 映射到统一 result 格式
         result = {
             "success": True,
-            "injection_point": utga_result["injection_step"],
+            "injection_point": injection_step,
             "anomaly_type": utga_result["anomaly_mode"],
             "instruction": utga_result["instruction"],
             "reasoning": utga_result["reason"],
             "utg_mode": True,
             "utg_decision": utga_result,
+            "gt_sample": utga_result.get("gt_sample", ""),
+            "gt_category": utga_result.get("gt_category", ""),
         }
     else:
         # 原有模式：SequenceAnalyzer 逐帧分析
@@ -477,6 +517,8 @@ def main():
             injection_point=injection_point,
             anomaly_type=anomaly_type,
             instruction=instruction,
+            gt_sample=result.get("gt_sample") or None,
+            gt_category=result.get("gt_category") or None,
             decision_log=result
         )
 
