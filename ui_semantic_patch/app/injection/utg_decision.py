@@ -194,34 +194,35 @@ class UTGDecisionMaker:
         mapping_config: str = None,
         fault_mode: str = None,
         fault_mode_key: str = None,
+        injection_config: Dict = None,
     ) -> Dict:
+        """注入决策。injection_config 优先于 mapping_config（直接传 dict，免文件加载）"""
         valid_steps = loader.get_valid_steps()
         if not valid_steps:
             return self._error("utg.json 中没有有效的 ui_summary 步骤")
 
-        injection_config = None
-        if mapping_config:
-            injection_config = _load_injection_config(
+        config = injection_config
+        if config is None and mapping_config:
+            config = _load_injection_config(
                 mapping_config, fault_mode=fault_mode, fault_mode_key=fault_mode_key
             )
-            if not injection_config:
+            if not config:
                 return self._error("mapping 配置中没有有效的 injection_config")
-            print(f"  [UTG决策] 约束模式: {injection_config['fault_mode']}")
+        if config:
+            print(f"  [UTG决策] 约束模式: {config.get('fault_mode', config.get('anomaly_mode', ''))}")
 
         task_desc = task_override or loader.task_description
         steps_text = loader.get_summary_text()
         print(f"  [UTG决策] 分析 {len(valid_steps)} 个步骤...")
 
-        if injection_config:
+        if config:
             prompt = CONSTRAINED_SCORING_PROMPT.format(
-                anomaly_mode=injection_config["anomaly_mode"],
-                instruction=injection_config["instruction"],
+                anomaly_mode=config["anomaly_mode"],
+                instruction=config["instruction"],
                 steps_text=steps_text,
             )
             raw = self._call_llm(prompt, max_retries)
-            result = self._parse_scoring_response(
-                raw, len(valid_steps), injection_config
-            )
+            result = self._parse_scoring_response(raw, len(valid_steps), config)
         else:
             prompt = FREE_DECISION_PROMPT.format(
                 task_description=task_desc, steps_text=steps_text,

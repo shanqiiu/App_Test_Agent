@@ -218,9 +218,13 @@ def process_example(
     print(f"  UUID: {uuid}")
     print(f"  异常: {anomaly_mode} | {instruction[:50]}...")
 
-    # Step 1: LLM 打分决策
+    # Step 1: LLM 打分决策（约束模式，直接传 injection_config）
     loader = UTGLoader(str(example_dir / "utg_info.json"))
-    decision = decision_maker.decide(loader, task_override=example.get("query"))
+    decision = decision_maker.decide(
+        loader,
+        task_override=example.get("query"),
+        injection_config=inj,  # 直接传 dict，免文件加载
+    )
     result["decision"] = decision
     result["injection_step"] = decision.get("injection_step")
 
