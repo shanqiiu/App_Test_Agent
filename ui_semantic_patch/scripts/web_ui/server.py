@@ -34,6 +34,7 @@ _PROJECT_ROOT = _UI_ROOT.parent
 _GEN_SCRIPT = _SCRIPTS_DIR / "generate_mapping.py"
 _BATCH_SCRIPT = _SCRIPTS_DIR / "batch_injection_with_mapping.py"
 _RUN_PIPELINE_SCRIPT = _SCRIPTS_DIR / "run_pipeline.py"
+_INJECTION_PIPELINE_SCRIPT = _SCRIPTS_DIR / "injection_pipeline.py"
 
 _DEFAULT_EXAMPLES_DIR = _PROJECT_ROOT / "data" / "examples"
 _DEFAULT_OUTPUT_DIR = _SCRIPTS_DIR / "outputs3"
@@ -115,6 +116,21 @@ class PipelineRunRequest(BaseModel):
 class PipelineRunResponse(BaseModel):
     success: bool
     summary: dict = Field(default_factory=dict)
+    outputs: dict = Field(default_factory=dict)
+    logs: list = Field(default_factory=list)
+    error: str = ""
+
+
+class UTGRunRequest(BaseModel):
+    utg: str = ""
+    screenshots_dir: str = ""
+    output: str = ""
+    dry_run: bool = False
+
+
+class UTGRunResponse(BaseModel):
+    success: bool
+    decision: dict = Field(default_factory=dict)
     outputs: dict = Field(default_factory=dict)
     logs: list = Field(default_factory=list)
     error: str = ""
@@ -909,6 +925,134 @@ async def api_file(path: str = Query(..., description="Absolute file path")):
     return FileResponse(file_path, media_type=media_type or "application/octet-stream")
 
 
+# ---------------------------------------------------------------------------
+# UTG 文本决策 + 生成接口
+# ---------------------------------------------------------------------------
+
+def _run_utg_pipeline(req: UTGRunRequest) -> Dict:
+    """执行 UTG 模式注入决策（dry_run 仅决策不生成）"""
+    utg_path = _resolve_path(Path(req.utg), Path("tmp/utg.json"))
+    screenshots_dir = _resolve_path(Path(req.screenshots_dir), _DEFAULT_EXAMPLES_DIR)
+    output_dir = _resolve_path(Path(req.output), _DEFAULT_OUTPUT_DIR / "utg_run")
+
+    if req.dry_run:
+        # 仅 LLM 决策，不触发 run_pipeline.py，直接调用 UTG 模块
+        try:
+            sys.path.insert(0, str(_UI_ROOT))
+            from app.injection.utg_loader import UTGLoader
+            from app.injection.utg_decision import UTGDecisionMaker
+
+            loader = UTGLoader(str(utg_path))
+            maker = UTGDecisionMaker()
+            result = maker.decide(loader)
+
+            return {
+                "success": result.get("success", False),
+                "decision": result,
+                "outputs": {},
+                "logs": [
+                    f"UTG: {loader.total_steps} 原始步骤, {loader.valid_count} 有效步骤",
+                    f"决策: step={result.get('injection_step')}, mode={result.get('anomaly_mode')}",
+                ],
+                "error": result.get("error", ""),
+            }
+        except Exception as exc:
+            import traceback
+            return {
+                "success": False,
+                "decision": {},
+                "outputs": {},
+                "logs": [traceback.format_exc()],
+                "error": str(exc),
+            }
+
+    # 完整模式：调用 injection_pipeline.py --utg
+    cmd = [
+        sys.executable,
+        str(_INJECTION_PIPELINE_SCRIPT),
+        "--input-dir", str(screenshots_dir),
+        "--output-dir", str(output_dir),
+        "--utg", str(utg_path),
+        "--no-interactive",
+        "--no-verification",
+    ]
+
+    env = os.environ.copy()
+    env["PYTHONIOENCODING"] = "utf-8"
+
+    try:
+        proc = subprocess.run(
+            cmd,
+            capture_output=True,
+            text=True,
+            encoding="utf-8",
+            env=env,
+            cwd=str(_SCRIPTS_DIR),
+            timeout=1800,
+        )
+    except subprocess.TimeoutExpired:
+        return {
+            "success": False,
+            "decision": {},
+            "outputs": {},
+            "logs": ["[timeout] injection_pipeline.py exceeded 1800 seconds"],
+            "error": "UTG injection pipeline timed out",
+        }
+    except Exception as exc:
+        return {
+            "success": False,
+            "decision": {},
+            "outputs": {},
+            "logs": [f"[exception] {exc}"],
+            "error": str(exc),
+        }
+
+    logs: List[str] = []
+    if proc.stdout:
+        logs.extend(proc.stdout.strip().splitlines())
+    if proc.stderr:
+        logs.extend(f"[stderr] {line}" for line in proc.stderr.strip().splitlines())
+
+    # 查找 decision_log.json
+    decision = {}
+    outputs = {}
+    output_dir_path = output_dir.resolve()
+    if output_dir_path.exists():
+        # 找最新的 injection_* 子目录
+        injection_dirs = sorted(
+            [d for d in output_dir_path.iterdir() if d.is_dir() and d.name.startswith("injection_")],
+            key=lambda d: d.stat().st_mtime, reverse=True,
+        )
+        if injection_dirs:
+            latest = injection_dirs[0]
+            decision_log = latest / "decision_log.json"
+            if decision_log.exists():
+                decision = _load_json(decision_log)
+            metadata = latest / "metadata.json"
+            if metadata.exists():
+                outputs["metadata"] = _to_file_payload(str(metadata))
+            # 收集生成的图片
+            modified_seq = latest / "modified_sequence"
+            if modified_seq.exists():
+                for img in sorted(modified_seq.iterdir()):
+                    if img.suffix.lower() in {'.png', '.jpg', '.jpeg'}:
+                        outputs[img.name] = _to_file_payload(str(img))
+
+    return {
+        "success": proc.returncode == 0,
+        "decision": decision,
+        "outputs": outputs,
+        "logs": logs,
+        "error": "" if proc.returncode == 0 else f"Script exited with code {proc.returncode}",
+    }
+
+
+@app.post("/api/utg-run", response_model=UTGRunResponse)
+async def api_utg_run(req: UTGRunRequest):
+    result = _run_utg_pipeline(req)
+    return UTGRunResponse(**result)
+
+
 @app.get("/api/health")
 async def health():
     has_key = bool(os.getenv("VLM_API_KEY", ""))
@@ -920,14 +1064,15 @@ async def health():
         "image_gen": image_gen,
         "batch_available": _BATCH_SCRIPT.exists(),
         "pipeline_available": _RUN_PIPELINE_SCRIPT.exists(),
-        "defaults": {
-            "examples_dir": str(_DEFAULT_EXAMPLES_DIR),
-            "output_dir": str(_DEFAULT_OUTPUT_DIR),
-            "mapping_config": str(_DEFAULT_MAPPING_CONFIG),
-            "gt_template_dir": str(_DEFAULT_GT_TEMPLATE_DIR),
-            "single_screenshot": str(_DEFAULT_SINGLE_SCREENSHOT),
-            "single_output_dir": str(_DEFAULT_SINGLE_OUTPUT_DIR / "demo_single"),
-        },
+    "defaults": {
+        "examples_dir": str(_DEFAULT_EXAMPLES_DIR),
+        "output_dir": str(_DEFAULT_OUTPUT_DIR),
+        "mapping_config": str(_DEFAULT_MAPPING_CONFIG),
+        "gt_template_dir": str(_DEFAULT_GT_TEMPLATE_DIR),
+        "single_screenshot": str(_DEFAULT_SINGLE_SCREENSHOT),
+        "single_output_dir": str(_DEFAULT_SINGLE_OUTPUT_DIR / "demo_single"),
+        "utg_json_path": str(_PROJECT_ROOT / "tmp" / "utg.json"),
+    },
     }
 
 

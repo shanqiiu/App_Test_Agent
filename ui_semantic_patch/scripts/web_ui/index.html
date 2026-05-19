@@ -567,6 +567,7 @@
         <button class="tab-btn active" data-tab="mapping">映射条目生成</button>
         <button class="tab-btn" data-tab="single">单图生成</button>
         <button class="tab-btn" data-tab="batch">完整批量生成</button>
+        <button class="tab-btn" data-tab="utg">UTG 文本决策</button>
       </div>
     </div>
 
@@ -690,6 +691,57 @@
               <span class="terminal-spinner"></span>等待任务启动...
             </div>
           </div>
+        </div>
+      </section>
+
+      <section class="tab-panel" id="panel-utg">
+        <div class="card">
+          <div class="card-header"><h3>UTG 文本决策参数</h3></div>
+          <div class="card-body">
+            <div class="desc-text" style="margin-bottom:16px;color:var(--text-2);font-size:13px;">
+              基于 utg.json 的全量 ui_summary 语义描述，通过文本 LLM 一次性分析操作序列，决策注入点和异常类型。
+              无需逐帧 VLM 图像分析，成本低、速度快。
+            </div>
+            <div class="form-grid">
+              <div class="form-group full">
+                <label>utg.json 路径</label>
+                <input id="utgPath" placeholder="例如：tmp/utg.json">
+              </div>
+              <div class="form-group full">
+                <label>Screenshots Dir (step_00.png 等截图所在目录)</label>
+                <input id="utgScreenshotsDir" placeholder="例如：data/examples/injection_demo_01">
+              </div>
+              <div class="form-group">
+                <label>Output Dir</label>
+                <input id="utgOutputDir">
+              </div>
+            </div>
+            <div class="check-row">
+              <label class="check"><input type="checkbox" id="utgDryRun"> Dry Run (仅 LLM 决策预览，不触发图像生成)</label>
+            </div>
+            <div class="actions">
+              <button class="btn btn-primary" id="btnUtgRun">执行 UTG 决策</button>
+              <button class="btn btn-ghost" id="btnUtgDefaults">填入默认路径</button>
+              <button class="btn btn-ghost" id="btnUtgClear">清空</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="pipeline" id="utgPipeline"></div>
+
+        <div class="card" id="utgDecisionCard" style="display:none;">
+          <div class="card-header"><h3>LLM 决策结果</h3></div>
+          <div class="card-body"><div class="json-output" id="utgDecisionOutput"></div></div>
+        </div>
+
+        <div class="card" id="utgPreviewCard" style="display:none;">
+          <div class="card-header"><h3>生成产物预览</h3></div>
+          <div class="card-body"><div class="run-grid" id="utgPreviewGrid"></div></div>
+        </div>
+
+        <div class="card" id="utgLogsCard" style="display:none;">
+          <div class="card-header"><h3>完整日志</h3></div>
+          <div class="card-body"><div class="raw-log" id="utgLogsRaw"></div></div>
         </div>
       </section>
 
@@ -819,6 +871,13 @@ const singleSteps = [
   { id: 's4', name: '结果落盘', desc: '保存 final image 与 pipeline meta' },
 ];
 
+const utgSteps = [
+  { id: 'u1', name: 'UTG 加载', desc: '解析 utg.json，提取 ui_summary 序列' },
+  { id: 'u2', name: 'LLM 决策', desc: '文本 LLM 全量分析，决策注入点和异常类型' },
+  { id: 'u3', name: '异常渲染', desc: '调用 run_pipeline.py 执行图像生成' },
+  { id: 'u4', name: '结果落盘', desc: '保存决策日志与生成产物' },
+];
+
 const state = {
   tab: 'mapping',
   history: [],
@@ -916,7 +975,7 @@ function renderHistory() {
   }
   $('historyList').innerHTML = state.history.map((item, idx) => `
     <div class="history-item ${idx === state.activeHistory ? 'active' : ''}" onclick="loadHistory(${idx})">
-      <div class="history-type">${item.type === 'mapping' ? 'Mapping' : (item.type === 'single' ? 'Single' : 'Batch')} · ${item.time}</div>
+      <div class="history-type">${item.type === 'mapping' ? 'Mapping' : (item.type === 'single' ? 'Single' : (item.type === 'utg' ? 'UTG' : 'Batch'))} · ${item.time}</div>
       <div class="history-title">${item.title}</div>
       <div class="history-subtitle">${item.subtitle}</div>
       <div class="history-meta"><span>${item.meta1 || ''}</span><span>${item.meta2 || ''}</span></div>
@@ -953,6 +1012,12 @@ function loadHistory(idx) {
     $('singleNoVisualize').checked = !!item.form.no_visualize;
     $('singleE2EFullImage').checked = !!item.form.e2e_full_image;
     renderSingleResult(item.result);
+  } else if (item.type === 'utg') {
+    $('utgPath').value = item.form.utg || '';
+    $('utgScreenshotsDir').value = item.form.screenshots_dir || '';
+    $('utgOutputDir').value = item.form.output || '';
+    $('utgDryRun').checked = !!item.form.dry_run;
+    renderUtgResult(item.result);
   } else {
     $('batchExamplesDir').value = item.form.examples_dir || '';
     $('batchOutputDir').value = item.form.output_dir || '';
@@ -1624,6 +1689,92 @@ function sleep(ms) {
   return new Promise(resolve => setTimeout(resolve, ms));
 }
 
+async function runUtg() {
+  const req = {
+    utg: $('utgPath').value.trim(),
+    screenshots_dir: $('utgScreenshotsDir').value.trim(),
+    output: $('utgOutputDir').value.trim(),
+    dry_run: $('utgDryRun').checked,
+  };
+
+  if (!req.utg || !req.screenshots_dir) {
+    alert('utg.json 路径和截图目录不能为空');
+    return;
+  }
+
+  ['u1','u2','u3','u4'].forEach(id => updateStep('utgPipeline', id, 'pending'));
+  $('utgDecisionCard').style.display = 'none';
+  $('utgPreviewCard').style.display = 'none';
+  $('utgLogsCard').style.display = 'none';
+  updateStep('utgPipeline', 'u1', 'running');
+  $('btnUtgRun').disabled = true;
+
+  try {
+    const resp = await fetch('/api/utg-run', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(req),
+    });
+    const data = await resp.json();
+    renderUtgResult(data);
+    addHistory({
+      type: 'utg', time: new Date().toLocaleTimeString(),
+      title: `UTG: ${data.decision?.anomaly_mode || '?'} @ step ${data.decision?.injection_step ?? '?'}`,
+      subtitle: (data.decision?.instruction || '').slice(0, 60),
+      meta1: req.dry_run ? 'Dry Run' : 'Full Run',
+      meta2: data.success ? 'success' : 'failed',
+      form: req, result: data,
+    });
+  } catch (err) {
+    ['u1','u2','u3','u4'].forEach(id => updateStep('utgPipeline', id, 'error', '', String(err)));
+  } finally {
+    $('btnUtgRun').disabled = false;
+  }
+}
+
+function renderUtgResult(data) {
+  const steps = data.dry_run ? ['u1', 'u2'] : ['u1', 'u2', 'u3', 'u4'];
+  steps.forEach(id => updateStep('utgPipeline', id, data.success ? 'success' : 'error'));
+
+  if (data.decision && Object.keys(data.decision).length) {
+    $('utgDecisionCard').style.display = '';
+    $('utgDecisionOutput').textContent = prettyJson(data.decision);
+  }
+
+  if (data.outputs && Object.keys(data.outputs).length) {
+    $('utgPreviewCard').style.display = '';
+    $('utgPreviewGrid').innerHTML = Object.entries(data.outputs).map(([name, info]) => {
+      const isImg = name.endsWith('.png') || name.endsWith('.jpg');
+      if (isImg && info.url) {
+        return `<div class="run-item"><div class="run-label">${name}</div><img src="${info.url}" alt="${name}"></div>`;
+      }
+      return '';
+    }).join('');
+  }
+
+  if (data.logs && data.logs.length) {
+    $('utgLogsCard').style.display = '';
+    $('utgLogsRaw').textContent = data.logs.join('\n');
+  }
+}
+
+function restoreUtgDefaults() {
+  const d = state.defaults || {};
+  $('utgPath').value = (d.utg_json_path || 'tmp/utg.json');
+  $('utgScreenshotsDir').value = (d.examples_dir || '') + '/injection_demo_01';
+  $('utgOutputDir').value = (d.output_dir || '') + '/utg_run';
+}
+
+function clearUtg() {
+  $('utgPath').value = '';
+  $('utgScreenshotsDir').value = '';
+  $('utgOutputDir').value = '';
+  $('utgDecisionCard').style.display = 'none';
+  $('utgPreviewCard').style.display = 'none';
+  $('utgLogsCard').style.display = 'none';
+  ['u1','u2','u3','u4'].forEach(id => updateStep('utgPipeline', id, 'pending'));
+}
+
 document.querySelectorAll('.tab-btn').forEach(btn => {
   btn.addEventListener('click', () => switchTab(btn.dataset.tab));
 });
@@ -1636,10 +1787,14 @@ $('btnSingleClear').addEventListener('click', clearSingle);
 $('btnBatchRun').addEventListener('click', runBatch);
 $('btnBatchDefaults').addEventListener('click', restoreBatchDefaults);
 $('btnBatchClear').addEventListener('click', clearBatch);
+$('btnUtgRun').addEventListener('click', runUtg);
+$('btnUtgDefaults').addEventListener('click', restoreUtgDefaults);
+$('btnUtgClear').addEventListener('click', clearUtg);
 
 buildPipeline('mappingPipeline', mappingSteps);
 buildPipeline('singlePipeline', singleSteps);
 buildPipeline('batchPipeline', batchSteps);
+buildPipeline('utgPipeline', utgSteps);
 randomSample();
 
 (async function init() {
@@ -1649,6 +1804,7 @@ randomSample();
     state.defaults = data.defaults || null;
     restoreSingleDefaults();
     restoreBatchDefaults();
+    restoreUtgDefaults();
     const imageGen = data.image_gen || {};
     const imageGenText = imageGen.available
       ? `ImageGen: ${imageGen.backend} (${imageGen.model || '-'}` + (imageGen.edit_model && imageGen.edit_model !== imageGen.model ? ` | edit: ${imageGen.edit_model}` : '') + `)`
