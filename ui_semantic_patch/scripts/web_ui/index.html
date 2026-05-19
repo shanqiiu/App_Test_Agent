@@ -652,6 +652,9 @@
             <div class="check-row">
               <label class="check"><input type="checkbox" id="batchEnableRules" checked> 启用规则引擎决定注入点</label>
               <label class="check"><input type="checkbox" id="batchEnableVerification"> 启用 VLM 质量验证</label>
+              <label class="check" style="margin-left:16px;color:var(--primary-2);">
+                <input type="checkbox" id="batchUtgMode"> UTG 模式 (基于 utg_info.json LLM 决策)
+              </label>
             </div>
             <div class="actions">
               <button class="btn btn-primary" id="btnBatchRun">执行完整生成</button>
@@ -699,25 +702,46 @@
           <div class="card-header"><h3>UTG 文本决策参数</h3></div>
           <div class="card-body">
             <div class="desc-text" style="margin-bottom:16px;color:var(--text-2);font-size:13px;">
-              基于 utg.json 的全量 ui_summary 语义描述，通过文本 LLM 一次性分析操作序列，决策注入点和异常类型。
-              无需逐帧 VLM 图像分析，成本低、速度快。
+              基于 utg_info.json 的全量 ui_summary 语义描述，通过文本 LLM 一次性分析操作序列，决策注入点和异常类型。
+              格式: <code>tmp/examples/{uuid}/utg_info.json</code> + 截图(001.jpg 等)。
             </div>
             <div class="form-grid">
               <div class="form-group full">
-                <label>utg.json 路径</label>
-                <input id="utgPath" placeholder="例如：tmp/utg.json">
+                <label>Example Dir（含 utg_info.json 的 UUID 目录）</label>
+                <input id="utgExampleDir" placeholder="例如：tmp/examples/14a37b63-550e-489d-a55b-50e8cfc6b38a">
               </div>
               <div class="form-group full">
-                <label>Screenshots Dir (step_00.png 等截图所在目录)</label>
-                <input id="utgScreenshotsDir" placeholder="例如：data/examples/injection_demo_01">
+                <label>Screenshots Dir（仅当图片不在 example_dir 同级时指定）</label>
+                <input id="utgScreenshotsDir" placeholder="可留空，自动发现">
+              </div>
+              <div class="form-group full">
+                <label>Task (任务描述，可选，留空则从 info.json 自动提取)</label>
+                <input id="utgTask" placeholder="例如：去京东下单一台百亿补贴的华为手机">
               </div>
               <div class="form-group">
                 <label>Output Dir</label>
                 <input id="utgOutputDir">
               </div>
+              <div class="form-group">
+                <label>Mapping Config (可选，提供后 LLM 只决策注入位置)</label>
+                <input id="utgMappingConfig" placeholder="config/query_anomaly_mapping.json">
+              </div>
+              <div class="form-group">
+                <label>GT Template Dir</label>
+                <input id="utgGtTemplateDir">
+              </div>
+              <div class="form-group">
+                <label>Quality Threshold</label>
+                <input id="utgQualityThreshold" type="number" step="0.1" value="6.0">
+              </div>
+              <div class="form-group">
+                <label>Verification Retries</label>
+                <input id="utgVerificationRetries" type="number" step="1" value="2">
+              </div>
             </div>
             <div class="check-row">
               <label class="check"><input type="checkbox" id="utgDryRun"> Dry Run (仅 LLM 决策预览，不触发图像生成)</label>
+              <label class="check"><input type="checkbox" id="utgEnableVerification"> 启用 VLM 质量验证</label>
             </div>
             <div class="actions">
               <button class="btn btn-primary" id="btnUtgRun">执行 UTG 决策</button>
@@ -861,6 +885,13 @@ const batchSteps = [
   { id: 'b1', name: '配置加载', desc: '加载 mapping、初始化规则引擎与目录' },
   { id: 'b2', name: '语义分析', desc: '按 demo 决定注入点' },
   { id: 'b3', name: '批量注入', desc: '调用 run_pipeline.py 生成异常结果' },
+  { id: 'b4', name: '汇总输出', desc: '统计成功失败并整理产物' },
+];
+
+const utgBatchSteps = [
+  { id: 'b1', name: '配置加载', desc: '加载 mapping、扫描 UUID 示例目录' },
+  { id: 'b2', name: 'LLM 批量打分', desc: '文本 LLM 全序列评分，决策注入点' },
+  { id: 'b3', name: '批量生成', desc: '调用 run_pipeline.py 生成异常结果' },
   { id: 'b4', name: '汇总输出', desc: '统计成功失败并整理产物' },
 ];
 
@@ -1013,10 +1044,16 @@ function loadHistory(idx) {
     $('singleE2EFullImage').checked = !!item.form.e2e_full_image;
     renderSingleResult(item.result);
   } else if (item.type === 'utg') {
-    $('utgPath').value = item.form.utg || '';
+    $('utgExampleDir').value = item.form.example_dir || item.form.utg || '';
     $('utgScreenshotsDir').value = item.form.screenshots_dir || '';
     $('utgOutputDir').value = item.form.output || '';
+    $('utgTask').value = item.form.task || '';
+    $('utgMappingConfig').value = item.form.mapping_config || '';
+    $('utgGtTemplateDir').value = item.form.gt_template_dir || '';
     $('utgDryRun').checked = !!item.form.dry_run;
+    $('utgEnableVerification').checked = !!item.form.enable_verification;
+    $('utgQualityThreshold').value = item.form.quality_threshold ?? 6.0;
+    $('utgVerificationRetries').value = item.form.verification_retries ?? 2;
     renderUtgResult(item.result);
   } else {
     $('batchExamplesDir').value = item.form.examples_dir || '';
@@ -1429,6 +1466,7 @@ async function runMapping() {
 }
 
 async function runBatch() {
+  const isUtg = $('batchUtgMode').checked;
   const form = {
     examples_dir: $('batchExamplesDir').value.trim(),
     output_dir: $('batchOutputDir').value.trim(),
@@ -1442,10 +1480,10 @@ async function runBatch() {
   };
 
   // 初始化 UI
-  buildPipeline('batchPipeline', batchSteps);
-  batchSteps.forEach((s, idx) => {
-    const status = idx === 0 ? 'running' : 'pending';
-    updateStep('batchPipeline', s.id, status, stepDesc(s.id, status), ['...']);
+  const steps = isUtg ? utgBatchSteps : batchSteps;
+  buildPipeline('batchPipeline', steps);
+  steps.forEach((s, idx) => {
+    updateStep('batchPipeline', s.id, idx === 0 ? 'running' : 'pending', idx === 0 ? s.desc : '');
   });
   $('batchSummaryCard').style.display = 'none';
   $('batchRunsCard').style.display = 'none';
@@ -1459,15 +1497,19 @@ async function runBatch() {
   let lineCount = 0;
 
   const proto = location.protocol === 'https:' ? 'wss:' : 'ws:';
-  const ws = new WebSocket(`${proto}//${location.host}/ws/batch-run`);
+  const wsUrl = isUtg ? '/ws/utg-batch-run' : '/ws/batch-run';
+  const ws = new WebSocket(`${proto}//${location.host}${wsUrl}`);
   let doneReceived = false;
 
   ws.onopen = () => {
     ws.send(JSON.stringify(form));
     $('btnBatchRun').disabled = true;
-    $('btnBatchRun').textContent = '执行中...';
+    $('btnBatchRun').textContent = isUtg ? 'UTG 执行中...' : '执行中...';
     $('terminalStatus').textContent = 'CONNECTED';
     $('terminalStatus').className = 'terminal-status active';
+    // 更新终端标题
+    const termTitle = document.querySelector('#batchLogsCard .terminal-title');
+    if (termTitle) termTitle.textContent = isUtg ? 'batch_utg_injection.py' : 'batch_injection_with_mapping.py';
   };
 
   ws.onmessage = (event) => {
@@ -1674,15 +1716,17 @@ function restoreSingleDefaults() {
 
 function restoreBatchDefaults() {
   if (!state.defaults) return;
-  $('batchExamplesDir').value = state.defaults.examples_dir || '';
+  const isUtg = $('batchUtgMode').checked;
+  $('batchExamplesDir').value = isUtg ? (state.defaults.utg_examples_dir || 'tmp/examples') : (state.defaults.examples_dir || '');
   $('batchOutputDir').value = state.defaults.output_dir || '';
-  $('batchMappingConfig').value = state.defaults.mapping_config || '';
+  $('batchMappingConfig').value = isUtg ? 'tmp/mapping.json' : (state.defaults.mapping_config || '');
   $('batchGtTemplateDir').value = state.defaults.gt_template_dir || '';
   $('batchFaultMode').value = '';
   $('batchEnableVerification').checked = false;
-  $('batchEnableRules').checked = true;
+  $('batchEnableRules').checked = !isUtg;
   $('batchQualityThreshold').value = 6.0;
   $('batchVerificationRetries').value = 2;
+  $('batchUtgMode').checked = isUtg;
 }
 
 function sleep(ms) {
@@ -1691,14 +1735,20 @@ function sleep(ms) {
 
 async function runUtg() {
   const req = {
-    utg: $('utgPath').value.trim(),
+    example_dir: $('utgExampleDir').value.trim(),
     screenshots_dir: $('utgScreenshotsDir').value.trim(),
     output: $('utgOutputDir').value.trim(),
     dry_run: $('utgDryRun').checked,
+    task: $('utgTask').value.trim(),
+    gt_template_dir: $('utgGtTemplateDir').value.trim(),
+    mapping_config: $('utgMappingConfig').value.trim(),
+    enable_verification: $('utgEnableVerification').checked,
+    quality_threshold: parseFloat($('utgQualityThreshold').value) || 6.0,
+    verification_retries: parseInt($('utgVerificationRetries').value) || 2,
   };
 
-  if (!req.utg || !req.screenshots_dir) {
-    alert('utg.json 路径和截图目录不能为空');
+  if (!req.example_dir) {
+    alert('示例目录不能为空');
     return;
   }
 
@@ -1723,7 +1773,8 @@ async function runUtg() {
       subtitle: (data.decision?.instruction || '').slice(0, 60),
       meta1: req.dry_run ? 'Dry Run' : 'Full Run',
       meta2: data.success ? 'success' : 'failed',
-      form: req, result: data,
+      form: { ...req, utg: req.example_dir },  // for backward compat in loadHistory
+      result: data,
     });
   } catch (err) {
     ['u1','u2','u3','u4'].forEach(id => updateStep('utgPipeline', id, 'error', '', String(err)));
@@ -1760,15 +1811,23 @@ function renderUtgResult(data) {
 
 function restoreUtgDefaults() {
   const d = state.defaults || {};
-  $('utgPath').value = (d.utg_json_path || 'tmp/utg.json');
+  $('utgExampleDir').value = d.utg_examples_dir || (d.examples_dir || '') + '/utg_default';
   $('utgScreenshotsDir').value = (d.examples_dir || '') + '/injection_demo_01';
   $('utgOutputDir').value = (d.output_dir || '') + '/utg_run';
+  $('utgTask').value = '';
+  $('utgMappingConfig').value = d.mapping_config || '';
+  $('utgGtTemplateDir').value = d.gt_template_dir || '';
+  $('utgQualityThreshold').value = '6.0';
+  $('utgVerificationRetries').value = '2';
 }
 
 function clearUtg() {
-  $('utgPath').value = '';
+  $('utgExampleDir').value = '';
   $('utgScreenshotsDir').value = '';
   $('utgOutputDir').value = '';
+  $('utgTask').value = '';
+  $('utgMappingConfig').value = '';
+  $('utgGtTemplateDir').value = '';
   $('utgDecisionCard').style.display = 'none';
   $('utgPreviewCard').style.display = 'none';
   $('utgLogsCard').style.display = 'none';
@@ -1810,7 +1869,7 @@ randomSample();
       ? `ImageGen: ${imageGen.backend} (${imageGen.model || '-'}` + (imageGen.edit_model && imageGen.edit_model !== imageGen.model ? ` | edit: ${imageGen.edit_model}` : '') + `)`
       : `ImageGen: unavailable (${imageGen.backend || 'auto'})`;
     $('healthText').textContent =
-      `Backend: connected | VLM: ${data.vlm_available ? `available (${data.vlm_model})` : 'offline'} | ${imageGenText} | Single: ${data.pipeline_available ? 'ready' : 'missing'} | Batch: ${data.batch_available ? 'ready' : 'missing'}`;
+      `Backend: connected | VLM: ${data.vlm_available ? `available (${data.vlm_model})` : 'offline'} | ${imageGenText} | Single: ${data.pipeline_available ? 'ready' : 'missing'} | Batch: ${data.batch_available ? 'ready' : 'missing'} | UTG Batch: ${data.utg_batch_available ? 'ready' : 'missing'}`;
     $('healthText').style.color = (data.vlm_available && imageGen.available) ? 'var(--success)' : 'var(--warn)';
   } catch (err) {
     $('healthText').textContent = 'Backend: offline，请先运行 python server.py';

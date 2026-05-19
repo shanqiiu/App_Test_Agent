@@ -33,10 +33,12 @@ _PROJECT_ROOT = _UI_ROOT.parent
 
 _GEN_SCRIPT = _SCRIPTS_DIR / "generate_mapping.py"
 _BATCH_SCRIPT = _SCRIPTS_DIR / "batch_injection_with_mapping.py"
+_BATCH_UTG_SCRIPT = _SCRIPTS_DIR / "batch_utg_injection.py"
 _RUN_PIPELINE_SCRIPT = _SCRIPTS_DIR / "run_pipeline.py"
 _INJECTION_PIPELINE_SCRIPT = _SCRIPTS_DIR / "injection_pipeline.py"
 
 _DEFAULT_EXAMPLES_DIR = _PROJECT_ROOT / "data" / "examples"
+_DEFAULT_UTG_EXAMPLES_DIR = _PROJECT_ROOT / "tmp" / "examples"
 _DEFAULT_OUTPUT_DIR = _SCRIPTS_DIR / "outputs3"
 _DEFAULT_SINGLE_OUTPUT_DIR = _SCRIPTS_DIR / "outputs"
 _DEFAULT_MAPPING_CONFIG = _UI_ROOT / "config" / "query_anomaly_mapping.json"
@@ -122,10 +124,16 @@ class PipelineRunResponse(BaseModel):
 
 
 class UTGRunRequest(BaseModel):
-    utg: str = ""
-    screenshots_dir: str = ""
+    example_dir: str = ""       # 示例目录（含 info.json + utg.json）
+    screenshots_dir: str = ""   # 截图目录（可选，如 example_dir 下已有则自动发现）
     output: str = ""
     dry_run: bool = False
+    task: str = ""
+    mapping_config: str = ""
+    gt_template_dir: str = ""
+    enable_verification: bool = False
+    quality_threshold: float = 6.0
+    verification_retries: int = 2
 
 
 class UTGRunResponse(BaseModel):
@@ -913,6 +921,94 @@ async def api_pipeline_run(req: PipelineRunRequest):
     return PipelineRunResponse(**result)
 
 
+class UTGBatchRequest(BaseModel):
+    examples_dir: str = str(_DEFAULT_UTG_EXAMPLES_DIR)
+    mapping_config: str = str(_DEFAULT_MAPPING_CONFIG)
+    output_dir: str = str(_DEFAULT_OUTPUT_DIR / "utg_batch")
+    gt_template_dir: str = ""
+    dry_run: bool = False
+
+
+@app.websocket("/ws/utg-batch-run")
+async def ws_utg_batch_run(websocket: WebSocket):
+    """WebSocket 端点：实时流式推送 UTG 批量脚本输出"""
+    await websocket.accept()
+    try:
+        data = await websocket.receive_json()
+        req = UTGBatchRequest(**data)
+        await _run_utg_batch_streaming(req, websocket)
+    except WebSocketDisconnect:
+        pass
+    except Exception as exc:
+        try:
+            await websocket.send_json({"type": "error", "message": str(exc)})
+        except Exception:
+            pass
+
+
+async def _run_utg_batch_streaming(req: UTGBatchRequest, websocket: WebSocket):
+    examples_dir = _resolve_path(Path(req.examples_dir), _DEFAULT_UTG_EXAMPLES_DIR)
+    mapping_config = _resolve_path(Path(req.mapping_config), Path("tmp/mapping.json"))
+    output_dir = _resolve_path(Path(req.output_dir), _DEFAULT_OUTPUT_DIR / "utg_batch")
+    output_dir.mkdir(parents=True, exist_ok=True)
+
+    cmd = [
+        sys.executable, str(_BATCH_UTG_SCRIPT),
+        "--examples-dir", str(examples_dir),
+        "--mapping-config", str(mapping_config),
+        "--output-dir", str(output_dir),
+    ]
+    if req.dry_run:
+        cmd.append("--dry-run")
+    if req.gt_template_dir:
+        cmd.extend(["--gt-template-dir", str(Path(req.gt_template_dir))])
+
+    env = os.environ.copy()
+    env["PYTHONIOENCODING"] = "utf-8"
+
+    await websocket.send_json({"type": "status", "step": "start", "message": "UTG 批量处理启动..."})
+
+    try:
+        proc = await asyncio.create_subprocess_exec(
+            *cmd,
+            stdout=asyncio.subprocess.PIPE,
+            stderr=asyncio.subprocess.STDOUT,
+            cwd=str(_SCRIPTS_DIR),
+            env=env,
+        )
+    except Exception as exc:
+        await websocket.send_json({"type": "error", "message": str(exc)})
+        return
+
+    try:
+        collected = await _stream_subprocess_lines(proc, websocket)
+    except (WebSocketDisconnect, ConnectionResetError):
+        try:
+            proc.kill()
+        except Exception:
+            pass
+        return
+    finally:
+        await proc.wait()
+
+    # 找最新的 summary
+    summaries = sorted(
+        [f for f in output_dir.iterdir() if f.name.startswith("utg_batch_summary_")],
+        key=lambda f: f.stat().st_mtime, reverse=True,
+    )
+    summary_data = {}
+    if summaries:
+        summary_data = _load_json(summaries[0])
+
+    await websocket.send_json({
+        "type": "done",
+        "success": proc.returncode == 0,
+        "summary": summary_data,
+        "logs": collected,
+        "error": "" if proc.returncode == 0 else f"exit code {proc.returncode}",
+    })
+
+
 @app.get("/api/file")
 async def api_file(path: str = Query(..., description="Absolute file path")):
     file_path = Path(path)
@@ -931,40 +1027,72 @@ async def api_file(path: str = Query(..., description="Absolute file path")):
 
 def _run_utg_pipeline(req: UTGRunRequest) -> Dict:
     """执行 UTG 模式注入决策（dry_run 仅决策不生成）"""
-    utg_path = _resolve_path(Path(req.utg), Path("tmp/utg.json"))
-    screenshots_dir = _resolve_path(Path(req.screenshots_dir), _DEFAULT_EXAMPLES_DIR)
+    # 示例目录：tmp/examples/{uuid}/ → 含 utga_info.json + 截图
+    example_dir = _resolve_path(Path(req.example_dir), _DEFAULT_UTG_EXAMPLES_DIR)
+    utga_path = example_dir / "utg_info.json"
+    if not utga_path.exists():
+        # 兼容旧格式：单独的 utg.json
+        utga_path = example_dir / "utg.json"
+    if not utga_path.exists():
+        return {"success": False, "decision": {}, "outputs": {},
+                "logs": [f"utg_info.json 不存在: {utga_path}"],
+                "error": f"utg_info.json not found: {utga_path}"}
+
+    # 任务描述：从 utga_info.json 顶层 query 字段读取
+    utga_data = _load_json(utga_path)
+    task_from_info = utga_data.get("query", "") or utga_data.get("description", "")
+
+    # 截图目录：优先级 example_dir/（新格式图片与 info.json 同级） >
+    #             example_dir/screenshots/（旧格式子目录） >
+    #             req.screenshots_dir（手动指定） >
+    #             默认目录
+    image_exts = {'.png', '.jpg', '.jpeg', '.webp'}
+    has_images_in_dir = any(
+        f.is_file() and f.suffix.lower() in image_exts
+        for f in example_dir.iterdir()
+    ) if example_dir.exists() else False
+
+    screenshots_sub = example_dir / "screenshots"
+    if has_images_in_dir:
+        screenshots_dir = example_dir
+    elif screenshots_sub.exists():
+        screenshots_dir = screenshots_sub
+    elif req.screenshots_dir:
+        screenshots_dir = Path(req.screenshots_dir)
+    else:
+        screenshots_dir = _DEFAULT_EXAMPLES_DIR  # 回退到旧格式
+
     output_dir = _resolve_path(Path(req.output), _DEFAULT_OUTPUT_DIR / "utg_run")
 
     if req.dry_run:
-        # 仅 LLM 决策，不触发 run_pipeline.py，直接调用 UTG 模块
         try:
             sys.path.insert(0, str(_UI_ROOT))
             from app.injection.utg_loader import UTGLoader
             from app.injection.utg_decision import UTGDecisionMaker
 
-            loader = UTGLoader(str(utg_path))
+            loader = UTGLoader(str(utga_path))
             maker = UTGDecisionMaker()
-            result = maker.decide(loader)
-
+            task_override = req.task or task_from_info or None
+            mapping_cfg = req.mapping_config if req.mapping_config else None
+            result = maker.decide(
+                loader, task_override=task_override,
+                mapping_config=mapping_cfg,
+            )
             return {
                 "success": result.get("success", False),
                 "decision": result,
                 "outputs": {},
                 "logs": [
                     f"UTG: {loader.total_steps} 原始步骤, {loader.valid_count} 有效步骤",
+                    f"任务: {task_override or task_from_info or '自动提取'}",
                     f"决策: step={result.get('injection_step')}, mode={result.get('anomaly_mode')}",
                 ],
                 "error": result.get("error", ""),
             }
         except Exception as exc:
             import traceback
-            return {
-                "success": False,
-                "decision": {},
-                "outputs": {},
-                "logs": [traceback.format_exc()],
-                "error": str(exc),
-            }
+            return {"success": False, "decision": {}, "outputs": {},
+                    "logs": [traceback.format_exc()], "error": str(exc)}
 
     # 完整模式：调用 injection_pipeline.py --utg
     cmd = [
@@ -972,10 +1100,25 @@ def _run_utg_pipeline(req: UTGRunRequest) -> Dict:
         str(_INJECTION_PIPELINE_SCRIPT),
         "--input-dir", str(screenshots_dir),
         "--output-dir", str(output_dir),
-        "--utg", str(utg_path),
+        "--utg", str(utga_path),
         "--no-interactive",
-        "--no-verification",
     ]
+
+    if req.task:
+        cmd.extend(["--task", req.task])
+    elif task_from_info:
+        cmd.extend(["--task", task_from_info])
+    if req.mapping_config:
+        map_path = _resolve_path(Path(req.mapping_config), _DEFAULT_MAPPING_CONFIG)
+        cmd.extend(["--mapping-config", str(map_path)])
+    if req.gt_template_dir:
+        gt_dir = _resolve_path(Path(req.gt_template_dir), _DEFAULT_GT_TEMPLATE_DIR)
+        cmd.extend(["--gt-template-dir", str(gt_dir)])
+    if not req.enable_verification:
+        cmd.append("--no-verification")
+    else:
+        cmd.extend(["--quality-threshold", str(req.quality_threshold)])
+        cmd.extend(["--verification-retries", str(req.verification_retries)])
 
     env = os.environ.copy()
     env["PYTHONIOENCODING"] = "utf-8"
@@ -1053,6 +1196,30 @@ async def api_utg_run(req: UTGRunRequest):
     return UTGRunResponse(**result)
 
 
+@app.get("/api/utg/examples")
+async def api_utg_examples():
+    """列出 tmp/examples/ 下所有可用的 UUID 示例目录"""
+    examples_dir = _DEFAULT_UTG_EXAMPLES_DIR
+    if not examples_dir.exists():
+        return {"examples": [], "base_dir": str(examples_dir)}
+    items = []
+    for d in sorted(examples_dir.iterdir()):
+        if d.is_dir():
+            utg_info = d / "utg_info.json"
+            utg_json = d / "utg.json"
+            utg_file = utg_info if utg_info.exists() else (utg_json if utg_json.exists() else None)
+            if utg_file:
+                data = _load_json(utg_file)
+                items.append({
+                    "dir": str(d),
+                    "name": d.name,
+                    "query": data.get("query", ""),
+                    "appName": data.get("appName", ""),
+                    "uuid": data.get("uuid", d.name),
+                })
+    return {"examples": items, "base_dir": str(examples_dir)}
+
+
 @app.get("/api/health")
 async def health():
     has_key = bool(os.getenv("VLM_API_KEY", ""))
@@ -1063,16 +1230,19 @@ async def health():
         "vlm_model": os.getenv("VLM_MODEL", "gpt-4o"),
         "image_gen": image_gen,
         "batch_available": _BATCH_SCRIPT.exists(),
+        "utg_batch_available": _BATCH_UTG_SCRIPT.exists(),
         "pipeline_available": _RUN_PIPELINE_SCRIPT.exists(),
-    "defaults": {
-        "examples_dir": str(_DEFAULT_EXAMPLES_DIR),
-        "output_dir": str(_DEFAULT_OUTPUT_DIR),
-        "mapping_config": str(_DEFAULT_MAPPING_CONFIG),
-        "gt_template_dir": str(_DEFAULT_GT_TEMPLATE_DIR),
-        "single_screenshot": str(_DEFAULT_SINGLE_SCREENSHOT),
-        "single_output_dir": str(_DEFAULT_SINGLE_OUTPUT_DIR / "demo_single"),
-        "utg_json_path": str(_PROJECT_ROOT / "tmp" / "utg.json"),
-    },
+        "defaults": {
+            "examples_dir": str(_DEFAULT_EXAMPLES_DIR),
+            "output_dir": str(_DEFAULT_OUTPUT_DIR),
+            "mapping_config": str(_DEFAULT_MAPPING_CONFIG),
+            "gt_template_dir": str(_DEFAULT_GT_TEMPLATE_DIR),
+            "single_screenshot": str(_DEFAULT_SINGLE_SCREENSHOT),
+            "single_output_dir": str(_DEFAULT_SINGLE_OUTPUT_DIR / "demo_single"),
+            "utg_json_path": str(_PROJECT_ROOT / "tmp" / "utg.json"),
+        "utg_examples_dir": str(_DEFAULT_UTG_EXAMPLES_DIR),
+        },
+        "utg_mode_available": _INJECTION_PIPELINE_SCRIPT.exists(),
     }
 
 
