@@ -91,6 +91,7 @@ class UTGLoader:
                 cost_time=item.get("cost_time", ""),
                 step_type=item.get("type", ""),
             )
+            step.image_id = item.get("imageId", "")  # 新格式：关联的截图编号(如 "001")
             self.steps.append(step)
 
     def _filter_valid_steps(self):
@@ -117,20 +118,16 @@ class UTGLoader:
         return [s.ui_summary for s in self.valid_steps]
 
     def get_summary_text(self) -> str:
-        """生成全量 ui_summary 的格式化文本，供 LLM 使用"""
+        """生成全量 stepData 的格式化文本（含意图 + UI 描述），供 LLM 评分"""
         lines = []
         for i, s in enumerate(self.valid_steps):
-            idx = i  # 0-based index，对应截图 step_00.png
-            action = s.action_type.replace("<br>", "；").replace("\n", " ")
-            # 限制 action 长度
-            action_short = action[:80] + "..." if len(action) > 80 else action
-            thought_short = s.thought[:60] + "..." if len(s.thought) > 60 else s.thought
-            lines.append(
-                f"Step {idx} (stepId={s.step_id})"
-                f"\n  操作: {action_short}"
-                f"\n  思考: {thought_short}" if thought_short else ""
-            )
-            lines.append(f"  UI状态: {s.ui_summary}")
+            img_tag = f" [截图: {s.image_id}]" if getattr(s, 'image_id', '') else ""
+            thought = s.thought.strip() if s.thought else ""
+            lines.append(f"Step {i}{img_tag}")
+            if thought:
+                lines.append(f"  意图: {thought}")
+            lines.append(f"  UI: {s.ui_summary}")
+            lines.append("")
         return "\n".join(lines)
 
     def to_dict_list(self) -> List[dict]:
@@ -147,13 +144,15 @@ class UTGLoader:
 
     @property
     def task_description(self) -> str:
-        """从 raw 数据中推断任务描述（如有）"""
-        # utg.json 没有专门的任务描述字段，从首步操作推断
+        """从 raw 数据获取任务描述，优先使用顶层的 query 字段"""
+        query = self._raw.get("query", "")
+        if query:
+            return query
+        # 回退：从首步操作中推断
         for s in self.valid_steps:
             if "open(" in s.action_type:
                 return f"打开并使用 {s.action_type.split('open(')[-1].rstrip(')')}"
             if "用户回复" in s.action_type:
-                # 尝试提取用户原始请求
                 parts = s.action_type.split("用户回复(")
                 if len(parts) > 1:
                     return parts[1].split(");")[0]
