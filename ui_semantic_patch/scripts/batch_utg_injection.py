@@ -481,11 +481,22 @@ def main():
             fail_count += 1
             continue
 
-        result = process_example(
-            example, entry, output_dir, decision_maker,
-            dry_run=args.dry_run,
-            gt_template_dir=args.gt_template_dir,
-        )
+        try:
+            result = process_example(
+                example, entry, output_dir, decision_maker,
+                dry_run=args.dry_run,
+                gt_template_dir=args.gt_template_dir,
+            )
+        except Exception as exc:
+            import traceback
+            print(f"  ✗ 异常: {exc}")
+            traceback.print_exc()
+            result = {
+                "uuid": example["uuid"],
+                "query": example["query"],
+                "error": str(exc),
+                "success": False,
+            }
         results.append(result)
 
         if result.get("injection_step", -1) < 0:
