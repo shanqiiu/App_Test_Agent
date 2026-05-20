@@ -336,38 +336,25 @@ def process_example(
     anomaly_img_path = anomaly_pngs[0]
     anomaly_pil = Image.open(anomaly_img_path).convert("RGB")
 
-    # 4c. 复制全部原图到 modified_sequence/（保留原名）
-    if all_images:
-        for img in all_images:
-            dst = sequence_dir / img.name
-            shutil.copy2(img, dst)
+    # 4c. 复制全部原图到 modified_sequence/（保留原名，序列不变）
+    for img in all_images:
+        dst = sequence_dir / img.name
+        shutil.copy2(img, dst)
 
     # 4d. 判断是否可关闭类异常
     dismissible_modes = {'dialog', 'area_loading', 'content_duplicate'}
     is_dismissible = anomaly_mode in dismissible_modes
-    shift = 2 if is_dismissible else 1
-
-    # 4e. 注入点之后的原图往后平移 shift 位
     ref_name = all_images[step].stem  # e.g. "003"
 
-    for i in range(original_count - 1, step, -1):
-        old_num = int(all_images[i].stem)  # e.g. 4 → "004"
-        new_num = old_num + shift
-        src = sequence_dir / f"{old_num:0{name_len}d}{all_images[i].suffix}"
-        dst = sequence_dir / f"{new_num:0{name_len}d}.jpg"
-        if src.exists():
-            src.rename(dst)
-
-    # 4f. 保存异常图（原图名 + _anomaly.jpg）
+    # 4e. 保存异常图：{ref}_anomaly.jpg
     anomaly_dst = sequence_dir / f"{ref_name}_anomaly.jpg"
     anomaly_pil.save(str(anomaly_dst), "JPEG", quality=92)
     print(f"  异常注入: {anomaly_img_path.name} → {anomaly_dst.name}")
 
-    # 4g. 可关闭类：插入恢复图（注入点原图副本）
+    # 4f. 可关闭类：保存恢复图 {ref}_normal.jpg（原图副本）
     if is_dismissible:
         ref_img = all_images[step]
-        recovery_num = int(ref_name) + 1
-        recovery_dst = sequence_dir / f"{recovery_num:0{name_len}d}.jpg"
+        recovery_dst = sequence_dir / f"{ref_name}_normal.jpg"
         shutil.copy2(ref_img, recovery_dst)
         print(f"  恢复界面: {ref_img.name} → {recovery_dst.name}")
 
@@ -403,8 +390,8 @@ def process_example(
     with open(log_path, 'w', encoding='utf-8') as f:
         json.dump(decision, f, ensure_ascii=False, indent=2)
 
-    print(f"  ✓ 注入完成: {inject_dir.name[:12]}...")
-    print(f"    序列: {original_count} → {len(modified_sequence)} 张 "
+    print(f"  ✓ 注入完成: {uuid[:12]}...")
+    print(f"    序列: {original_count} 张原图 + {2 if is_dismissible else 1} 张注入 "
           f"({'可关闭' if is_dismissible else '永久修改'})")
 
     result["success"] = True
