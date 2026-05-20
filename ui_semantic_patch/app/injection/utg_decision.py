@@ -206,10 +206,20 @@ class UTGDecisionMaker:
             config = _load_injection_config(
                 mapping_config, fault_mode=fault_mode, fault_mode_key=fault_mode_key
             )
-            if not config:
-                return self._error("mapping 配置中没有有效的 injection_config")
         if config:
-            print(f"  [UTG决策] 约束模式: {config.get('fault_mode', config.get('anomaly_mode', ''))}")
+            # 归一化：直接传的 dict 可能缺少字段，补默认值
+            config = {
+                "anomaly_mode": config.get("anomaly_mode", "dialog"),
+                "instruction": config.get("instruction", ""),
+                "gt_category": config.get("gt_category", ""),
+                "gt_sample": config.get("gt_sample", ""),
+                "reference_path": config.get("reference_path", ""),
+                "fault_mode": config.get("fault_mode", ""),
+                "app_name": config.get("app_name", ""),
+            }
+            if not config["instruction"]:
+                return self._error("injection_config 缺少 instruction")
+            print(f"  [UTG决策] 约束模式: {config['fault_mode'] or config['anomaly_mode']}")
 
         task_desc = task_override or loader.task_description
         steps_text = loader.get_summary_text()
