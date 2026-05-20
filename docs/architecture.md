@@ -58,45 +58,80 @@ App_Test_Agent/
 ## 3. 架构分层
 
 ```
-┌─────────────────────────────────────────────────────┐
-│                     Entry Scripts                    │
-│  batch_injection_with_mapping.py / run_pipeline.py  │
-├─────────────────────────────────────────────────────┤
-│                 Injection Decision                   │
-│  ┌─────────────┐  ┌───────────────┐  ┌───────────┐  │
-│  │ VLM Analyzer│  │ MappingConfig │  │ Fallback  │  │
-│  │ (旧:不稳定)  │  │ (当前:中间点)  │  │ (兜底)    │  │
-│  └─────────────┘  └───────────────┘  └───────────┘  │
-├─────────────────────────────────────────────────────┤
-│                  Anomaly Generation                  │
-│  ┌──────────────┐  ┌──────────────────────────────┐  │
-│  │ OmniParser   │→ │ VLM Semantic Grouping        │  │
-│  │ (YOLO+OCR)   │  │ (Stage 2)                    │  │
-│  └──────────────┘  └──────────┬───────────────────┘  │
-│                               ▼                       │
-│  ┌──────────────────────────────────────────────┐    │
-│  │         Anomaly Renderer                     │    │
-│  │  ┌──────────┐  ┌──────────┐  ┌───────────┐  │    │
-│  │  │ Dialog   │  │ Modify   │  │ Area      │  │    │
-│  │  │ (弹窗)   │  │ Text     │  │ Loading   │  │    │
-│  │  └──────────┘  └──────────┘  └───────────┘  │    │
-│  └──────────────────────────────────────────────┘    │
-├─────────────────────────────────────────────────────┤
-│                Sequence Rewriter                     │
-│  ┌────────────────────────────────────────────────┐  │
-│  │  插入异常截图 + 截断后续步骤 + 保存元数据       │  │
-│  └────────────────────────────────────────────────┘  │
-├─────────────────────────────────────────────────────┤
-│                 Quality Verification                 │
-│  ┌────────────────────────────────────────────────┐  │
-│  │  VLM 质量评分 + 维度评估 + 重试机制            │  │
-│  └────────────────────────────────────────────────┘  │
-└─────────────────────────────────────────────────────┘
+┌──────────────────────────────────────────────────────────────┐
+│                      Entry Scripts                            │
+│  batch_utg_injection.py ⭐ / batch_injection_with_mapping.py  │
+│  injection_pipeline.py / run_pipeline.py                      │
+├──────────────────────────────────────────────────────────────┤
+│                   Injection Decision                          │
+│  ┌────────────────────┐  ┌─────────────────────────────────┐ │
+│  │ UTG Text Decision ⭐│  │ VLM Visual Decision             │ │
+│  │ (utga_loader +     │  │ (sequence_analyzer +            │ │
+│  │  utga_decision)    │  │  page_classifier + rule_engine) │ │
+│  │ 全量 ui_summary    │  │ 逐帧 VLM 图像分析               │ │
+│  │ 一次文本 LLM 打分   │  │ 页面分类 → 规则匹配             │ │
+│  └────────────────────┘  └─────────────────────────────────┘ │
+├──────────────────────────────────────────────────────────────┤
+│                   Anomaly Generation                          │
+│  ┌──────────────┐  ┌──────────────────────────────────────┐  │
+│  │ OmniParser   │→ │ VLM Semantic Grouping (Stage 2)      │  │
+│  │ (YOLO+OCR)   │  └──────────┬───────────────────────────┘  │
+│  └──────────────┘             ▼                              │
+│  ┌──────────────────────────────────────────────────────┐    │
+│  │              Anomaly Renderer                         │    │
+│  │  ┌────────┐ ┌──────────┐ ┌──────────┐ ┌───────────┐ │    │
+│  │  │ Dialog │ │  Modify  │ │  Area    │ │  Image    │ │    │
+│  │  │ (弹窗) │ │  Text    │ │ Loading  │ │  Broken   │ │    │
+│  │  └────────┘ └──────────┘ └──────────┘ └───────────┘ │    │
+│  └──────────────────────────────────────────────────────┘    │
+├──────────────────────────────────────────────────────────────┤
+│                  Sequence Rewriter                            │
+│  ┌──────────────────────────────────────────────────────────┐│
+│  │  原图不变 + 插入 {ref}_anomaly.jpg + {ref}_normal.jpg   ││
+│  │  保存 metadata.json + decision_log.json                  ││
+│  └──────────────────────────────────────────────────────────┘│
+├──────────────────────────────────────────────────────────────┤
+│                  Quality Verification                         │
+│  ┌──────────────────────────────────────────────────────────┐│
+│  │  VLM 质量评分 + 维度评估 + 重试机制                      ││
+│  └──────────────────────────────────────────────────────────┘│
+└──────────────────────────────────────────────────────────────┘
 ```
 
 ## 4. 数据流
 
-### 4.1 映射驱动流程（当前 `batch_injection_with_mapping.py`）
+### 4.1 UTG 批量注入流程 ⭐ (`batch_utg_injection.py`)
+
+```
+data/examples/{uuid}/
+  ├── utga_info.json  (query + stepData)
+  └── 001.jpg, 002.jpg ...
+
+tmp/mapping.json  (injection_config for each query)
+  │
+  ▼
+batch_utg_injection.py
+  │
+  ├── 1. scan_examples() → 扫描所有 UUID 目录
+  │
+  ├── 2. match_mapping() → UUID ↔ query_id O(1) 匹配
+  │
+  ├── 3. UTGDecisionMaker.decide()
+  │   ├── 约束模式: injection_config 来自 mapping
+  │   ├── LLM 批量打分: 每步 0-10 分 + 理由
+  │   └── 选最高分 step（score ≥ 5）
+  │
+  ├── 4. run_pipeline.py → 生成异常图像
+  │
+  ├── 5. 序列组装
+  │   ├── 原图不变（001.jpg, 002.jpg...）
+  │   ├── 插入 {ref}_anomaly.jpg
+  │   └── 插入 {ref}_normal.jpg（可关闭类）
+  │
+  └── 6. 输出: {uuid}/modified_sequence/ + metadata.json + decision_log.json
+```
+
+### 4.2 映射驱动流程（旧 `batch_injection_with_mapping.py`）
 
 ```
 query_anomaly_mapping.json
@@ -121,7 +156,7 @@ batch_injection_with_mapping.py
   └── 5. (可选) VLM 质量验证
 ```
 
-### 4.2 单例流水线流程（`run_pipeline.py`）
+### 4.3 单例流水线流程（`run_pipeline.py`）
 
 ```
 输入: screenshot + instruction + anomaly_mode + gt-category + gt-sample
@@ -155,49 +190,35 @@ batch_injection_with_mapping.py
 | 阶段 | 方案 | 文件 | 效果 |
 |------|------|------|------|
 | V1 | VLM 逐帧自由决策 | `sequence_analyzer.py` | ❌ 不稳定，VLM 三维决策空间过大 |
-| V2 | 固定中间位置 | `batch_injection_with_mapping.py:179` | ❌ 无语义，忽略截图内容 |
-| V3 (提案) | VLM 分类 + 规则引擎 | 待实现 | ✅ 待验证 |
+| V2 | 固定中间位置 | `batch_injection_with_mapping.py` | ❌ 无语义，忽略截图内容 |
+| V3 | VLM 分类 + 规则引擎 | `page_classifier.py` + `rule_engine.py` | ⚠️ VLM 图像分析仍成本高 |
+| V4 ⭐ | **UTG 文本决策** | `utga_decision.py` + `utga_loader.py` | ✅ 已有语义数据，一次文本 LLM 批量打分 |
 
-### 5.2 当前方案详解
+### 5.2 UTG 文本决策（当前推荐）⭐
 
-```python
-# batch_injection_with_mapping.py L179
-injection_point = len(screenshots) // 2  # 简单中间位置
-```
-
-注入点计算逻辑：
-- 序列 17 张截图 → 注入点 = 17 // 2 = 8
-- 保留 [0..7] 正常截图 + 第 8 张替换为异常截图
-- 注入点之后的步骤全部截断
-
-### 5.3 旧 VLM 方案详解
-
-```python
-# sequence_analyzer.py
-class SequenceAnalyzer:
-    def run(self, screenshots: List[Path]):
-        for i, screenshot in enumerate(screenshots):
-            result = self.analyze_step(screenshot, i, total_steps)
-            if result["decision"] == "INJECT":
-                return injection_point=i, anomaly_type=...
-```
-
-VLM 被问到三个开放性问题：
-1. 当前是什么页面？
-2. 此处注入是否合理？
-3. 选择哪种异常类型？
-
-**失败原因**：决策空间 = 页面类型 × 注入合理性 × 异常类型，三个自由度的开放式问题，VLM 输出不稳定。
-
-### 5.4 提案方案：VLM 分类 + 规则引擎
+核心思路：云端 Agent 执行时已产生精准的 `ui_summary` 语义描述，直接用文本 LLM 分析，替代 VLM 看图。
 
 ```
-VLM 任务从"开放式决策"降级为"封闭式分类"
-         ↓
-规则引擎基于分类结果做确定性匹配
-         ↓
-输出: injection_point + anomaly_config
+utga_info.json (已有 ui_summary + thought)
+        ↓
+  文本 LLM 一次调用（不传图）
+        ↓
+  全序列 0-10 打分: Step 0=3, Step 1=8, Step 2=5 ...
+        ↓
+  代码选最高分: Step 1 (score=8) → injection_step=1
 ```
+
+优势：
+- **成本低**：一次纯文本调用 ≈ N 次图片调用的 1/10
+- **更精准**：`ui_summary` 是执行时的实时描述，比事后看图更准确
+- **可解释**：每步返回分数 + 中文理由
+
+详见 [UTG 架构文档](./utg-architecture.md)。
+
+### 5.3 VLM 分类 + 规则引擎（旧，保留兼容）
+
+VLM 任务从"开放式决策"降级为"封闭式分类"，
+规则引擎基于分类结果做确定性匹配。
 
 **VLM 承担**：页面类型分类 + 关键元素提取（封闭式，高准确率）
 **规则引擎承担**：page_type → anomaly_mode 映射（确定性，可维护）
