@@ -156,7 +156,7 @@ async def index():
 
 
 def _resolve_path(path_value: Optional[str], fallback: Path) -> Path:
-    raw = Path(path_value).expanduser() if path_value else fallback
+    raw = Path(path_value).expanduser() if (path_value and path_value.strip()) else fallback
     return raw.resolve()
 
 

@@ -1811,7 +1811,7 @@ function renderUtgResult(data) {
 
 function restoreUtgDefaults() {
   const d = state.defaults || {};
-  $('utgExampleDir').value = d.utg_examples_dir || (d.examples_dir || '') + '/utg_default';
+  $('utgExampleDir').value = d.utg_examples_dir || 'tmp/examples';
   $('utgScreenshotsDir').value = (d.examples_dir || '') + '/injection_demo_01';
   $('utgOutputDir').value = (d.output_dir || '') + '/utg_run';
   $('utgTask').value = '';
