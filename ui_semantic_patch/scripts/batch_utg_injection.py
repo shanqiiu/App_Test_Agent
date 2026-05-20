@@ -27,6 +27,8 @@ from datetime import datetime
 from pathlib import Path
 from typing import Dict, List, Optional
 
+from PIL import Image
+
 # UTF-8输出
 if sys.platform == 'win32':
     import io
@@ -284,10 +286,10 @@ def process_example(
                         break
 
     # Step 4: 序列注入（生成 + 组装）
-    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-    inject_dir = output_dir / f"injection_{uuid[:8]}_{timestamp}"
+    inject_dir = output_dir / uuid
     sequence_dir = inject_dir / "modified_sequence"
     anomaly_out_dir = inject_dir / "anomaly_generated"
+    inject_dir.mkdir(parents=True, exist_ok=True)
     sequence_dir.mkdir(parents=True, exist_ok=True)
     anomaly_out_dir.mkdir(parents=True, exist_ok=True)
 
@@ -298,6 +300,11 @@ def process_example(
         key=lambda f: f.name
     )
     original_count = len(all_images)
+    if original_count == 0:
+        print(f"  ✗ 目录中没有截图")
+        result["error"] = "no screenshots found"
+        return result
+    name_len = len(all_images[0].stem)  # "001" → 3
     print(f"  原始序列: {original_count} 张")
 
     # 4b. 调用 run_pipeline.py 生成异常图
@@ -316,57 +323,62 @@ def process_example(
         result["error"] = gen_result.get("error", "")
         return result
 
-    # 查找生成的 final_*.png
-    anomaly_images = sorted(
-        [f for f in anomaly_out_dir.rglob("final_*.png")
-         if f.is_file()],
+    # 查找生成的 final_*.png，转为 JPG
+    anomaly_pngs = sorted(
+        [f for f in anomaly_out_dir.rglob("final_*.png") if f.is_file()],
         key=lambda f: f.stat().st_mtime, reverse=True,
     )
-    if not anomaly_images:
+    if not anomaly_pngs:
         print(f"  ✗ 未找到生成的异常图")
         result["error"] = "no anomaly image generated"
         return result
-    anomaly_img = anomaly_images[0]
 
-    # 4c. 复制全部原图到 modified_sequence/
+    anomaly_img_path = anomaly_pngs[0]
+    anomaly_pil = Image.open(anomaly_img_path).convert("RGB")
+
+    # 4c. 复制全部原图到 modified_sequence/（保留原名）
     if all_images:
-        for i, img in enumerate(all_images):
-            dst = sequence_dir / f"step_{i:03d}{img.suffix}"
+        for img in all_images:
+            dst = sequence_dir / img.name
             shutil.copy2(img, dst)
 
     # 4d. 判断是否可关闭类异常
     dismissible_modes = {'dialog', 'area_loading', 'content_duplicate'}
     is_dismissible = anomaly_mode in dismissible_modes
     shift = 2 if is_dismissible else 1
-    insert_pos = step + 1
 
-    # 4e. 将注入点之后的原图平移 shift 位
+    # 4e. 注入点之后的原图往后平移 shift 位
+    ref_name = all_images[step].stem  # e.g. "003"
+
     for i in range(original_count - 1, step, -1):
-        for ext in ['.jpg', '.jpeg', '.png', '.webp']:
-            src = sequence_dir / f"step_{i:03d}{ext}"
-            if src.exists():
-                dst = sequence_dir / f"step_{i + shift:03d}{ext}"
-                src.rename(dst)
-                break
+        old_num = int(all_images[i].stem)  # e.g. 4 → "004"
+        new_num = old_num + shift
+        src = sequence_dir / f"{old_num:0{name_len}d}{all_images[i].suffix}"
+        dst = sequence_dir / f"{new_num:0{name_len}d}.jpg"
+        if src.exists():
+            src.rename(dst)
 
-    # 4f. 插入异常图
-    anomaly_dst = sequence_dir / f"step_{insert_pos:03d}_anomaly{anomaly_img.suffix}"
-    shutil.copy2(anomaly_img, anomaly_dst)
-    print(f"  异常注入: {anomaly_img.name} → {anomaly_dst.name}")
+    # 4f. 保存异常图（原图名 + _anomaly.jpg）
+    anomaly_dst = sequence_dir / f"{ref_name}_anomaly.jpg"
+    anomaly_pil.save(str(anomaly_dst), "JPEG", quality=92)
+    print(f"  异常注入: {anomaly_img_path.name} → {anomaly_dst.name}")
 
     # 4g. 可关闭类：插入恢复图（注入点原图副本）
     if is_dismissible:
-        restore_dst = sequence_dir / f"step_{insert_pos + 1:03d}{screenshot.suffix}"
-        shutil.copy2(screenshot, restore_dst)
-        print(f"  恢复界面: {screenshot.name} → {restore_dst.name}")
+        ref_img = all_images[step]
+        recovery_num = int(ref_name) + 1
+        recovery_dst = sequence_dir / f"{recovery_num:0{name_len}d}.jpg"
+        shutil.copy2(ref_img, recovery_dst)
+        print(f"  恢复界面: {ref_img.name} → {recovery_dst.name}")
 
-    # 4h. 最终序列排序
+    # 4h. 最终序列排序（数字名 + _anomaly 后缀）
     modified_sequence = sorted(
-        sequence_dir.glob("step_*.*"),
-        key=lambda p: p.name
+        sequence_dir.glob("*.*"),
+        key=lambda p: (p.stem.split("_")[0].zfill(name_len), p.stem)
     )
 
     # 4i. 保存元数据
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
     metadata = {
         "timestamp": timestamp,
         "uuid": uuid,
@@ -391,7 +403,7 @@ def process_example(
     with open(log_path, 'w', encoding='utf-8') as f:
         json.dump(decision, f, ensure_ascii=False, indent=2)
 
-    print(f"  ✓ 注入完成: {inject_dir.name}")
+    print(f"  ✓ 注入完成: {inject_dir.name[:12]}...")
     print(f"    序列: {original_count} → {len(modified_sequence)} 张 "
           f"({'可关闭' if is_dismissible else '永久修改'})")
 
