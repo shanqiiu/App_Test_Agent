@@ -703,7 +703,7 @@
           <div class="card-body">
             <div class="desc-text" style="margin-bottom:16px;color:var(--text-2);font-size:13px;">
               基于 utg_info.json 的全量 ui_summary 语义描述，通过文本 LLM 一次性分析操作序列，决策注入点和异常类型。
-              格式: <code>tmp/examples/{uuid}/utg_info.json</code> + 截图(001.jpg 等)。
+              格式: <code>data/examples/{uuid}/utg_info.json</code> + 截图(001.jpg 等)。
             </div>
             <div class="form-grid">
               <div class="form-group full">
@@ -1717,7 +1717,7 @@ function restoreSingleDefaults() {
 function restoreBatchDefaults() {
   if (!state.defaults) return;
   const isUtg = $('batchUtgMode').checked;
-  $('batchExamplesDir').value = isUtg ? (state.defaults.utg_examples_dir || 'tmp/examples') : (state.defaults.examples_dir || '');
+  $('batchExamplesDir').value = isUtg ? (state.defaults.utg_examples_dir || 'data/examples') : (state.defaults.examples_dir || '');
   $('batchOutputDir').value = state.defaults.output_dir || '';
   $('batchMappingConfig').value = isUtg ? 'tmp/mapping.json' : (state.defaults.mapping_config || '');
   $('batchGtTemplateDir').value = state.defaults.gt_template_dir || '';
@@ -1811,7 +1811,7 @@ function renderUtgResult(data) {
 
 function restoreUtgDefaults() {
   const d = state.defaults || {};
-  $('utgExampleDir').value = d.utg_examples_dir || 'tmp/examples';
+  $('utgExampleDir').value = d.utg_examples_dir || 'data/examples';
   $('utgScreenshotsDir').value = (d.examples_dir || '') + '/injection_demo_01';
   $('utgOutputDir').value = (d.output_dir || '') + '/utg_run';
   $('utgTask').value = '';

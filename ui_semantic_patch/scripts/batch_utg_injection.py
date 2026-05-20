@@ -49,7 +49,7 @@ from app.injection.utg_decision import UTGDecisionMaker, _load_injection_config
 from app.core.config import config
 
 # 默认路径
-DEFAULT_EXAMPLES_DIR = _project_root / "tmp" / "examples"
+DEFAULT_EXAMPLES_DIR = _project_root / "data" / "examples"
 DEFAULT_MAPPING_CONFIG = _project_root / "tmp" / "mapping.json"
 DEFAULT_OUTPUT_DIR = _project_root / "outputs" / "utg_batch"
 RUN_PIPELINE_SCRIPT = Path(__file__).parent / "run_pipeline.py"

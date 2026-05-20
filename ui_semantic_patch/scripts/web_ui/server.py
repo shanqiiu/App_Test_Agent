@@ -38,7 +38,7 @@ _RUN_PIPELINE_SCRIPT = _SCRIPTS_DIR / "run_pipeline.py"
 _INJECTION_PIPELINE_SCRIPT = _SCRIPTS_DIR / "injection_pipeline.py"
 
 _DEFAULT_EXAMPLES_DIR = _PROJECT_ROOT / "data" / "examples"
-_DEFAULT_UTG_EXAMPLES_DIR = _PROJECT_ROOT / "tmp" / "examples"
+_DEFAULT_UTG_EXAMPLES_DIR = _PROJECT_ROOT / "data" / "examples"
 _DEFAULT_OUTPUT_DIR = _SCRIPTS_DIR / "outputs3"
 _DEFAULT_SINGLE_OUTPUT_DIR = _SCRIPTS_DIR / "outputs"
 _DEFAULT_MAPPING_CONFIG = _UI_ROOT / "config" / "query_anomaly_mapping.json"
