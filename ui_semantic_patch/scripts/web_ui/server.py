@@ -1028,12 +1028,20 @@ async def api_file(path: str = Query(..., description="Absolute file path")):
 
 def _run_utg_pipeline(req: UTGRunRequest) -> Dict:
     """执行 UTG 模式注入决策（dry_run 仅决策不生成）"""
-    # 示例目录：tmp/examples/{uuid}/ → 含 utga_info.json + 截图
     example_dir = _resolve_path(Path(req.example_dir), _DEFAULT_UTG_EXAMPLES_DIR)
     utga_path = example_dir / "utg_info.json"
     if not utga_path.exists():
-        # 兼容旧格式：单独的 utg.json
         utga_path = example_dir / "utg.json"
+    if not utga_path.exists():
+        # 自动发现：如果给的是父目录，扫描第一个含 utga_info.json 的 UUID 子目录
+        if example_dir.is_dir():
+            for sub in sorted(example_dir.iterdir()):
+                if sub.is_dir() and ((sub / "utg_info.json").exists() or (sub / "utg.json").exists()):
+                    example_dir = sub
+                    utga_path = sub / "utg_info.json"
+                    if not utga_path.exists():
+                        utga_path = sub / "utg.json"
+                    break
     if not utga_path.exists():
         return {"success": False, "decision": {}, "outputs": {},
                 "logs": [f"utg_info.json 不存在: {utga_path}"],
