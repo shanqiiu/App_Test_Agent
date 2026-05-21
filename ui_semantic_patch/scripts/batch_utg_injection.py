@@ -192,40 +192,45 @@ def run_single_generation(
 
 def process_example(
     example: Dict,
-    mapping_entry: Dict,
+    mapping_entry: Optional[Dict],
     output_dir: Path,
     decision_maker: UTGDecisionMaker,
     dry_run: bool = False,
     gt_template_dir: str = None,
 ) -> Dict:
-    """处理单个 example：决策 + 生成"""
+    """处理单个 example：决策 + 生成
+
+    mapping_entry 为 None 时走自由模式（LLM 自动决策异常类型和 instruction）
+    """
     example_dir = Path(example["dir"])
     uuid = example["uuid"]
-    inj = mapping_entry.get("injection_config", {})
-    anomaly_mode = inj.get("anomaly_mode", "dialog")
-    instruction = inj.get("instruction", "")
+
+    # 约束模式：直接从 mapping 取 injection_config
+    inj = mapping_entry.get("injection_config", {}) if mapping_entry else None
+    has_mapping = inj and inj.get("instruction")
 
     result = {
         "uuid": uuid,
         "query": example["query"],
-        "anomaly_mode": anomaly_mode,
-        "instruction": instruction,
+        "anomaly_mode": None,
+        "instruction": None,
         "injection_step": None,
         "success": False,
         "generated": False,
+        "free_mode": not has_mapping,
     }
 
+    mode_label = "约束模式" if has_mapping else "自由模式(无mapping)"
     print(f"\n{'='*60}")
-    print(f"处理: {example['appName']} — {example['query'][:40]}...")
+    print(f"[{mode_label}] {example['appName']} — {example['query'][:40]}...")
     print(f"  UUID: {uuid}")
-    print(f"  异常: {anomaly_mode} | {instruction[:50]}...")
 
-    # Step 1: LLM 打分决策（约束模式，直接传 injection_config）
+    # Step 1: LLM 打分决策
     loader = UTGLoader(str(example_dir / "utg_info.json"))
     decision = decision_maker.decide(
         loader,
         task_override=example.get("query"),
-        injection_config=inj,  # 直接传 dict，免文件加载
+        injection_config=inj if has_mapping else None,
     )
     result["decision"] = decision
     result["injection_step"] = decision.get("injection_step")
@@ -235,7 +240,13 @@ def process_example(
         result["reason"] = decision.get("reason", "")
         return result
 
+    # 从决策结果获取 anomaly_mode + instruction（自由/约束都从这里取）
+    anomaly_mode = decision.get("anomaly_mode", "dialog")
+    instruction = decision.get("instruction", "")
+    result["anomaly_mode"] = anomaly_mode
+    result["instruction"] = instruction
     step = decision["injection_step"]
+    print(f"  异常: {anomaly_mode} | {instruction[:50]}...")
     print(f"  ✓ 注入点: Step {step} (score={decision.get('score', '?')})")
 
     if dry_run:
@@ -274,11 +285,13 @@ def process_example(
     gt_category = ""
     gt_sample = ""
     if need_gt:
-        gt_category = mapping_entry.get("injection_config", {}).get("gt_category", "dialog")
-        gt_sample = mapping_entry.get("injection_config", {}).get("gt_sample", "")
+        gt_category = (mapping_entry or {}).get("injection_config", {}).get("gt_category", anomaly_mode)
+        gt_sample = (mapping_entry or {}).get("injection_config", {}).get("gt_sample", "")
         if not gt_sample and gt_template_dir:
-            gt_dir = Path(gt_template_dir) / gt_category if gt_category else None
-            if gt_dir and gt_dir.exists():
+            gt_dir = Path(gt_template_dir) / gt_category
+            if not gt_dir.exists():
+                gt_dir = Path(gt_template_dir) / "dialog"  # fallback to dialog
+            if gt_dir.exists():
                 for ext in ['.jpg', '.jpeg', '.png']:
                     samples = list(gt_dir.glob(f"*{ext}"))
                     if samples:
@@ -316,7 +329,7 @@ def process_example(
         output_dir=anomaly_out_dir,
         gt_category=gt_category,
         gt_sample=gt_sample,
-        reference_path=mapping_entry.get("injection_config", {}).get("reference_path", ""),
+        reference_path=(mapping_entry or {}).get("injection_config", {}).get("reference_path", ""),
     )
     if not gen_result.get("success"):
         print(f"  ✗ 生成失败: {gen_result.get('error', '未知错误')}")
@@ -470,15 +483,10 @@ def main():
         entry = match_mapping(example, mapping_entries)
         if not entry:
             print(f"\n{'─'*40}")
-            print(f"⚠ 未匹配到 mapping: {example['query'][:40]} (UUID={example['uuid'][:8]}...)")
-            results.append({
-                "uuid": example["uuid"],
-                "query": example["query"],
-                "error": "no matching mapping entry",
-                "success": False,
-            })
-            fail_count += 1
-            continue
+            print(f"ℹ 未匹配到 mapping，使用自由模式: {example['query'][:40]}")
+            # 自由模式：entry 为 None，LLM 自动决策
+        elif not args.uuid:  # 非单例模式才打印匹配成功
+            pass  # 匹配成功，静默
 
         try:
             result = process_example(
