@@ -21,6 +21,12 @@ python "$SCRIPT_DIR/batch_injection_with_mapping.py" \
   --mapping-config "$SCRIPT_DIR/../config/query_anomaly_mapping.json" \
   --gt-template-dir "$PROJECT_ROOT/data/gt-category"
 
+# VLM 模式手动指定注入点
+python "$SCRIPT_DIR/injection_pipeline.py" \
+  --input-dir "$PROJECT_ROOT/data/examples/injection_demo_01" \
+  --output-dir "$SCRIPT_DIR/outputs" \
+  --injection-point 5
+
 # ============================================================
 # UTG 批量异常注入（文本 LLM 决策，推荐）
 # 基于 utg_info.json + mapping.json，无需逐帧 VLM 图像分析
