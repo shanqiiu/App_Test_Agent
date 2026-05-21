@@ -197,10 +197,12 @@ def process_example(
     decision_maker: UTGDecisionMaker,
     dry_run: bool = False,
     gt_template_dir: str = None,
+    injection_point: int = None,
 ) -> Dict:
     """处理单个 example：决策 + 生成
 
-    mapping_entry 为 None 时走自由模式（LLM 自动决策异常类型和 instruction）
+    mapping_entry 为 None 时走自由模式
+    injection_point 指定时跳过 LLM 决策
     """
     example_dir = Path(example["dir"])
     uuid = example["uuid"]
@@ -235,19 +237,25 @@ def process_example(
     result["decision"] = decision
     result["injection_step"] = decision.get("injection_step")
 
-    if decision.get("injection_step", -1) < 0:
+    if decision.get("injection_step", -1) < 0 and injection_point is None:
         print(f"  ⏭ 跳过: {decision.get('reason', '无合适注入点')[:80]}")
         result["reason"] = decision.get("reason", "")
         return result
 
-    # 从决策结果获取 anomaly_mode + instruction（自由/约束都从这里取）
+    # 手动指定注入点（跳过 LLM 决策结果）
+    if injection_point is not None:
+        step = injection_point
+        print(f"  ℹ 手动指定注入点: Step {step} (跳过 LLM 决策)")
+    else:
+        step = decision["injection_step"]
+
+    # 从决策结果获取 anomaly_mode + instruction
     anomaly_mode = decision.get("anomaly_mode", "dialog")
     instruction = decision.get("instruction", "")
     result["anomaly_mode"] = anomaly_mode
     result["instruction"] = instruction
-    step = decision["injection_step"]
     print(f"  异常: {anomaly_mode} | {instruction[:50]}...")
-    print(f"  ✓ 注入点: Step {step} (score={decision.get('score', '?')})")
+    print(f"  ✓ 注入点: Step {step}" + (f" (score={decision.get('score', '?')})" if injection_point is None else " (手动)"))
 
     if dry_run:
         result["success"] = True
@@ -428,6 +436,8 @@ def main():
                         help="仅 LLM 打分，不生成图片")
     parser.add_argument("--uuid", default=None,
                         help="仅处理指定 UUID（调试用）")
+    parser.add_argument("--injection-point", type=int, default=None,
+                        help="手动指定注入步（跳过 LLM 决策）")
 
     args = parser.parse_args()
 
@@ -493,6 +503,7 @@ def main():
                 example, entry, output_dir, decision_maker,
                 dry_run=args.dry_run,
                 gt_template_dir=args.gt_template_dir,
+                injection_point=args.injection_point,
             )
         except Exception as exc:
             import traceback
