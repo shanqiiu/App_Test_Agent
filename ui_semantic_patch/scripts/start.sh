@@ -20,3 +20,31 @@ python "$SCRIPT_DIR/batch_injection_with_mapping.py" \
   --output-dir "$SCRIPT_DIR/outputs3" \
   --mapping-config "$SCRIPT_DIR/../config/query_anomaly_mapping.json" \
   --gt-template-dir "$PROJECT_ROOT/data/gt-category"
+
+# ============================================================
+# UTG 批量异常注入（文本 LLM 决策，推荐）
+# 基于 utg_info.json + mapping.json，无需逐帧 VLM 图像分析
+# ============================================================
+
+# 完整批量生成（需 mapping.json）
+python "$SCRIPT_DIR/batch_utg_injection.py" \
+  --examples-dir "$PROJECT_ROOT/data/examples" \
+  --mapping-config "$PROJECT_ROOT/tmp/mapping.json" \
+  --output-dir "$PROJECT_ROOT/outputs/utg_batch" \
+  --gt-template-dir "$PROJECT_ROOT/data/gt-category"
+
+# 自由模式批量生成（无 mapping，LLM 自动决策异常类型和 instruction）
+python "$SCRIPT_DIR/batch_utg_injection.py" \
+  --examples-dir "$PROJECT_ROOT/data/examples" \
+  --output-dir "$PROJECT_ROOT/outputs/utg_batch" \
+  --gt-template-dir "$PROJECT_ROOT/data/gt-category"
+
+# Dry-run（仅 LLM 打分预览，不生成图片）
+python "$SCRIPT_DIR/batch_utg_injection.py" \
+  --examples-dir "$PROJECT_ROOT/data/examples" \
+  --dry-run
+
+# 手动指定注入点 + 单 UUID 调试
+python "$SCRIPT_DIR/batch_utg_injection.py" \
+  --examples-dir "$PROJECT_ROOT/data/examples" \
+  --uuid 14a37b63 --injection-point 5
