@@ -109,7 +109,7 @@ data/examples/14a37b63-550e-489d-a55b-50e8cfc6b38a/
 └── ...
 ```
 
-### utga_info.json 结构
+### utg_info.json 结构
 
 ```json
 {
@@ -176,11 +176,12 @@ App_Test_Agent/
 │   ├── examples/              # 示例任务（UUID 目录 + 旧 injection_demo）
 │   └── gt-category/           # GT 模板（参考图 + meta.json）
 │
-├── docs/                      # 文档
+├── docs/                      # 当前文档
+│   ├── README.md              # 文档索引
 │   ├── architecture.md        # 系统架构
-│   ├── utga-architecture.md   # UTG 文本决策架构 ⭐
-│   ├── injection-pipeline.md  # 异常注入开发文档
-│   └── ...
+│   ├── utg-architecture.md    # UTG 文本决策架构 ⭐
+│   ├── mapping-generation.md  # Mapping 与定位机制
+│   └── 技术难题业界与项目方案对照.md
 │
 ├── outputs/                   # 输出目录
 ├── tmp/                       # 临时/开发文件
@@ -193,8 +194,8 @@ App_Test_Agent/
     │   │   ├── sequence_analyzer.py    # VLM 增量式序列分析（旧）
     │   │   ├── rule_engine.py          # 规则引擎
     │   │   ├── sequence_rewriter.py    # 序列改写器
-    │   │   ├── utga_loader.py         # UTG 数据加载器 ⭐
-    │   │   ├── utga_decision.py       # UTG 文本决策器 ⭐
+    │   │   ├── utg_loader.py          # UTG 数据加载器 ⭐
+    │   │   ├── utg_decision.py        # UTG 文本决策器 ⭐
     │   │   └── ...
     │   ├── renderers/         # 异常渲染引擎
     │   ├── stages/            # 流水线阶段（OmniParser 等）
@@ -229,10 +230,11 @@ App_Test_Agent/
 
 | 类别 | 链接 | 说明 |
 |------|------|------|
+| 文档索引 | [docs/README.md](./docs/README.md) | 当前保留文档与清理原则 |
 | 系统架构 | [docs/architecture.md](./docs/architecture.md) | 整体系统架构 |
 | UTG 架构 ⭐ | [docs/utg-architecture.md](./docs/utg-architecture.md) | UTG 文本决策设计与实现 |
-| 注入开发 | [docs/injection-pipeline.md](./docs/injection-pipeline.md) | 异常注入全流程开发指南 |
-| 技术难题 | [docs/技术难题.md](./docs/技术难题.md) | 核心挑战与解决方案 |
+| Mapping 与定位 | [docs/mapping-generation.md](./docs/mapping-generation.md) | Mapping 生成和目标定位机制 |
+| 技术难题 | [docs/技术难题业界与项目方案对照.md](./docs/技术难题业界与项目方案对照.md) | 技术挑战与当前方案对照 |
 | 框架说明 | [ui_semantic_patch/README.md](./ui_semantic_patch/README.md) | 框架架构与使用 |
 
 ---

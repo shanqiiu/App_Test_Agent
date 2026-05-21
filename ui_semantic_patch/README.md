@@ -240,7 +240,7 @@ bash launch.sh list         # 列出异常类别
 |           | `utils/history_manager.py`             | 注入历史记录管理                      |
 
 
-> 详细接口契约与数据流见 [代码手册](../../docs/plans/2026-03-06-code-manual.md)
+> 当前以仓库根目录的 [docs/architecture.md](../docs/architecture.md) 和 [docs/mapping-generation.md](../docs/mapping-generation.md) 为准。
 
 ---
 
