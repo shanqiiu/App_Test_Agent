@@ -23,7 +23,6 @@ App_Test_Agent/
 ├── tmp/                          # 临时样例、调试产物、UTG mapping
 └── ui_semantic_patch/
     ├── app/
-    │   ├── cli/                  # Python 模块化入口
     │   ├── core/                 # 路径配置、Schema
     │   ├── stages/               # Stage 1/2 感知流程
     │   ├── renderers/            # Stage 3 异常渲染器
@@ -41,7 +40,6 @@ App_Test_Agent/
 入口：
 
 - `ui_semantic_patch/scripts/run_pipeline.py`
-- `python -m app.cli.pipeline` 只是对 `run_pipeline.py` 的兼容代理
 
 默认三阶段：
 

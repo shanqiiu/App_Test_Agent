@@ -1,90 +1,126 @@
 # App_Test_Agent
 
-**AI 智能体测试技术研究 — 异常场景自动生成平台**
+面向 AI Agent 测试的异常场景自动生成工具链。
 
-[![Project Status](https://img.shields.io/badge/status-prototype-blue)]()
-[![Phase](https://img.shields.io/badge/phase-3_optimization-green)]()
-[![Last Updated](https://img.shields.io/badge/updated-2026--05--20-brightgreen)]()
+项目当前聚焦两件事：
 
----
+1. 对单张 App 截图生成异常 UI。
+2. 在真实操作轨迹中选择合适时机插入异常，并输出可回放的异常截图序列。
 
-## 项目简介
+## 当前主线
 
-本项目专注于**AI 智能体（AI Agent）异常测试场景自动生成**。核心能力包括：
+仓库现在有三条主要链路：
 
-1. **单图异常生成**：对单张 APP 截图注入弹窗、加载异常、文字覆盖等效果
-2. **序列注入决策（VLM 视觉方案）**：逐帧 VLM 图像分析 → 页面分类 → 规则引擎 → 注入点决策
-3. **序列注入决策（UTG 文本方案）** ⭐ 新：基于云端 Agent 执行时已有的 `ui_summary` 语义描述，通过文本 LLM 一次调用完成全序列批量打分 + 注入点决策，免去逐帧 VLM 图像分析
+### 1. 单图异常生成
 
-### 解决方案演进
+入口：
 
-```
-VLM 视觉方案（旧）:
-截图序列 → 逐帧 VLM 图像分析 → 页面分类 → 规则引擎 → 注入决策
-  ↑ 每帧编码图片、调 VLM API，成本高、不稳定
+- `ui_semantic_patch/scripts/run_pipeline.py`
 
-UTG 文本方案（新）:
-utg_info.json（已有 ui_summary） → 文本 LLM 一次调用 → 全序列打分 → 注入决策
-  ↑ 已有语义数据、纯文本调用，成本仅 1/10，决策更精准
-```
+用途：
 
----
+- 对单张截图生成 `dialog`、`area_loading`、`content_duplicate`、`text_overlay`、`modify_text*`、`image_broken` 等异常图。
+
+### 2. 视觉序列注入
+
+入口：
+
+- `ui_semantic_patch/scripts/injection_pipeline.py`
+
+流程：
+
+- 截图序列
+- `PageClassifier`
+- `RuleEngine`
+- `SequenceAnalyzer`
+- `SequenceRewriter`
+
+适合场景：
+
+- 只有截图，没有 `ui_summary` 语义轨迹。
+
+### 3. UTG 文本注入
+
+入口：
+
+- `ui_semantic_patch/scripts/batch_utg_injection.py`
+
+流程：
+
+- `utg_info.json`
+- `UTGLoader`
+- `UTGDecisionMaker`
+- `run_pipeline.py`
+
+适合场景：
+
+- 已经有云端执行轨迹，且每步带 `ui_summary`。
 
 ## 核心能力
 
-### 异常渲染模式
+### 异常模式
 
-| 异常模式 | 说明 | 序列影响 |
-|----------|------|---------|
-| `dialog` | 弹窗覆盖注入 | 可关闭：加 anomaly + normal 恢复 |
-| `area_loading` | 区域加载异常 | 可关闭：加 anomaly + normal 恢复 |
-| `content_duplicate` | 内容重复/歧义 | 可关闭：加 anomaly + normal 恢复 |
-| `modify_text` | 文字修改（OCR + PIL） | 永久修改 |
-| `text_overlay` | 局部文字覆盖 | 永久修改 |
-| `image_broken` | 图片资源损坏 | 永久修改 |
+当前主要模式：
 
-### 注入决策模式
+- `dialog`
+- `area_loading`
+- `content_duplicate`
+- `text_overlay`
+- `modify_text`
+- `modify_text_ai`
+- `modify_text_ocr`
+- `modify_text_e2e`
+- `image_broken`
+- `response_delay`
 
-| 模式 | 输入 | 决策方式 | 适用场景 |
-|------|------|---------|---------|
-| **VLM 视觉** | 截图序列 | 逐帧 VLM 图像分析 → 规则引擎 | 无预标注数据的场景 |
-| **UTG 文本** ⭐ | `utg_info.json` | 全量 ui_summary 文本 LLM 批量打分 | 已有云端 Agent 执行数据 |
+说明：
 
----
+- `response_delay` 是序列层异常，不走单图渲染器。
+- `dialog` 是最依赖 GT 模板的一类模式。
+
+### 决策方式
+
+当前支持两种注入点决策：
+
+1. 视觉决策
+   - 基于截图做页面分类和规则匹配。
+2. UTG 文本决策
+   - 基于 `utg_info.json` 中的 `ui_summary` 做全序列文本打分。
 
 ## 快速开始
 
-### 1. 环境准备
+### 1. 安装
 
 ```bash
-cp .env.example .env
 pip install -r ui_semantic_patch/requirements.txt
+pip install -r ui_semantic_patch/third_party/OmniParser/requirements.txt
 ```
 
-必需环境变量：`VLM_API_KEY`、`VLM_API_URL`、`VLM_MODEL`
+准备 `.env`，至少配置：
 
-### 2. 单图异常生成
+- `VLM_API_KEY`
+- `VLM_API_URL`
+- `VLM_MODEL`
+
+### 2. 单图生成
 
 ```bash
 cd ui_semantic_patch/scripts
+
 python run_pipeline.py \
-  --screenshot ../../data/gt-category/dialog/example.jpg \
+  --screenshot ../../data/gt-category/dialog/京东到家-外卖页面-优惠券弹窗.jpg \
   --instruction "生成优惠券广告弹窗" \
   --anomaly-mode dialog \
-  --output ./output/demo
+  --output ../../outputs/demo_single
 ```
 
-### 3. UTG 批量异常注入（推荐）
+### 3. UTG 批量注入
 
 ```bash
-# 扫描 data/examples/ 下所有 UUID 目录，匹配 mapping.json，批量生成
 python batch_utg_injection.py \
-  --examples-dir ../data/examples \
-  --mapping-config ../tmp/mapping.json \
-  --output-dir ../outputs/utg_batch
-
-# Dry-run：仅 LLM 打分预览，不生成图片
-python batch_utg_injection.py --examples-dir ../data/examples --dry-run
+  --examples-dir ../../data/examples \
+  --mapping-config ../../tmp/mapping.json \
+  --output-dir ../../outputs/utg_batch
 ```
 
 ### 4. Web UI
@@ -92,158 +128,86 @@ python batch_utg_injection.py --examples-dir ../data/examples --dry-run
 ```bash
 cd ui_semantic_patch/scripts/web_ui
 python server.py
-# 浏览器打开 http://localhost:8767
 ```
 
----
+默认地址：
 
-## 数据格式
+- `http://localhost:8767`
 
-### UTG 示例目录 (`data/examples/{uuid}/`)
+更完整的脚本说明、核心目录职责和运行入口见：
 
-```
-data/examples/14a37b63-550e-489d-a55b-50e8cfc6b38a/
-├── uitg_info.json       # query + stepData (ui_summary + thought + imageId)
-├── 001.jpg              # step 0 截图
-├── 002.jpg              # step 1 截图
+- [ui_semantic_patch/README.md](./ui_semantic_patch/README.md)
+
+## 关键数据
+
+### UTG 输入目录
+
+```text
+data/examples/{uuid}/
+├── utg_info.json
+├── 001.jpg
+├── 002.jpg
 └── ...
 ```
 
-### utg_info.json 结构
+### UTG 核心字段
 
 ```json
 {
-  "query": "到天猫帮买一双黑色的37码运动鞋",
-  "uuid": "14a37b63-550e-489d-a55b-50e8cfc6b38a",
-  "appName": "天猫",
+  "query": "...",
+  "uuid": "...",
+  "appName": "...",
   "stepData": [
     {
       "stepId": "4",
-      "action_type": "set_text(...)",
-      "thought": "【0】直接将搜索框内容改为...",
-      "ui_summary": "页面顶部为搜索框，当前内容为...",
+      "thought": "...",
+      "ui_summary": "...",
       "imageId": "001"
     }
   ]
 }
 ```
 
-### mapping.json 结构
+### 常见输出
 
-```json
-{
-  "mappings": [
-    {
-      "query": "到天猫帮买一双黑色的37码运动鞋",
-      "query_id": "14a37b63-550e-489d-a55b-50e8cfc6b38a",
-      "injection_config": {
-        "anomaly_mode": "image_broken",
-        "instruction": "在购买页面注入遮挡层..."
-      }
-    }
-  ]
-}
-```
-
-### 注入输出
-
-```
-outputs/utg_batch/14a37b63-550e-489d-a55b-50e8cfc6b38a/
+```text
+outputs/.../
 ├── modified_sequence/
-│   ├── 001.jpg              # 原图不动
-│   ├── 002.jpg
-│   ├── 003.jpg              # 注入点参考图
-│   ├── 003_anomaly.jpg      # 异常图
-│   ├── 003_normal.jpg       # 恢复图（可关闭类）
-│   ├── 004.jpg
-│   └── ...
 ├── anomaly_generated/
-│   └── final_*.png
 ├── metadata.json
 └── decision_log.json
 ```
 
----
+## 仓库结构
 
-## 项目结构
-
-```
+```text
 App_Test_Agent/
-├── README.md
-├── .env.example
-│
-├── data/
-│   ├── examples/              # 示例任务（UUID 目录 + 旧 injection_demo）
-│   └── gt-category/           # GT 模板（参考图 + meta.json）
-│
-├── docs/                      # 当前文档
-│   ├── README.md              # 文档索引
-│   ├── architecture.md        # 系统架构
-│   ├── utg-architecture.md    # UTG 文本决策架构 ⭐
-│   ├── mapping-generation.md  # Mapping 与定位机制
-│   └── 技术难题业界与项目方案对照.md
-│
-├── outputs/                   # 输出目录
-├── tmp/                       # 临时/开发文件
-│   ├── mapping.json           # 异常映射配置
-│   └── examples/              # 测试用示例
-│
-└── ui_semantic_patch/         # 核心框架
+├── data/                     # 示例数据、GT 模板、mapping 生成脚本
+├── docs/                     # 当前有效文档
+├── outputs/                  # 生成结果
+├── tmp/                      # 临时 mapping、样例、调试文件
+└── ui_semantic_patch/        # 核心实现
     ├── app/
-    │   ├── injection/         # 注入决策引擎
-    │   │   ├── sequence_analyzer.py    # VLM 增量式序列分析（旧）
-    │   │   ├── rule_engine.py          # 规则引擎
-    │   │   ├── sequence_rewriter.py    # 序列改写器
-    │   │   ├── utg_loader.py          # UTG 数据加载器 ⭐
-    │   │   ├── utg_decision.py        # UTG 文本决策器 ⭐
-    │   │   └── ...
-    │   ├── renderers/         # 异常渲染引擎
-    │   ├── stages/            # 流水线阶段（OmniParser 等）
-    │   ├── core/              # 配置与数据模型
-    │   └── utils/             # 工具库
+    │   ├── core/
+    │   ├── stages/
+    │   ├── renderers/
+    │   ├── injection/
+    │   └── utils/
     ├── scripts/
-    │   ├── run_pipeline.py            # 单图异常生成
-    │   ├── injection_pipeline.py      # 注入流水线（VLM + UTG 双模式）
-    │   ├── batch_utg_injection.py     # UTG 批量注入 ⭐
-    │   ├── batch_injection_with_mapping.py  # VLM 批量注入（旧）
-    │   └── web_ui/                    # Web 管理界面
-    ├── config/                # 映射配置文件
-    └── third_party/OmniParser/  # OmniParser 本地集成
+    ├── config/
+    └── third_party/
 ```
 
----
+## 文档入口
 
-## 技术栈
+- [docs/README.md](./docs/README.md)
+- [docs/architecture.md](./docs/architecture.md)
+- [docs/utg-architecture.md](./docs/utg-architecture.md)
+- [docs/mapping-generation.md](./docs/mapping-generation.md)
+- [ui_semantic_patch/README.md](./ui_semantic_patch/README.md)
 
-| 层次 | 技术 |
-|------|------|
-| **AI 感知** | OmniParser (YOLO + PaddleOCR + Florence2) |
-| **文本决策** ⭐ | 纯文本 LLM（复用 VLM_API_KEY），全序列批量打分 |
-| **视觉决策** | VLM (GPT-4o / qwen-vl-max) 图像分析 + 规则引擎 |
-| **图像生成** | DashScope AI / 华为 MLOps / Local SD / PIL (多后端) |
-| **渲染** | 程序化合成 · Alpha 混合 · AI 图像编辑 |
-| **Web** | FastAPI + WebSocket 流式推送 |
+## 说明
 
----
-
-## 文档导航
-
-| 类别 | 链接 | 说明 |
-|------|------|------|
-| 文档索引 | [docs/README.md](./docs/README.md) | 当前保留文档与清理原则 |
-| 系统架构 | [docs/architecture.md](./docs/architecture.md) | 整体系统架构 |
-| UTG 架构 ⭐ | [docs/utg-architecture.md](./docs/utg-architecture.md) | UTG 文本决策设计与实现 |
-| Mapping 与定位 | [docs/mapping-generation.md](./docs/mapping-generation.md) | Mapping 生成和目标定位机制 |
-| 技术难题 | [docs/技术难题业界与项目方案对照.md](./docs/技术难题业界与项目方案对照.md) | 技术挑战与当前方案对照 |
-| 框架说明 | [ui_semantic_patch/README.md](./ui_semantic_patch/README.md) | 框架架构与使用 |
-
----
-
-## 许可证
-
-待定
-
----
-
-**最后更新**: 2026-05-20
-**项目状态**: Phase 3 优化进行中
+1. 根目录 `docs/` 负责说明系统现状和设计边界。
+2. `ui_semantic_patch/README.md` 负责说明核心实现目录和常用入口。
+3. 如果文档和代码冲突，以当前代码实现为准。
