@@ -1,0 +1,277 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "SimApp 建模数据统一 Schema",
+  "description": "定义 APP 类型、事件、主题数据、UI组件、以及对应的主要操作流程描述的统一建模规范",
+  "definitions": {
+    "AppType": {
+      "type": "object",
+      "required": [
+        "id",
+        "name",
+        "events",
+        "topics",
+        "ui",
+        "mainFlow",
+        "baselineMapping"
+      ],
+      "properties": {
+        "id": { "type": "string", "description": "APP类型唯一标识，小写英文" },
+        "name": { "type": "string", "description": "APP类型中文名称" },
+        "description": { "type": "string", "description": "APP类型描述" },
+        "representatives": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "典型代表APP列表"
+        },
+        "coreDomains": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "核心业务域"
+        },
+        "events": {
+          "type": "array",
+          "items": { "$ref": "#/definitions/Event" },
+          "description": "关联的操作事件列表"
+        },
+        "topics": {
+          "type": "array",
+          "items": { "$ref": "#/definitions/TopicData" },
+          "description": "关联的主题数据ID列表"
+        },
+        "ui": { "$ref": "#/definitions/UIConfig" },
+        "mainFlow": { "$ref": "#/definitions/Flow" },
+        "baselineMapping": { "$ref": "#/definitions/BaselineMapping" }
+      }
+    },
+    "UIConfig": {
+      "type": "object",
+      "properties": {
+        "layouts": {
+          "type": "array",
+          "items": { "$ref": "#/definitions/UILayout" },
+          "description": "适用的布局类型列表"
+        },
+        "components": {
+          "type": "array",
+          "items": { "$ref": "#/definitions/UIComponent" },
+          "description": "适用的组件类型列表"
+        },
+        "navigation": {
+          "type": "array",
+          "items": { "$ref": "#/definitions/UINavigation" },
+          "description": "导航类型列表"
+        },
+        "interactions": {
+          "type": "array",
+          "items": { "$ref": "#/definitions/UIInteraction" },
+          "description": "适用的交互事件类型列表"
+        }
+      }
+    },
+    "UILayout": {
+      "type": "object",
+      "required": ["id", "name"],
+      "properties": {
+        "id": { "type": "string", "description": "布局唯一标识" },
+        "name": { "type": "string", "description": "布局中文名称" },
+        "description": { "type": "string", "description": "布局描述" },
+        "applicablePages": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "适用的页面场景"
+        },
+        "characteristics": {
+          "type": "object",
+          "description": "布局特征参数（如列数、滚动方向等）"
+        },
+        "arkTSImplementation": { "type": "string", "description": "ArkTS 实现方式" }
+      }
+    },
+    "UIComponent": {
+      "type": "object",
+      "required": ["id", "name"],
+      "properties": {
+        "id": { "type": "string", "description": "组件唯一标识" },
+        "name": { "type": "string", "description": "组件中文名称" },
+        "description": { "type": "string", "description": "组件描述" },
+        "category": { "type": "string", "description": "组件分类（基础/表单/展示/反馈/导航/业务）" },
+        "arkTS": { "type": "string", "description": "ArkTS 组件标签" },
+        "commonProps": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "常用属性列表"
+        }
+      }
+    },
+    "UINavigation": {
+      "type": "object",
+      "required": ["id", "name"],
+      "properties": {
+        "id": { "type": "string", "description": "导航类型唯一标识" },
+        "name": { "type": "string", "description": "导航类型中文名称" },
+        "description": { "type": "string", "description": "导航类型描述" },
+        "characteristics": {
+          "type": "object",
+          "description": "导航特征参数"
+        },
+        "typicalTabs": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "典型Tab项列表"
+        },
+        "arkTSImplementation": { "type": "string", "description": "ArkTS 实现方式" }
+      }
+    },
+    "UIInteraction": {
+      "type": "object",
+      "required": ["id", "name"],
+      "properties": {
+        "id": { "type": "string", "description": "交互类型唯一标识" },
+        "name": { "type": "string", "description": "交互类型中文名称" },
+        "description": { "type": "string", "description": "交互类型描述" },
+        "gestureType": { "type": "string", "description": "手势类型或触发方式" },
+        "applicableComponents": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "适用的组件ID列表"
+        },
+        "feedbackType": { "type": "string", "description": "反馈类型（视觉/触觉/动画）" },
+        "typicalUsages": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "典型使用场景"
+        }
+      }
+    },
+    "Event": {
+      "type": "object",
+      "required": ["id", "name", "category", "description"],
+      "properties": {
+        "id": { "type": "string", "description": "事件唯一标识" },
+        "name": { "type": "string", "description": "事件中文名称" },
+        "category": { "type": "string", "description": "事件分类" },
+        "description": { "type": "string", "description": "事件描述" },
+        "triggerType": {
+          "type": "string",
+          "enum": ["click", "scroll", "input", "gesture", "system", "timer"],
+          "description": "触发方式"
+        },
+        "targetPage": { "type": "string", "description": "所在页面" },
+        "relatedData": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "关联的数据字段"
+        },
+        "nextEvents": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "可能触发的后续事件ID列表"
+        }
+      }
+    },
+    "TopicData": {
+      "type": "object",
+      "required": ["id", "name", "fields"],
+      "properties": {
+        "id": { "type": "string", "description": "主题唯一标识" },
+        "name": { "type": "string", "description": "主题中文名称" },
+        "description": { "type": "string", "description": "主题描述" },
+        "applicableAppTypes": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "适用的APP类型ID列表"
+        },
+        "fields": {
+          "type": "array",
+          "items": { "$ref": "#/definitions/TopicField" },
+          "description": "主题数据字段列表"
+        }
+      }
+    },
+    "TopicField": {
+      "type": "object",
+      "required": ["id", "name", "type"],
+      "properties": {
+        "id": { "type": "string", "description": "字段唯一标识" },
+        "name": { "type": "string", "description": "字段中文名称" },
+        "type": {
+          "type": "string",
+          "enum": [
+            "string",
+            "number",
+            "boolean",
+            "array",
+            "enum",
+            "date",
+            "price"
+          ],
+          "description": "字段数据类型"
+        },
+        "required": { "type": "boolean", "description": "是否必填" },
+        "filterable": {
+          "type": "boolean",
+          "description": "是否可作为筛选条件"
+        },
+        "sortable": { "type": "boolean", "description": "是否可排序" },
+        "displayInCard": {
+          "type": "boolean",
+          "description": "是否在卡片中展示"
+        },
+        "displayInDetail": {
+          "type": "boolean",
+          "description": "是否在详情页展示"
+        },
+        "enumValues": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "枚举值列表（type为enum时）"
+        },
+        "unit": { "type": "string", "description": "单位" },
+        "example": { "description": "示例值" }
+      }
+    },
+    "Flow": {
+      "type": "object",
+      "required": ["steps"],
+      "properties": {
+        "id": { "type": "string", "description": "流程唯一标识" },
+        "name": { "type": "string", "description": "流程名称" },
+        "description": { "type": "string", "description": "流程描述" },
+        "appType": { "type": "string", "description": "所属APP类型ID" },
+        "precondition": { "type": "string", "description": "流程前置条件" },
+        "steps": {
+          "type": "array",
+          "items": { "$ref": "#/definitions/FlowStep" },
+          "minItems": 1,
+          "description": "有序步骤列表，按执行顺序排列"
+        }
+      }
+    },
+    "FlowStep": {
+      "type": "object",
+      "required": ["order", "action"],
+      "properties": {
+        "order": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "步骤序号，从1开始"
+        },
+        "action": {
+          "type": "string",
+          "description": "用户动作或系统行为描述"
+        }
+      }
+    },
+    "BaselineMapping": {
+      "type": "object",
+      "properties": {
+        "baseline_dir": { "type": "string", "description": "基线工程目录路径" },
+        "screenKeys": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "虚拟屏幕Key列表"
+        }
+      }
+    }
+  }
+}
