@@ -155,32 +155,26 @@ def convert(
                 cleaned_thought = re.sub(r'^【\d+】\s*', '', thought)
                 action_text = f"{cleaned_thought}。当前页面：{action_text}"
 
+            # 严格遵循模板 step 格式: 只保留 order + action
             step_entry = {
                 "order": s["order"],
-                "stepId": s["stepId"],
                 "action": action_text,
-                "action_type": s.get("action_type", ""),
-                "imageId": s.get("imageId", ""),
             }
             new_steps.append(step_entry)
 
-        # 6. 合并
+        # 6. 合并（严格遵循模板 mainFlow 格式，不添加额外字段）
         if mode == "replace":
-            # 完全替换
             merged["mainFlow"]["steps"] = new_steps
-            merged["mainFlow"]["description"] = utg_data.get("query", merged["mainFlow"].get("description", ""))
         elif mode == "fill":
-            # 按顺序填充/覆盖
             template_steps = merged["mainFlow"].get("steps", [])
             for i, ns in enumerate(new_steps):
                 if i < len(template_steps):
-                    # 覆盖已有步骤的 action
-                    template_steps[i]["action"] = ns["action"]
-                    # 补充额外字段
-                    template_steps[i]["stepId"] = ns.get("stepId", template_steps[i].get("stepId", ""))
-                    template_steps[i]["imageId"] = ns.get("imageId", "")
+                    # 只更新 action，保持模板原有字段不变
+                    template_steps[i] = {
+                        "order": template_steps[i].get("order", i + 1),
+                        "action": ns["action"],
+                    }
                 else:
-                    # 追加新步骤
                     template_steps.append(ns)
             merged["mainFlow"]["steps"] = template_steps
         else:
