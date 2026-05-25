@@ -1,83 +1,52 @@
 {
-    "nodes": [],
-    "stepData": [
-        {
-            "stepId": "home"
-        },
-        {
-            "action_type": "用户回复(华为商城买一个free clip，选玫瑰金色的);<br>open(华为商城)",
-            "cost_time": "3641",
-            "stepId": "1",
-            "thought": "【0】",
-            "type": "AAS",
-            "ui_summary": ""
-        },
-        {
-            "action_type": "open(华为商城)",
-            "cost_time": "111",
-            "stepId": "2"
-        },
-        {
-            "action_type": "set_text(2_0, \"free clip\")\nmode:7B",
-            "cost_time": "2095",
-            "stepId": "3",
-            "thought": "【0】首页有搜索框，应直接在搜索框输入“free clip”以查找目标商品。",
-            "type": "AAS",
-            "ui_summary": "华为商城首页，有搜索框（默认内容为“Pura 80”），可输入搜索内容，页面展示推荐产品和分类导航。"
-        },
-        {
-            "action_type": "set_text(2_0, \"free clip\")\nmode:7B",
-            "cost_time": "2242",
-            "stepId": "4",
-            "thought": "【312】需将搜索框内容修改为“free clip”，直接输入即可。",
-            "type": "AAS",
-            "ui_summary": "页面顶部有搜索框，当前内容为“Pura X”，可编辑，右侧有扫描按钮；页面主要展示推荐内容和分类导航；底部导航栏显示当前处于首页。"
-        },
-        {
-            "action_type": "set_text(2_0, \"free clip\")\nmode:7B",
-            "cost_time": "2434",
-            "stepId": "5",
-            "thought": "【312】需将搜索框内容修改为“free clip”，以进入搜索结果页。",
-            "type": "AAS",
-            "ui_summary": "页面顶部有搜索框，内容为“FreeBuds 6”，右侧有扫描按钮。页面主要展示HUAWEI Mate70 Pro的广告和分类导航，底部导航栏显示当前处于首页。"
-        },
-        {
-            "action_type": "clarify(请问选HUAWEI FreeClip 2还是HUAWEI FreeClip？);\nmode:7B",
-            "cost_time": "2496",
-            "stepId": "6",
-            "thought": "【0】有两款FreeClip，用户未指定型号，需先确认具体选择。",
-            "type": "AAS",
-            "ui_summary": "页面中展示搜索结果，包括两款耳机产品：HUAWEI FreeClip 2和HUAWEI FreeClip，分别标有价格及描述；两款耳机均为可点击状态，未明确选中任何商品。"
-        },
-        {
-            "action_type": "用户回复(第一个);<br>click(4_0)\nmode:7B",
-            "cost_time": "1376",
-            "stepId": "7",
-            "thought": "【0】用户已指定选第一个商品，应点击HUAWEI FreeClip 2进入详情页。",
-            "type": "AAS",
-            "ui_summary": ""
-        },
-        {
-            "action_type": "click(4)\nmode:7B",
-            "cost_time": "3462",
-            "stepId": "8",
-            "thought": "【0】用户要求玫瑰金色，当前为摩登黑，应先点击已选规格，进入规格选择页。",
-            "type": "AAS",
-            "ui_summary": "页面顶部为导航栏，包括返回按钮和更多选项。中部展示HUAWEI FreeClip 2耳机的图片和名称，价格为1299元，当前选中的颜色为摩登黑，可选择三种颜色。底部提供操作按钮，包括‘加入购物车’和‘立即购买’。"
-        },
-        {
-            "action_type": "clarify(请手动选择规格并点击购买);\nmode:7B",
-            "cost_time": "2860",
-            "stepId": "9",
-            "thought": "【0】用户指定玫瑰金色，页面无该选项，需询问用户可选颜色。",
-            "type": "AAS",
-            "ui_summary": "商品名称为FreeClip 2，当前选中摩登黑颜色，可选择羽沙白和丹宁蓝。配送方式默认商城配送，数量为1，无忧服务未选中。页面底部有“加入购物车”和“立即购买”按钮。"
-        },
-        {
-            "stepId": "end"
-        }
-    ],
-    "edges":[],
-    "num_nodes": 11,
-    "num_edges": 11
+  "query": "打开京东搜索一下京东自营的加湿器，选销量最高的下单",
+  "uuid": "536b6cc3-24c3-45f2-90d1-ff4b3bb39190",
+  "appName": "京东",
+  "stepData": [
+    {
+      "action_type": "set_text(2_0, \"加湿器 京东自营\")\nmode:7B",
+      "cost_time": "2531",
+      "stepId": "3",
+      "thought": "【0】首页搜索框内容需改为“加湿器 京东自营”，直接输入后即可进入搜索结果页。",
+      "type": "AAS",
+      "ui_summary": "顶部为搜索框，当前显示内容为“snidel连衣裙”。搜索框右侧有搜索按钮。页面主要展示商品与分类推荐，底部为导航栏。搜索框可编辑。",
+      "imageId": "001"
+    },
+    {
+      "action_type": "click(4_2)\nmode:7B",
+      "cost_time": "2704",
+      "stepId": "4",
+      "thought": "【0】规划要求点击“销量”按钮以按销量排序，当前页面已显示相关商品列表，点击“销量”按钮可使销量最高的商品排在最前，符合用户需求，因此应点击“销量”按钮。",
+      "type": "AAS",
+      "ui_summary": "当前页面为京东自营加湿器的搜索结果页，顶部搜索框显示关键词“加湿器 京东自营”，下方可选择排序选项，包括“综合推荐”（当前选中）和“销量”等，商品列表展示多个自营加湿器，每个商品包含名称、价格、销量及好评率等信息。",
+      "imageId": "002"
+    },
+    {
+      "action_type": "click(6_0)\nmode:7B",
+      "cost_time": "2827",
+      "stepId": "5",
+      "thought": "【0】已按销量排序，首个商品即销量最高，应点击进入详情页。",
+      "type": "AAS",
+      "ui_summary": "页面为京东自营加湿器搜索结果，已按销量排序。销量最高的是加湿器 海尔，售价608.13元，近期销量领先，95％好评。其他商品如京喜自营大雾量加湿器、小熊加湿器、米家加湿器销量均高，但并非销量最高。",
+      "imageId": "003"
+    },
+    {
+      "action_type": "click(5_1)\nmode:7B",
+      "cost_time": "2429",
+      "stepId": "6",
+      "thought": "【0】已到目标商品详情页，直接点击‘立即购买’进入下单流程。",
+      "type": "AAS",
+      "ui_summary": "页面展示商品详情，包括商品名称、价格、销量等信息。底部有“加入购物车”和“立即购买”按钮。",
+      "imageId": "004"
+    },
+    {
+      "action_type": "clarify(请手动选择规格并点击购买);\nmode:7B",
+      "cost_time": "4148",
+      "stepId": "7",
+      "thought": "【0】根据规划应下单销量最高的加湿器，但页面出现两个款式，用户未指定，无法确定应选哪款，需先询问用户选择后才能继续操作。",
+      "type": "AAS",
+      "ui_summary": "商品详情页显示商品为“海尔空净/加湿一体机”，价格608.13元，已选1件。两款可选商品：空气净化器KJ320F和空气净化加湿一体机KJ320F，当前未选择具体款式。底部有“确定”按钮。",
+      "imageId": "005"
+    }
+  ]
 }
