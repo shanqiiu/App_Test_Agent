@@ -172,14 +172,39 @@ class LLMClient:
 
     @staticmethod
     def extract_json(text: str) -> Dict:
-        """从 LLM 响应中提取 JSON"""
-        m = re.search(r'```(?:json)?\s*([\s\S]*?)\s*```', text)
-        if m:
-            return json.loads(m.group(1))
-        m = re.search(r'\{[\s\S]*\}', text)
-        if m:
-            return json.loads(m.group(0))
-        return json.loads(text)
+        """从 LLM 响应中提取 JSON，带自动修复"""
+
+        def _clean_json(raw: str) -> str:
+            """清理常见 LLM 输出中的 JSON 格式问题"""
+            # 移除 markdown 代码块标记
+            raw = re.sub(r'^```(?:json)?\s*', '', raw.strip())
+            raw = re.sub(r'\s*```$', '', raw.strip())
+            # 查找第一个 { 到最后一个 }
+            brace_start = raw.find('{')
+            brace_end = raw.rfind('}')
+            if brace_start >= 0 and brace_end > brace_start:
+                raw = raw[brace_start:brace_end + 1]
+            # 移除尾随逗号（在 } 或 ] 之前的逗号）
+            raw = re.sub(r',\s*}', '}', raw)
+            raw = re.sub(r',\s*]', ']', raw)
+            return raw
+
+        raw = _clean_json(text)
+        try:
+            return json.loads(raw)
+        except json.JSONDecodeError:
+            # 进一步尝试：修复常见格式问题
+            try:
+                # 将单引号替换为双引号（LLM 有时输出单引号）
+                raw = raw.replace("'", '"')
+                return json.loads(raw)
+            except json.JSONDecodeError:
+                # 尝试用正则提取有效片段
+                m = re.search(r'"page_types"\s*:\s*(\[[\s\S]*?\])', raw)
+                if m:
+                    partial = '{"page_types": ' + m.group(1) + '}'
+                    return json.loads(partial)
+                raise
 
 
 class PageSpecExtractor:
@@ -347,15 +372,30 @@ class PageSpecExtractor:
             )
 
             try:
-                resp = self.llm.extract_json(self.llm.chat(prompt))
+                raw = self.llm.chat(prompt)
+                resp = self.llm.extract_json(raw)
                 page_types = resp.get("page_types", [])
                 result["apps"][app_name] = page_types
                 for pt in page_types:
                     logger.info(f"  ✓ {pt['name']} (×{pt['count']})")
 
             except Exception as e:
-                logger.error(f"  ✗ 聚类失败: {e}")
-                result["apps"][app_name] = []
+                logger.warning(f"  首次聚类解析失败，重试中: {e}")
+                try:
+                    # 重试一次，prompt 追加强调 JSON 格式
+                    retry_prompt = prompt + (
+                        "\n\n重要：只输出纯 JSON，不要 markdown 代码块，不要任何额外文字。"
+                        "确保 JSON 格式正确，不要尾随逗号。"
+                    )
+                    raw = self.llm.chat(retry_prompt)
+                    resp = self.llm.extract_json(raw)
+                    page_types = resp.get("page_types", [])
+                    result["apps"][app_name] = page_types
+                    for pt in page_types:
+                        logger.info(f"  ✓ {pt['name']} (×{pt['count']}) [重试成功]")
+                except Exception as e2:
+                    logger.error(f"  ✗ 聚类失败 (重试后): {e2}")
+                    result["apps"][app_name] = []
 
         return result
 
