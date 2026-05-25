@@ -1,0 +1,122 @@
+{
+  "id": "shopping",
+  "name": "购物类APP",
+  "description": "以商品浏览、搜索、下单、支付、售后为核心流程的电商类应用",
+  "representatives": ["淘宝", "京东", "拼多多"],
+  "coreDomains": ["商品", "搜索", "购物车", "订单", "支付", "物流", "营销", "用户"],
+  "events": [
+    { "id": "keyword_search", "name": "关键词搜索", "category": "search", "description": "用户输入关键词搜索商品", "triggerType": "input", "targetPage": "search", "relatedData": ["keyword"] },
+    { "id": "search_suggestion_click", "name": "搜索联想词点击", "category": "search", "description": "用户点击搜索联想词", "triggerType": "click", "targetPage": "search", "relatedData": ["suggestion"] },
+    { "id": "add_filter", "name": "添加筛选条件", "category": "filter_sort", "description": "用户选择筛选条件", "triggerType": "click", "targetPage": "searchResult", "relatedData": ["filterType", "filterValue"] },
+    { "id": "change_sort", "name": "切换排序方式", "category": "filter_sort", "description": "用户切换排序规则", "triggerType": "click", "targetPage": "searchResult", "relatedData": ["sortType"] },
+    { "id": "click_product_card", "name": "点击商品卡片", "category": "product_browse", "description": "用户点击商品卡片进入详情", "triggerType": "click", "targetPage": "searchResult", "relatedData": ["productId"] },
+    { "id": "swipe_image_carousel", "name": "轮播图滑动", "category": "product_browse", "description": "用户滑动商品图片轮播", "triggerType": "swipe", "targetPage": "productDetail" },
+    { "id": "select_sku", "name": "选择商品规格", "category": "product_browse", "description": "用户选择SKU规格", "triggerType": "click", "targetPage": "productDetail", "relatedData": ["skuAttributes"] },
+    { "id": "add_to_cart", "name": "加入购物车", "category": "cart", "description": "用户将商品加入购物车", "triggerType": "click", "targetPage": "productDetail", "relatedData": ["productId", "skuId"] },
+    { "id": "view_cart", "name": "查看购物车", "category": "cart", "description": "用户进入购物车页面", "triggerType": "click", "targetPage": "cart" },
+    { "id": "select_address", "name": "选择收货地址", "category": "checkout_payment", "description": "用户选择收货地址", "triggerType": "click", "targetPage": "checkout", "relatedData": ["addressId"] },
+    { "id": "select_coupon", "name": "选择优惠券", "category": "checkout_payment", "description": "用户选择优惠券", "triggerType": "click", "targetPage": "checkout", "relatedData": ["couponId"] },
+    { "id": "submit_order", "name": "提交订单", "category": "checkout_payment", "description": "用户提交订单", "triggerType": "click", "targetPage": "checkout", "relatedData": ["orderId"] },
+    { "id": "confirm_payment", "name": "确认支付", "category": "checkout_payment", "description": "用户确认支付", "triggerType": "click", "targetPage": "payment", "relatedData": ["orderId"] },
+    { "id": "view_order_detail", "name": "查看订单详情", "category": "order_management", "description": "用户查看订单详情", "triggerType": "click", "targetPage": "orderDetail", "relatedData": ["orderId"] }
+  ],
+  "topics": [
+    {
+      "id": "digital",
+      "name": "数码3C",
+      "description": "手机、电脑、平板、耳机等数码产品",
+      "applicableAppTypes": ["shopping"],
+      "fields": [
+        { "id": "brand", "name": "品牌", "type": "string", "filterable": true, "displayInCard": true, "example": "Apple" },
+        { "id": "price", "name": "价格", "type": "price", "filterable": true, "sortable": true, "displayInCard": true, "unit": "元", "example": 6999 },
+        { "id": "model", "name": "型号", "type": "string", "displayInDetail": true, "example": "iPhone 16 Pro" },
+        { "id": "storage", "name": "存储容量", "type": "enum", "filterable": true, "displayInDetail": true, "enumValues": ["128GB", "256GB", "512GB", "1TB"], "example": "256GB" },
+        { "id": "color", "name": "颜色", "type": "enum", "filterable": true, "displayInCard": true, "enumValues": ["沙漠钛金属", "白色钛金属", "黑色钛金属"], "example": "沙漠钛金属" },
+        { "id": "processor", "name": "处理器", "type": "string", "displayInDetail": true, "example": "A18 Pro" },
+        { "id": "rating", "name": "评分", "type": "number", "sortable": true, "displayInCard": true, "example": 4.8 },
+        { "id": "salesVolume", "name": "销量", "type": "number", "sortable": true, "displayInCard": true, "example": 58000 }
+      ]
+    }
+  ],
+  "ui": {
+    "layouts": [
+      { "id": "tab-split", "name": "Tab分栏布局", "description": "顶部Tab栏切换不同内容区域", "applicablePages": ["首页", "搜索结果"], "characteristics": { "columnCount": 2 } },
+      { "id": "dual-waterfall", "name": "双列瀑布流", "description": "两列交错排列商品卡片", "applicablePages": ["搜索结果", "推荐商品流"], "characteristics": { "columnCount": 2 } },
+      { "id": "single-column", "name": "单列流式", "description": "内容单列纵向排列", "applicablePages": ["商品详情", "结算页", "订单详情"] },
+      { "id": "bottom-sheet", "name": "底部抽屉", "description": "底部弹出规格选择/筛选面板", "applicablePages": ["SKU选择", "筛选面板"] },
+      { "id": "grid-matrix", "name": "网格矩阵", "description": "多列等宽网格排列", "applicablePages": ["快捷入口", "分类入口"] }
+    ],
+    "components": [
+      { "id": "SearchBar", "name": "搜索栏", "description": "带搜索图标的输入栏", "category": "表单", "arkTS": "Search()" },
+      { "id": "Carousel", "name": "轮播图", "description": "商品图片轮播", "category": "展示", "arkTS": "Swiper()" },
+      { "id": "ProductCard", "name": "商品卡片", "description": "商品信息展示卡片", "category": "业务", "arkTS": "Column() + Image() + Text()" },
+      { "id": "Price", "name": "价格组件", "description": "价格展示（带原价划线）", "category": "展示", "arkTS": "Row() + Text()" },
+      { "id": "Tag", "name": "标签", "description": "商品标签（自营/包邮等）", "category": "展示", "arkTS": "Text() + backgroundColor" },
+      { "id": "FilterBar", "name": "筛选栏", "description": "筛选条件操作栏", "category": "业务", "arkTS": "Row() + Button()" },
+      { "id": "SortBar", "name": "排序栏", "description": "排序方式切换栏", "category": "业务", "arkTS": "Row() + Button()" },
+      { "id": "CartItem", "name": "购物车项", "description": "购物车商品项", "category": "业务", "arkTS": "Row() + Checkbox() + Stepper()" },
+      { "id": "Stepper", "name": "步进器", "description": "数量增减组件", "category": "表单", "arkTS": "Stepper()" },
+      { "id": "Checkbox", "name": "复选框", "description": "多选组件", "category": "表单", "arkTS": "Checkbox()" },
+      { "id": "CouponCard", "name": "优惠券卡片", "description": "优惠券展示组件", "category": "业务", "arkTS": "Row() + Column()" },
+      { "id": "AddressCard", "name": "地址卡片", "description": "收货地址展示", "category": "业务", "arkTS": "Row() + Column()" },
+      { "id": "OrderCard", "name": "订单卡片", "description": "订单信息卡片", "category": "业务", "arkTS": "Column() + Card()" },
+      { "id": "Button", "name": "按钮", "description": "可点击操作按钮", "category": "基础", "arkTS": "Button()" },
+      { "id": "Badge", "name": "徽标", "description": "购物车角标", "category": "基础", "arkTS": "Badge()" }
+    ],
+    "navigation": [
+      { "id": "bottom-tab", "name": "底部Tab导航", "description": "底部4个Tab切换主功能区", "typicalTabs": ["首页", "分类", "购物车", "我的"], "arkTSImplementation": "Tabs({ barPosition: BarPosition.End })" }
+    ],
+    "interactions": [
+      { "id": "tap", "name": "点击", "description": "单次点击", "gestureType": "TapGesture", "feedbackType": "视觉高亮", "typicalUsages": ["点击商品卡片", "点击按钮"] },
+      { "id": "swipe", "name": "滑动", "description": "快速滑动切换", "gestureType": "SwipeGesture", "feedbackType": "页面切换动画", "typicalUsages": ["轮播图切换", "Tab切换"] },
+      { "id": "scroll", "name": "滚动", "description": "垂直滚动浏览", "gestureType": "PanGesture", "feedbackType": "惯性滚动", "typicalUsages": ["商品列表滚动"] },
+      { "id": "pull-refresh", "name": "下拉刷新", "description": "下拉触发刷新", "feedbackType": "下拉指示器", "typicalUsages": ["刷新商品列表"] },
+      { "id": "input", "name": "文本输入", "description": "输入框输入文字", "feedbackType": "光标闪烁", "typicalUsages": ["搜索关键词输入"] }
+    ]
+  },
+  "baselineMapping": {
+    "baseline_dir": "apps/baseline/shoppingApp",
+    "screenKeys": [
+      "home", "search", "searchResult", "productDetail",
+      "cart", "checkout", "payment", "orders", "orderDetail"
+    ]
+  },
+  "mainFlow": {
+    "id": "shopping-flow-001",
+    "name": "搜索商品并完成购买",
+    "description": "用户搜索iPhone手机，浏览筛选后加入购物车，完成下单支付",
+    "precondition": "用户已登录，APP首页正常加载",
+    "steps": [
+      { "order": 1, "action": "用户在首页点击搜索框，进入搜索页" },
+      { "order": 2, "action": "用户输入关键词 'iPhone 16 Pro'" },
+      { "order": 3, "action": "系统展示搜索联想词列表" },
+      { "order": 4, "action": "用户点击 'iPhone 16 Pro 256GB' 联想词" },
+      { "order": 5, "action": "系统展示搜索结果列表，默认综合排序" },
+      { "order": 6, "action": "用户添加筛选条件：价格区间 6000-8000，品牌 Apple" },
+      { "order": 7, "action": "系统刷新搜索结果，仅展示符合条件的商品" },
+      { "order": 8, "action": "用户切换排序方式为 '价格从低到高'" },
+      { "order": 9, "action": "系统按价格重新排列搜索结果" },
+      { "order": 10, "action": "用户点击第一个商品卡片，进入商品详情页" },
+      { "order": 11, "action": "系统展示商品详情：轮播图、价格、规格参数、评价" },
+      { "order": 12, "action": "用户左右滑动查看商品图片轮播" },
+      { "order": 13, "action": "用户点击 '选择规格'，弹出SKU选择面板" },
+      { "order": 14, "action": "用户选择颜色 '沙漠钛金属'，存储容量 '256GB'" },
+      { "order": 15, "action": "系统更新价格为 ¥6999，显示库存充足" },
+      { "order": 16, "action": "用户点击 '加入购物车' 按钮" },
+      { "order": 17, "action": "系统提示 '已加入购物车'，购物车角标数量+1" },
+      { "order": 18, "action": "用户点击底部Tab '购物车'，进入购物车页" },
+      { "order": 19, "action": "系统展示购物车商品列表，商品默认勾选" },
+      { "order": 20, "action": "用户确认商品数量为1，点击底部 '结算' 按钮" },
+      { "order": 21, "action": "系统进入结算确认页，展示收货地址、商品、优惠券" },
+      { "order": 22, "action": "用户选择收货地址 '北京市朝阳区建国路88号'" },
+      { "order": 23, "action": "用户选择优惠券 '满5000减200'" },
+      { "order": 24, "action": "系统更新实付金额为 ¥6799" },
+      { "order": 25, "action": "用户选择支付方式 '微信支付'" },
+      { "order": 26, "action": "用户点击 '提交订单' 按钮" },
+      { "order": 27, "action": "系统创建订单，跳转支付页，显示15分钟倒计时" },
+      { "order": 28, "action": "用户点击 '确认支付' 按钮" },
+      { "order": 29, "action": "系统模拟支付成功，跳转到订单详情页" },
+      { "order": 30, "action": "系统展示订单详情：订单号、商品信息、收货地址、待发货状态" }
+    ]
+  }
+}
