@@ -287,6 +287,9 @@ class UTGAnomalyInjector:
         }
 
         try:
+            # 打印实际使用的 LLM 名称
+            print(f"  [LLM] {self.llm.model}")
+
             # Step 1: 加载 UTG
             logger.info(f"加载 UTG: {utg_path}")
             loader = _get_utg_loader().UTGLoader(utg_path)
