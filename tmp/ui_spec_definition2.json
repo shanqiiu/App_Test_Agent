@@ -1,0 +1,1722 @@
+
+          "interactions": [
+            "click",
+            "select"
+          ],
+          "business_semantics": [
+            "coupon_system"
+          ]
+        },
+        {
+          "page_type": "cart_page",
+          "page_type_display": "购物车页",
+          "page_id": "天猫_cart_page",
+          "description": "页面顶部有搜索框，当前搜索框内容为“水豚噜噜公仔玩偶”，右侧有红色的搜索按钮。下方展示推荐商品和促销活动，包括天猫年货节和商品价格信息。底部导航栏包括直播、消息、购物车和我。",
+          "source_count": 4,
+          "elements": [
+            {
+              "name": "search_box",
+              "type": "input",
+              "type_display": "输入框",
+              "interactable": true,
+              "description": "搜索输入框"
+            },
+            {
+              "name": "search_button",
+              "type": "button",
+              "type_display": "按钮",
+              "interactable": true,
+              "description": "搜索触发按钮"
+            },
+            {
+              "name": "navigation_bar",
+              "type": "navigation",
+              "type_display": "导航",
+              "interactable": true,
+              "description": "底部导航栏"
+            }
+          ],
+          "interactions": [
+            "click",
+            "filled",
+            "select"
+          ],
+          "business_semantics": []
+        },
+        {
+          "page_type": "checkout_page",
+          "page_type_display": "确认订单/结算页",
+          "page_id": "天猫_checkout_page",
+          "description": "页面标题为'确认订单'，显示收货地址、商品信息（李宁跑步鞋男鞋黑色/标准白-男，鞋码39，券后价159元）、数量为1件，配送服务为快递包邮，发票选项为'本次不开具发票'，价格明细显示商品总价188元，共减29元，合计159元。底部红色按钮为'提交订单'，可点击。",
+          "source_count": 2,
+          "elements": [
+            {
+              "name": "submit_order",
+              "type": "button",
+              "type_display": "按钮",
+              "interactable": true,
+              "description": "提交订单按钮"
+            },
+            {
+              "name": "confirm_button",
+              "type": "button",
+              "type_display": "按钮",
+              "interactable": true,
+              "description": "确认按钮"
+            },
+            {
+              "name": "shipping_address",
+              "type": "label",
+              "type_display": "标签/信息",
+              "interactable": false,
+              "description": "收货地址信息"
+            },
+            {
+              "name": "discount_price",
+              "type": "label",
+              "type_display": "标签/信息",
+              "interactable": false,
+              "description": "折扣/补贴价"
+            },
+            {
+              "name": "logistics_filter",
+              "type": "tab",
+              "type_display": "选项卡/标签栏",
+              "interactable": true,
+              "description": "物流/发货筛选"
+            },
+            {
+              "name": "delivery_method",
+              "type": "label",
+              "type_display": "标签/信息",
+              "interactable": false,
+              "description": "配送方式"
+            },
+            {
+              "name": "spec_option",
+              "type": "tab",
+              "type_display": "选项卡/标签栏",
+              "interactable": true,
+              "description": "规格选项"
+            }
+          ],
+          "interactions": [
+            "click"
+          ],
+          "business_semantics": [
+            "coupon_system"
+          ]
+        },
+        {
+          "page_type": "filter_page",
+          "page_type_display": "筛选页",
+          "page_id": "天猫_filter_page",
+          "description": "筛选界面，包含价格区间输入框、最低价和最高价输入框，复选框选项如店铺类型（旗舰店、专卖店、专营店）和款式（无线）。底部有重置和确认按钮，确认按钮为红色，可点击。",
+          "source_count": 2,
+          "elements": [
+            {
+              "name": "filter_button",
+              "type": "button",
+              "type_display": "按钮",
+              "interactable": true,
+              "description": "筛选触发按钮"
+            },
+            {
+              "name": "confirm_button",
+              "type": "button",
+              "type_display": "按钮",
+              "interactable": true,
+              "description": "确认按钮"
+            },
+            {
+              "name": "price_range_input",
+              "type": "input",
+              "type_display": "输入框",
+              "interactable": true,
+              "description": "价格区间输入"
+            },
+            {
+              "name": "spec_option",
+              "type": "tab",
+              "type_display": "选项卡/标签栏",
+              "interactable": true,
+              "description": "规格选项"
+            },
+            {
+              "name": "store_type_filter",
+              "type": "tab",
+              "type_display": "选项卡/标签栏",
+              "interactable": true,
+              "description": "店铺类型筛选"
+            },
+            {
+              "name": "reset_button",
+              "type": "button",
+              "type_display": "按钮",
+              "interactable": true,
+              "description": "筛选重置按钮"
+            }
+          ],
+          "interactions": [
+            "click",
+            "input"
+          ],
+          "business_semantics": [
+            "store_quality_tier"
+          ]
+        },
+        {
+          "page_type": "loading_page",
+          "page_type_display": "加载/执行页",
+          "page_id": "天猫_loading_page",
+          "description": "加载中的页面",
+          "source_count": 2,
+          "elements": [],
+          "interactions": [],
+          "business_semantics": []
+        }
+      ],
+      "feature_vector": {
+        "has_home_page": 0,
+        "has_search_result_page": 1,
+        "has_filter_page": 1,
+        "has_product_detail_page": 1,
+        "has_spec_selection_page": 1,
+        "has_cart_page": 1,
+        "has_checkout_page": 1,
+        "has_payment_page": 0,
+        "has_payment_password_page": 0,
+        "has_loading_page": 1,
+        "has_bundle_helper_page": 0,
+        "has_ranking_page": 0,
+        "has_store_page": 0,
+        "has_category_page": 0,
+        "has_search_suggestion_page": 0,
+        "page_type_count": 7,
+        "element_variety": 22,
+        "sem_group_buying": 0,
+        "sem_subsidy_pricing": 0,
+        "sem_national_subsidy": 0,
+        "sem_coupon_system": 1,
+        "sem_store_quality_tier": 1,
+        "sem_minimum_order_threshold": 0,
+        "sem_ranking_recommendation": 0,
+        "sem_after_sales_service": 0,
+        "sem_scan_interaction": 0,
+        "sem_plus_membership": 0,
+        "interaction_variety": 4
+      }
+    },
+    {
+      "app_name": "拼多多",
+      "category": "shopping_ecommerce",
+      "unique_features": [
+        "拼单/拼团购买模式",
+        "好评排序特色"
+      ],
+      "page_type_count": 4,
+      "pages": [
+        {
+          "page_type": "product_detail_page",
+          "page_type_display": "商品详情页",
+          "page_id": "拼多多_product_detail_page",
+          "description": "页面为拼多多搜索结果页，搜索框内容为“iPad”。当前排序方式为“综合”，可点击选择其他排序方式，如“价格”或“销量”。页面展示了多个iPad商品，包含图片、价格、优惠信息及销售量。",
+          "source_count": 5,
+          "elements": [
+            {
+              "name": "search_box",
+              "type": "input",
+              "type_display": "输入框",
+              "interactable": true,
+              "description": "搜索输入框"
+            },
+            {
+              "name": "sales_info",
+              "type": "label",
+              "type_display": "标签/信息",
+              "interactable": false,
+              "description": "销量/好评信息"
+            },
+            {
+              "name": "navigation_bar",
+              "type": "navigation",
+              "type_display": "导航",
+              "interactable": true,
+              "description": "底部导航栏"
+            },
+            {
+              "name": "sort_options",
+              "type": "tab",
+              "type_display": "选项卡/标签栏",
+              "interactable": true,
+              "description": "排序选项栏"
+            },
+            {
+              "name": "buy_now",
+              "type": "button",
+              "type_display": "按钮",
+              "interactable": true,
+              "description": "立即购买按钮"
+            },
+            {
+              "name": "discount_price",
+              "type": "label",
+              "type_display": "标签/信息",
+              "interactable": false,
+              "description": "折扣/补贴价"
+            }
+          ],
+          "interactions": [
+            "click",
+            "filled",
+            "select"
+          ],
+          "business_semantics": [
+            "group_buying"
+          ]
+        },
+        {
+          "page_type": "search_result_page",
+          "page_type_display": "搜索结果页",
+          "page_id": "拼多多_search_result_page",
+          "description": "当前页面为iPad搜索结果页，顶部搜索框内容为“iPad”，价格排序已选中从低到高。展示的iPad商品按价格从低到高排序，最低价格商品为Apple iPad Air7 256G，券后价格4199元，最后14件。",
+          "source_count": 5,
+          "elements": [
+            {
+              "name": "search_box",
+              "type": "input",
+              "type_display": "输入框",
+              "interactable": true,
+              "description": "搜索输入框"
+            },
+            {
+              "name": "subsidy_tag",
+              "type": "label",
+              "type_display": "标签/信息",
+              "interactable": false,
+              "description": "百亿补贴标签"
+            },
+            {
+              "name": "sort_options",
+              "type": "tab",
+              "type_display": "选项卡/标签栏",
+              "interactable": true,
+              "description": "排序选项栏"
+            },
+            {
+              "name": "product_list",
+              "type": "list",
+              "type_display": "列表",
+              "interactable": true,
+              "description": "商品列表"
+            },
+            {
+              "name": "discount_price",
+              "type": "label",
+              "type_display": "标签/信息",
+              "interactable": false,
+              "description": "折扣/补贴价"
+            },
+            {
+              "name": "sales_info",
+              "type": "label",
+              "type_display": "标签/信息",
+              "interactable": false,
+              "description": "销量/好评信息"
+            },
+            {
+              "name": "price_range_input",
+              "type": "input",
+              "type_display": "输入框",
+              "interactable": true,
+              "description": "价格区间输入"
+            },
+            {
+              "name": "navigation_bar",
+              "type": "navigation",
+              "type_display": "导航",
+              "interactable": true,
+              "description": "底部导航栏"
+            }
+          ],
+          "interactions": [
+            "select",
+            "filled"
+          ],
+          "business_semantics": [
+            "coupon_system",
+            "subsidy_pricing"
+          ]
+        },
+        {
+          "page_type": "home_page",
+          "page_type_display": "首页",
+          "page_id": "拼多多_home_page",
+          "description": "当前页面为拼多多首页，顶部是搜索框，已输入“女士夏季短裤”。导航栏提供推荐、年货大促销等分类，底部是导航栏，当前选中首页。",
+          "source_count": 2,
+          "elements": [
+            {
+              "name": "search_box",
+              "type": "input",
+              "type_display": "输入框",
+              "interactable": true,
+              "description": "搜索输入框"
+            },
+            {
+              "name": "navigation_bar",
+              "type": "navigation",
+              "type_display": "导航",
+              "interactable": true,
+              "description": "底部导航栏"
+            }
+          ],
+          "interactions": [
+            "select",
+            "filled"
+          ],
+          "business_semantics": []
+        },
+        {
+          "page_type": "spec_selection_page",
+          "page_type_display": "规格选择页",
+          "page_id": "拼多多_spec_selection_page",
+          "description": "确认款式页面，展示商品图片和价格，当前已选择颜色为“欢乐派对-米色”，其他颜色选项可选，有数量调整按钮和确认按钮。",
+          "source_count": 1,
+          "elements": [
+            {
+              "name": "confirm_button",
+              "type": "button",
+              "type_display": "按钮",
+              "interactable": true,
+              "description": "确认按钮"
+            },
+            {
+              "name": "spec_option",
+              "type": "tab",
+              "type_display": "选项卡/标签栏",
+              "interactable": true,
+              "description": "规格选项"
+            },
+            {
+              "name": "quantity_adjust",
+              "type": "button",
+              "type_display": "按钮",
+              "interactable": true,
+              "description": "数量调整"
+            }
+          ],
+          "interactions": [
+            "select"
+          ],
+          "business_semantics": []
+        }
+      ],
+      "feature_vector": {
+        "has_home_page": 1,
+        "has_search_result_page": 1,
+        "has_filter_page": 0,
+        "has_product_detail_page": 1,
+        "has_spec_selection_page": 1,
+        "has_cart_page": 0,
+        "has_checkout_page": 0,
+        "has_payment_page": 0,
+        "has_payment_password_page": 0,
+        "has_loading_page": 0,
+        "has_bundle_helper_page": 0,
+        "has_ranking_page": 0,
+        "has_store_page": 0,
+        "has_category_page": 0,
+        "has_search_suggestion_page": 0,
+        "page_type_count": 4,
+        "element_variety": 12,
+        "sem_group_buying": 1,
+        "sem_subsidy_pricing": 1,
+        "sem_national_subsidy": 0,
+        "sem_coupon_system": 1,
+        "sem_store_quality_tier": 0,
+        "sem_minimum_order_threshold": 0,
+        "sem_ranking_recommendation": 0,
+        "sem_after_sales_service": 0,
+        "sem_scan_interaction": 0,
+        "sem_plus_membership": 0,
+        "interaction_variety": 3
+      }
+    },
+    {
+      "app_name": "淘宝",
+      "category": "shopping_ecommerce",
+      "unique_features": [
+        "百亿补贴+国补筛选体系",
+        "支付密码验证(花呗/支付宝)"
+      ],
+      "page_type_count": 9,
+      "pages": [
+        {
+          "page_type": "search_result_page",
+          "page_type_display": "搜索结果页",
+          "page_id": "淘宝_search_result_page",
+          "description": "页面为搜索结果页，顶部搜索框已输入‘mate60’，分类栏默认选中‘综合’，‘筛选’按钮位于右上角并可点击。页面展示多个商品卡片，部分商品标注‘百亿补贴’，价格范围从2658元到3818元。未发现价格筛选或百亿补贴筛选功能。",
+          "source_count": 33,
+          "elements": [
+            {
+              "name": "sort_options",
+              "type": "tab",
+              "type_display": "选项卡/标签栏",
+              "interactable": true,
+              "description": "排序选项栏"
+            },
+            {
+              "name": "product_list",
+              "type": "list",
+              "type_display": "列表",
+              "interactable": true,
+              "description": "商品列表"
+            },
+            {
+              "name": "search_box",
+              "type": "input",
+              "type_display": "输入框",
+              "interactable": true,
+              "description": "搜索输入框"
+            },
+            {
+              "name": "search_button",
+              "type": "button",
+              "type_display": "按钮",
+              "interactable": true,
+              "description": "搜索触发按钮"
+            },
+            {
+              "name": "subsidy_tag",
+              "type": "label",
+              "type_display": "标签/信息",
+              "interactable": false,
+              "description": "百亿补贴标签"
+            },
+            {
+              "name": "filter_button",
+              "type": "button",
+              "type_display": "按钮",
+              "interactable": true,
+              "description": "筛选触发按钮"
+            },
+            {
+              "name": "sales_info",
+              "type": "label",
+              "type_display": "标签/信息",
+              "interactable": false,
+              "description": "销量/好评信息"
+            },
+            {
+              "name": "price_range_input",
+              "type": "input",
+              "type_display": "输入框",
+              "interactable": true,
+              "description": "价格区间输入"
+            },
+            {
+              "name": "navigation_bar",
+              "type": "navigation",
+              "type_display": "导航",
+              "interactable": true,
+              "description": "底部导航栏"
+            },
+            {
+              "name": "discount_price",
+              "type": "label",
+              "type_display": "标签/信息",
+              "interactable": false,
+              "description": "折扣/补贴价"
+            },
+            {
+              "name": "national_subsidy_tag",
+              "type": "label",
+              "type_display": "标签/信息",
+              "interactable": false,
+              "description": "国补标签"
+            }
+          ],
+          "interactions": [
+            "input",
+            "filled",
+            "click",
+            "scroll",
+            "select"
+          ],
+          "business_semantics": [
+            "coupon_system",
+            "subsidy_pricing",
+            "national_subsidy"
+          ]
+        },
+        {
+          "page_type": "loading_page",
+          "page_type_display": "加载/执行页",
+          "page_id": "淘宝_loading_page",
+          "description": "当前页面展示两款手机商品：i17迷你智能手机售价为555.82元，vivo S18手机售价为1893.82元。页面有加载动画，表明内容可能还在加载。",
+          "source_count": 23,
+          "elements": [],
+          "interactions": [],
+          "business_semantics": []
+        },
+        {
+          "page_type": "filter_page",
+          "page_type_display": "筛选页",
+          "page_id": "淘宝_filter_page",
+          "description": "筛选页面，顶部搜索框显示关键词“华硕 内存512G 主机”，当前选中“综合”标签。筛选分类包括物流与权益、发货地、收货地和“其他服务”，其中“其他服务”未展示价格区间选项。底部提供“重置”和“完成”按钮。",
+          "source_count": 20,
+          "elements": [
+            {
+              "name": "filter_button",
+              "type": "button",
+              "type_display": "按钮",
+              "interactable": true,
+              "description": "筛选触发按钮"
+            },
+            {
+              "name": "confirm_button",
+              "type": "button",
+              "type_display": "按钮",
+              "interactable": true,
+              "description": "确认按钮"
+            },
+            {
+              "name": "price_range_input",
+              "type": "input",
+              "type_display": "输入框",
+              "interactable": true,
+              "description": "价格区间输入"
+            },
+            {
+              "name": "reset_button",
+              "type": "button",
+              "type_display": "按钮",
+              "interactable": true,
+              "description": "筛选重置按钮"
+            },
+            {
+              "name": "logistics_filter",
+              "type": "tab",
+              "type_display": "选项卡/标签栏",
+              "interactable": true,
+              "description": "物流/发货筛选"
+            },
+            {
+              "name": "search_button",
+              "type": "button",
+              "type_display": "按钮",
+              "interactable": true,
+              "description": "搜索触发按钮"
+            },
+            {
+              "name": "subsidy_tag",
+              "type": "label",
+              "type_display": "标签/信息",
+              "interactable": false,
+              "description": "百亿补贴标签"
+            },
+            {
+              "name": "sales_info",
+              "type": "label",
+              "type_display": "标签/信息",
+              "interactable": false,
+              "description": "销量/好评信息"
+            },
+            {
+              "name": "back_button",
+              "type": "button",
+              "type_display": "按钮",
+              "interactable": true,
+              "description": "返回按钮"
+            },
+            {
+              "name": "search_box",
+              "type": "input",
+              "type_display": "输入框",
+              "interactable": true,
+              "description": "搜索输入框"
+            }
+          ],
+          "interactions": [
+            "input",
+            "select",
+            "popup",
+            "filled",
+            "click"
+          ],
+          "business_semantics": [
+            "subsidy_pricing"
+          ]
+        },
+        {
+          "page_type": "payment_page",
+          "page_type_display": "支付页",
+          "page_id": "淘宝_payment_page",
+          "description": "当前页面展示商品详情，补贴后价格为1288元，包含“单主机（赠送键鼠套装）”和“华硕@套餐（2）【行政/前台/客服】”两种规格选项，均默认选中。用户可选择购买方式（立即购买或以旧换新）及套餐类型。页面底部提供分期支付信息和立即支付按钮。",
+          "source_count": 10,
+          "elements": [
+            {
+              "name": "confirm_payment",
+              "type": "button",
+              "type_display": "按钮",
+              "interactable": true,
+              "description": "确认付款按钮"
+            },
+            {
+              "name": "spec_option",
+              "type": "tab",
+              "type_display": "选项卡/标签栏",
+              "interactable": true,
+              "description": "规格选项"
+            },
+            {
+              "name": "payment_method",
+              "type": "tab",
+              "type_display": "选项卡/标签栏",
+              "interactable": true,
+              "description": "支付方式选项"
+            },
+            {
+              "name": "confirm_button",
+              "type": "button",
+              "type_display": "按钮",
+              "interactable": true,
+              "description": "确认按钮"
+            },
+            {
+              "name": "buy_now",
+              "type": "button",
+              "type_display": "按钮",
+              "interactable": true,
+              "description": "立即购买按钮"
+            }
+          ],
+          "interactions": [
+            "click",
+            "select",
+            "popup"
+          ],
+          "business_semantics": []
+        },
+        {
+          "page_type": "product_detail_page",
+          "page_type_display": "商品详情页",
+          "page_id": "淘宝_product_detail_page",
+          "description": "页面顶部有搜索框，已输入“帐篷”。筛选标签中“销量”已高亮选中，其他筛选标签包括“综合”、“天猫”等。页面中部展示多款帐篷商品，每件商品包含图片、标题、价格、销量等信息，商品列表可上下滑动。",
+          "source_count": 9,
+          "elements": [
+            {
+              "name": "add_to_cart",
+              "type": "button",
+              "type_display": "按钮",
+              "interactable": true,
+              "description": "加入购物车按钮"
+            },
+            {
+              "name": "buy_now",
+              "type": "button",
+              "type_display": "按钮",
+              "interactable": true,
+              "description": "立即购买按钮"
+            },
+            {
+              "name": "coupon",
+              "type": "button",
+              "type_display": "按钮",
+              "interactable": true,
+              "description": "优惠券/领券"
+            },
+            {
+              "name": "search_box",
+              "type": "input",
+              "type_display": "输入框",
+              "interactable": true,
+              "description": "搜索输入框"
+            },
+            {
+              "name": "product_list",
+              "type": "list",
+              "type_display": "列表",
+              "interactable": true,
+              "description": "商品列表"
+            },
+            {
+              "name": "sales_info",
+              "type": "label",
+              "type_display": "标签/信息",
+              "interactable": false,
+              "description": "销量/好评信息"
+            },
+            {
+              "name": "discount_price",
+              "type": "label",
+              "type_display": "标签/信息",
+              "interactable": false,
+              "description": "折扣/补贴价"
+            },
+            {
+              "name": "spec_option",
+              "type": "tab",
+              "type_display": "选项卡/标签栏",
+              "interactable": true,
+              "description": "规格选项"
+            },
+            {
+              "name": "search_button",
+              "type": "button",
+              "type_display": "按钮",
+              "interactable": true,
+              "description": "搜索触发按钮"
+            },
+            {
+              "name": "filter_button",
+              "type": "button",
+              "type_display": "按钮",
+              "interactable": true,
+              "description": "筛选触发按钮"
+            },
+            {
+              "name": "navigation_bar",
+              "type": "navigation",
+              "type_display": "导航",
+              "interactable": true,
+              "description": "底部导航栏"
+            },
+            {
+              "name": "back_button",
+              "type": "button",
+              "type_display": "按钮",
+              "interactable": true,
+              "description": "返回按钮"
+            }
+          ],
+          "interactions": [
+            "click",
+            "filled",
+            "scroll"
+          ],
+          "business_semantics": [
+            "coupon_system"
+          ]
+        },
+        {
+          "page_type": "cart_page",
+          "page_type_display": "购物车页",
+          "page_id": "淘宝_cart_page",
+          "description": "页面顶部有搜索框，当前内容为“啤酒”，右侧有“搜索”按钮。页面中部有商品推荐和促销信息，与用户需求无直接关联。底部导航栏包括视频、消息、购物车、我的淘宝。",
+          "source_count": 3,
+          "elements": [
+            {
+              "name": "search_box",
+              "type": "input",
+              "type_display": "输入框",
+              "interactable": true,
+              "description": "搜索输入框"
+            },
+            {
+              "name": "search_button",
+              "type": "button",
+              "type_display": "按钮",
+              "interactable": true,
+              "description": "搜索触发按钮"
+            },
+            {
+              "name": "navigation_bar",
+              "type": "navigation",
+              "type_display": "导航",
+              "interactable": true,
+              "description": "底部导航栏"
+            },
+            {
+              "name": "add_to_cart",
+              "type": "button",
+              "type_display": "按钮",
+              "interactable": true,
+              "description": "加入购物车按钮"
+            },
+            {
+              "name": "buy_now",
+              "type": "button",
+              "type_display": "按钮",
+              "interactable": true,
+              "description": "立即购买按钮"
+            },
+            {
+              "name": "coupon",
+              "type": "button",
+              "type_display": "按钮",
+              "interactable": true,
+              "description": "优惠券/领券"
+            }
+          ],
+          "interactions": [
+            "input",
+            "filled"
+          ],
+          "business_semantics": [
+            "coupon_system"
+          ]
+        },
+        {
+          "page_type": "payment_password_page",
+          "page_type_display": "支付密码页",
+          "page_id": "淘宝_payment_password_page",
+          "description": "页面弹出支付密码输入框，提示用户输入支付密码，底部显示支付方式为花呗，优先使用此方式，按支付顺序完成付款。页面顶部显示收货信息和商品价格，底部显示‘有3个优惠可选’。",
+          "source_count": 2,
+          "elements": [
+            {
+              "name": "payment_method",
+              "type": "tab",
+              "type_display": "选项卡/标签栏",
+              "interactable": true,
+              "description": "支付方式选项"
+            },
+            {
+              "name": "confirm_button",
+              "type": "button",
+              "type_display": "按钮",
+              "interactable": true,
+              "description": "确认按钮"
+            }
+          ],
+          "interactions": [
+            "input",
+            "popup"
+          ],
+          "business_semantics": []
+        },
+        {
+          "page_type": "store_page",
+          "page_type_display": "店铺页",
+          "page_id": "淘宝_store_page",
+          "description": "当前页面为淘宝首页，顶部有搜索框，显示当前内容为‘nike耐克官方旗舰店’，右侧有搜索按钮。页面中部有‘百亿补贴’等快捷入口，下方展示商品信息。",
+          "source_count": 1,
+          "elements": [
+            {
+              "name": "search_box",
+              "type": "input",
+              "type_display": "输入框",
+              "interactable": true,
+              "description": "搜索输入框"
+            },
+            {
+              "name": "search_button",
+              "type": "button",
+              "type_display": "按钮",
+              "interactable": true,
+              "description": "搜索触发按钮"
+            },
+            {
+              "name": "subsidy_tag",
+              "type": "label",
+              "type_display": "标签/信息",
+              "interactable": false,
+              "description": "百亿补贴标签"
+            },
+            {
+              "name": "store_type_filter",
+              "type": "tab",
+              "type_display": "选项卡/标签栏",
+              "interactable": true,
+              "description": "店铺类型筛选"
+            }
+          ],
+          "interactions": [
+            "filled"
+          ],
+          "business_semantics": [
+            "subsidy_pricing",
+            "store_quality_tier"
+          ]
+        },
+        {
+          "page_type": "spec_selection_page",
+          "page_type_display": "规格选择页",
+          "page_id": "淘宝_spec_selection_page",
+          "description": "页面顶部有搜索框，内容为“除螨仪”，右侧有“搜索”按钮。页面中部展示多个功能入口按钮，包括“百亿补贴”等。页面未显示已选中的商品规格、复选框状态或已选择的排序/筛选标签。",
+          "source_count": 1,
+          "elements": [
+            {
+              "name": "search_box",
+              "type": "input",
+              "type_display": "输入框",
+              "interactable": true,
+              "description": "搜索输入框"
+            },
+            {
+              "name": "search_button",
+              "type": "button",
+              "type_display": "按钮",
+              "interactable": true,
+              "description": "搜索触发按钮"
+            },
+            {
+              "name": "subsidy_tag",
+              "type": "label",
+              "type_display": "标签/信息",
+              "interactable": false,
+              "description": "百亿补贴标签"
+            },
+            {
+              "name": "spec_option",
+              "type": "tab",
+              "type_display": "选项卡/标签栏",
+              "interactable": true,
+              "description": "规格选项"
+            }
+          ],
+          "interactions": [
+            "select",
+            "filled"
+          ],
+          "business_semantics": [
+            "subsidy_pricing"
+          ]
+        }
+      ],
+      "feature_vector": {
+        "has_home_page": 0,
+        "has_search_result_page": 1,
+        "has_filter_page": 1,
+        "has_product_detail_page": 1,
+        "has_spec_selection_page": 1,
+        "has_cart_page": 1,
+        "has_checkout_page": 0,
+        "has_payment_page": 1,
+        "has_payment_password_page": 1,
+        "has_loading_page": 1,
+        "has_bundle_helper_page": 0,
+        "has_ranking_page": 0,
+        "has_store_page": 1,
+        "has_category_page": 0,
+        "has_search_suggestion_page": 0,
+        "page_type_count": 9,
+        "element_variety": 22,
+        "sem_group_buying": 0,
+        "sem_subsidy_pricing": 1,
+        "sem_national_subsidy": 1,
+        "sem_coupon_system": 1,
+        "sem_store_quality_tier": 1,
+        "sem_minimum_order_threshold": 0,
+        "sem_ranking_recommendation": 0,
+        "sem_after_sales_service": 0,
+        "sem_scan_interaction": 0,
+        "sem_plus_membership": 0,
+        "interaction_variety": 6
+      }
+    }
+  ],
+  "clusters": {
+    "shopping_ecommerce": {
+      "display_name": "电商购物（主类）",
+      "apps": [
+        "京东",
+        "天猫",
+        "拼多多",
+        "淘宝"
+      ]
+    },
+    "full_service_ecommerce": {
+      "display_name": "全服务电商",
+      "apps": [
+        "京东"
+      ]
+    },
+    "national_subsidy_ecommerce": {
+      "display_name": "国补体系电商",
+      "apps": [
+        "京东",
+        "淘宝"
+      ]
+    },
+    "brand_direct_store": {
+      "display_name": "品牌官方商城",
+      "apps": [
+        "华为商城"
+      ]
+    },
+    "brand_direct_commerce": {
+      "display_name": "品牌直营电商",
+      "apps": [
+        "华为商城"
+      ]
+    },
+    "social_commerce": {
+      "display_name": "社交电商",
+      "apps": [
+        "拼多多"
+      ]
+    },
+    "streamlined_commerce": {
+      "display_name": "精简流程电商",
+      "apps": [
+        "拼多多"
+      ]
+    },
+    "fintech_integrated": {
+      "display_name": "金融支付集成电商",
+      "apps": [
+        "淘宝"
+      ]
+    }
+  },
+  "cross_app_comparison": {
+    "bundle_helper_page": {
+      "display_name": "凑单助手页",
+      "apps": {
+        "京东": {
+          "elements": [
+            "商品列表",
+            "搜索输入框",
+            "起送金额提示",
+            "搜索触发按钮",
+            "数量调整",
+            "销量/好评信息",
+            "优惠券/领券",
+            "底部导航栏",
+            "加入购物车按钮",
+            "价格区间输入"
+          ],
+          "business_semantics": [
+            "minimum_order_threshold",
+            "coupon_system"
+          ],
+          "source_count": 7
+        },
+        "华为商城": null,
+        "天猫": null,
+        "拼多多": null,
+        "淘宝": null
+      }
+    },
+    "cart_page": {
+      "display_name": "购物车页",
+      "apps": {
+        "京东": {
+          "elements": [
+            "商品列表",
+            "搜索输入框",
+            "搜索触发按钮",
+            "底部导航栏",
+            "销量/好评信息",
+            "数量调整",
+            "起送金额提示",
+            "价格区间输入",
+            "返回按钮",
+            "折扣/补贴价",
+            "排序选项栏",
+            "自营标识"
+          ],
+          "business_semantics": [
+            "minimum_order_threshold",
+            "store_quality_tier"
+          ],
+          "source_count": 9
+        },
+        "华为商城": {
+          "elements": [
+            "搜索输入框",
+            "底部导航栏",
+            "加入购物车按钮",
+            "立即购买按钮",
+            "规格选项"
+          ],
+          "business_semantics": [],
+          "source_count": 3
+        },
+        "天猫": {
+          "elements": [
+            "搜索输入框",
+            "搜索触发按钮",
+            "底部导航栏"
+          ],
+          "business_semantics": [],
+          "source_count": 4
+        },
+        "拼多多": null,
+        "淘宝": {
+          "elements": [
+            "搜索输入框",
+            "搜索触发按钮",
+            "底部导航栏",
+            "加入购物车按钮",
+            "立即购买按钮",
+            "优惠券/领券"
+          ],
+          "business_semantics": [
+            "coupon_system"
+          ],
+          "source_count": 3
+        }
+      }
+    },
+    "category_page": {
+      "display_name": "分类页",
+      "apps": {
+        "京东": {
+          "elements": [
+            "确认按钮",
+            "返回按钮",
+            "搜索输入框",
+            "搜索触发按钮",
+            "筛选触发按钮",
+            "商品列表",
+            "自营标识",
+            "物流/发货筛选"
+          ],
+          "business_semantics": [
+            "store_quality_tier"
+          ],
+          "source_count": 4
+        },
+        "华为商城": null,
+        "天猫": null,
+        "拼多多": null,
+        "淘宝": null
+      }
+    },
+    "checkout_page": {
+      "display_name": "确认订单/结算页",
+      "apps": {
+        "京东": {
+          "elements": [
+            "提交订单按钮",
+            "收货地址信息",
+            "物流/发货筛选",
+            "配送方式",
+            "折扣/补贴价",
+            "规格选项",
+            "国补标签",
+            "自营标识",
+            "确认付款按钮",
+            "确认按钮"
+          ],
+          "business_semantics": [
+            "national_subsidy",
+            "store_quality_tier"
+          ],
+          "source_count": 6
+        },
+        "华为商城": null,
+        "天猫": {
+          "elements": [
+            "提交订单按钮",
+            "确认按钮",
+            "收货地址信息",
+            "折扣/补贴价",
+            "物流/发货筛选",
+            "配送方式",
+            "规格选项"
+          ],
+          "business_semantics": [
+            "coupon_system"
+          ],
+          "source_count": 2
+        },
+        "拼多多": null,
+        "淘宝": null
+      }
+    },
+    "filter_page": {
+      "display_name": "筛选页",
+      "apps": {
+        "京东": {
+          "elements": [
+            "筛选触发按钮",
+            "确认按钮",
+            "筛选重置按钮",
+            "价格区间输入",
+            "百亿补贴标签",
+            "收货地址信息",
+            "自营标识",
+            "物流/发货筛选",
+            "搜索触发按钮",
+            "商品列表",
+            "销量/好评信息"
+          ],
+          "business_semantics": [
+            "subsidy_pricing",
+            "store_quality_tier"
+          ],
+          "source_count": 13
+        },
+        "华为商城": {
+          "elements": [
+            "筛选触发按钮",
+            "筛选重置按钮",
+            "确认按钮",
+            "价格区间输入"
+          ],
+          "business_semantics": [],
+          "source_count": 1
+        },
+        "天猫": {
+          "elements": [
+            "筛选触发按钮",
+            "确认按钮",
+            "价格区间输入",
+            "规格选项",
+            "店铺类型筛选",
+            "筛选重置按钮"
+          ],
+          "business_semantics": [
+            "store_quality_tier"
+          ],
+          "source_count": 2
+        },
+        "拼多多": null,
+        "淘宝": {
+          "elements": [
+            "筛选触发按钮",
+            "确认按钮",
+            "价格区间输入",
+            "筛选重置按钮",
+            "物流/发货筛选",
+            "搜索触发按钮",
+            "百亿补贴标签",
+            "销量/好评信息",
+            "返回按钮",
+            "搜索输入框"
+          ],
+          "business_semantics": [
+            "subsidy_pricing"
+          ],
+          "source_count": 20
+        }
+      }
+    },
+    "home_page": {
+      "display_name": "首页",
+      "apps": {
+        "京东": {
+          "elements": [
+            "搜索输入框",
+            "搜索触发按钮",
+            "底部导航栏"
+          ],
+          "business_semantics": [],
+          "source_count": 2
+        },
+        "华为商城": {
+          "elements": [
+            "搜索输入框",
+            "底部导航栏",
+            "搜索触发按钮",
+            "扫描按钮"
+          ],
+          "business_semantics": [
+            "scan_interaction"
+          ],
+          "source_count": 4
+        },
+        "天猫": null,
+        "拼多多": {
+          "elements": [
+            "搜索输入框",
+            "底部导航栏"
+          ],
+          "business_semantics": [],
+          "source_count": 2
+        },
+        "淘宝": null
+      }
+    },
+    "loading_page": {
+      "display_name": "加载/执行页",
+      "apps": {
+        "京东": {
+          "elements": [],
+          "business_semantics": [],
+          "source_count": 9
+        },
+        "华为商城": null,
+        "天猫": {
+          "elements": [],
+          "business_semantics": [],
+          "source_count": 2
+        },
+        "拼多多": null,
+        "淘宝": {
+          "elements": [],
+          "business_semantics": [],
+          "source_count": 23
+        }
+      }
+    },
+    "payment_page": {
+      "display_name": "支付页",
+      "apps": {
+        "京东": {
+          "elements": [
+            "确认付款按钮",
+            "支付方式选项",
+            "确认按钮",
+            "收货地址信息",
+            "配送方式"
+          ],
+          "business_semantics": [],
+          "source_count": 6
+        },
+        "华为商城": null,
+        "天猫": null,
+        "拼多多": null,
+        "淘宝": {
+          "elements": [
+            "确认付款按钮",
+            "规格选项",
+            "支付方式选项",
+            "确认按钮",
+            "立即购买按钮"
+          ],
+          "business_semantics": [],
+          "source_count": 10
+        }
+      }
+    },
+    "payment_password_page": {
+      "display_name": "支付密码页",
+      "apps": {
+        "京东": null,
+        "华为商城": null,
+        "天猫": null,
+        "拼多多": null,
+        "淘宝": {
+          "elements": [
+            "支付方式选项",
+            "确认按钮"
+          ],
+          "business_semantics": [],
+          "source_count": 2
+        }
+      }
+    },
+    "product_detail_page": {
+      "display_name": "商品详情页",
+      "apps": {
+        "京东": {
+          "elements": [
+            "销量/好评信息",
+            "搜索输入框",
+            "商品列表",
+            "加入购物车按钮",
+            "立即购买按钮",
+            "自营标识",
+            "排序选项栏",
+            "底部导航栏",
+            "百亿补贴标签",
+            "确认按钮",
+            "规格选项",
+            "搜索触发按钮",
+            "筛选触发按钮",
+            "物流/发货筛选",
+            "折扣/补贴价"
+          ],
+          "business_semantics": [
+            "subsidy_pricing",
+            "store_quality_tier"
+          ],
+          "source_count": 10
+        },
+        "华为商城": {
+          "elements": [
+            "加入购物车按钮",
+            "立即购买按钮",
+            "配送方式",
+            "规格选项"
+          ],
+          "business_semantics": [],
+          "source_count": 1
+        },
+        "天猫": {
+          "elements": [
+            "加入购物车按钮",
+            "立即购买按钮",
+            "排序选项栏",
+            "商品列表",
+            "搜索输入框",
+            "搜索触发按钮",
+            "筛选触发按钮",
+            "销量/好评信息",
+            "规格选项",
+            "折扣/补贴价",
+            "优惠券/领券"
+          ],
+          "business_semantics": [
+            "coupon_system"
+          ],
+          "source_count": 7
+        },
+        "拼多多": {
+          "elements": [
+            "搜索输入框",
+            "销量/好评信息",
+            "底部导航栏",
+            "排序选项栏",
+            "立即购买按钮",
+            "折扣/补贴价"
+          ],
+          "business_semantics": [
+            "group_buying"
+          ],
+          "source_count": 5
+        },
+        "淘宝": {
+          "elements": [
+            "加入购物车按钮",
+            "立即购买按钮",
+            "优惠券/领券",
+            "搜索输入框",
+            "商品列表",
+            "销量/好评信息",
+            "折扣/补贴价",
+            "规格选项",
+            "搜索触发按钮",
+            "筛选触发按钮",
+            "底部导航栏",
+            "返回按钮"
+          ],
+          "business_semantics": [
+            "coupon_system"
+          ],
+          "source_count": 9
+        }
+      }
+    },
+    "ranking_page": {
+      "display_name": "热卖榜/排行榜页",
+      "apps": {
+        "京东": {
+          "elements": [
+            "数量调整",
+            "返回按钮",
+            "商品列表"
+          ],
+          "business_semantics": [
+            "ranking_recommendation"
+          ],
+          "source_count": 2
+        },
+        "华为商城": null,
+        "天猫": null,
+        "拼多多": null,
+        "淘宝": null
+      }
+    },
+    "search_result_page": {
+      "display_name": "搜索结果页",
+      "apps": {
+        "京东": {
+          "elements": [
+            "搜索输入框",
+            "搜索触发按钮",
+            "商品列表",
+            "底部导航栏",
+            "销量/好评信息",
+            "排序选项栏",
+            "筛选触发按钮",
+            "自营标识",
+            "百亿补贴标签",
+            "返回按钮",
+            "规格选项",
+            "物流/发货筛选"
+          ],
+          "business_semantics": [
+            "subsidy_pricing",
+            "store_quality_tier"
+          ],
+          "source_count": 30
+        },
+        "华为商城": {
+          "elements": [
+            "商品列表",
+            "排序选项栏",
+            "搜索输入框",
+            "搜索触发按钮",
+            "筛选触发按钮",
+            "缺货标识"
+          ],
+          "business_semantics": [],
+          "source_count": 6
+        },
+        "天猫": {
+          "elements": [
+            "搜索输入框",
+            "搜索触发按钮",
+            "商品列表",
+            "排序选项栏",
+            "价格区间输入",
+            "底部导航栏",
+            "销量/好评信息",
+            "筛选触发按钮",
+            "返回按钮",
+            "折扣/补贴价",
+            "规格选项"
+          ],
+          "business_semantics": [
+            "coupon_system"
+          ],
+          "source_count": 7
+        },
+        "拼多多": {
+          "elements": [
+            "搜索输入框",
+            "百亿补贴标签",
+            "排序选项栏",
+            "商品列表",
+            "折扣/补贴价",
+            "销量/好评信息",
+            "价格区间输入",
+            "底部导航栏"
+          ],
+          "business_semantics": [
+            "coupon_system",
+            "subsidy_pricing"
+          ],
+          "source_count": 5
+        },
+        "淘宝": {
+          "elements": [
+            "排序选项栏",
+            "商品列表",
+            "搜索输入框",
+            "搜索触发按钮",
+            "百亿补贴标签",
+            "筛选触发按钮",
+            "销量/好评信息",
+            "价格区间输入",
+            "底部导航栏",
+            "折扣/补贴价",
+            "国补标签"
+          ],
+          "business_semantics": [
+            "coupon_system",
+            "subsidy_pricing",
+            "national_subsidy"
+          ],
+          "source_count": 33
+        }
+      }
+    },
+    "search_suggestion_page": {
+      "display_name": "搜索建议页",
+      "apps": {
+        "京东": {
+          "elements": [
+            "搜索输入框",
+            "搜索触发按钮",
+            "返回按钮"
+          ],
+          "business_semantics": [],
+          "source_count": 1
+        },
+        "华为商城": null,
+        "天猫": null,
+        "拼多多": null,
+        "淘宝": null
+      }
+    },
+    "spec_selection_page": {
+      "display_name": "规格选择页",
+      "apps": {
+        "京东": {
+          "elements": [
+            "确认按钮",
+            "规格选项"
+          ],
+          "business_semantics": [],
+          "source_count": 1
+        },
+        "华为商城": {
+          "elements": [
+            "规格选项",
+            "加入购物车按钮",
+            "立即购买按钮",
+            "底部导航栏",
+            "返回按钮",
+            "配送方式",
+            "无忧服务标识",
+            "缺货标识"
+          ],
+          "business_semantics": [
+            "after_sales_service"
+          ],
+          "source_count": 3
+        },
+        "天猫": {
+          "elements": [
+            "立即购买按钮",
+            "规格选项",
+            "加入购物车按钮",
+            "折扣/补贴价",
+            "优惠券/领券",
+            "缺货标识"
+          ],
+          "business_semantics": [
+            "coupon_system"
+          ],
+          "source_count": 5
+        },
+        "拼多多": {
+          "elements": [
+            "确认按钮",
+            "规格选项",
+            "数量调整"
+          ],
+          "business_semantics": [],
+          "source_count": 1
+        },
+        "淘宝": {
+          "elements": [
+            "搜索输入框",
+            "搜索触发按钮",
+            "百亿补贴标签",
+            "规格选项"
+          ],
+          "business_semantics": [
+            "subsidy_pricing"
+          ],
+          "source_count": 1
+        }
+      }
+    },
+    "store_page": {
+      "display_name": "店铺页",
+      "apps": {
+        "京东": {
+          "elements": [
+            "商品列表",
+            "自营标识",
+            "搜索触发按钮",
+            "销量/好评信息",
+            "店铺类型筛选",
+            "优惠券/领券",
+            "搜索输入框",
+            "底部导航栏",
+            "规格选项"
+          ],
+          "business_semantics": [
+            "store_quality_tier",
+            "coupon_system"
+          ],
+          "source_count": 3
+        },
+        "华为商城": null,
+        "天猫": null,
+        "拼多多": null,
+        "淘宝": {
+          "elements": [
+            "搜索输入框",
+            "搜索触发按钮",
+            "百亿补贴标签",
+            "店铺类型筛选"
+          ],
+          "business_semantics": [
+            "subsidy_pricing",
+            "store_quality_tier"
+          ],
+          "source_count": 1
+        }
+      }
+    }
+  }
+}
