@@ -8,6 +8,8 @@
   - 当前项目总架构、主入口、模块职责、异常模式、序列语义。
 - [utg-architecture.md](./utg-architecture.md)
   - `utg_info.json` 文本决策链路、UTG 批量注入流程。
+- [utg-anomaly-injector.md](./utg-anomaly-injector.md)
+  - `UTGAnomalyInjector` 独立模块：决策注入步 + 改写 ui_summary。
 - [mapping-generation.md](./mapping-generation.md)
   - mapping 自动生成、fault mode 分类、指令扩写、关键词定位机制。
 - [技术难题业界与项目方案对照.md](./技术难题业界与项目方案对照.md)
