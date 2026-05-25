@@ -1,0 +1,379 @@
+{
+  "app_name": "天猫",
+  "category": "shopping_ecommerce",
+  "page_specs": [
+    {
+      "page_type": "product_detail_page",
+      "page_id": "天猫_product_detail_page",
+      "description": "搜索框已填入“戴森V12吸尘器”，页面展示商品列表，包括多个戴森V12相关吸尘器商品。顶部分类标签包括综合、销量、价格、店铺和筛选，其中价格筛选按钮可点击。页面商品信息包括标题、价格、优惠信息和购买数据。",
+      "elements": [
+        {
+          "name": "add_to_cart",
+          "element_type": "button",
+          "interactable": true,
+          "description": "加入购物车按钮"
+        },
+        {
+          "name": "buy_now",
+          "element_type": "button",
+          "interactable": true,
+          "description": "立即购买按钮"
+        },
+        {
+          "name": "sort_options",
+          "element_type": "tab",
+          "interactable": true,
+          "description": "排序选项栏"
+        },
+        {
+          "name": "product_list",
+          "element_type": "list",
+          "interactable": true,
+          "description": "商品列表"
+        },
+        {
+          "name": "search_box",
+          "element_type": "input",
+          "interactable": true,
+          "description": "搜索输入框"
+        },
+        {
+          "name": "search_button",
+          "element_type": "button",
+          "interactable": true,
+          "description": "搜索触发按钮"
+        },
+        {
+          "name": "filter_button",
+          "element_type": "button",
+          "interactable": true,
+          "description": "筛选触发按钮"
+        },
+        {
+          "name": "sales_info",
+          "element_type": "label",
+          "interactable": false,
+          "description": "销量/好评信息"
+        },
+        {
+          "name": "spec_option",
+          "element_type": "tab",
+          "interactable": true,
+          "description": "规格选项"
+        },
+        {
+          "name": "discount_price",
+          "element_type": "label",
+          "interactable": false,
+          "description": "折扣/补贴价"
+        },
+        {
+          "name": "coupon",
+          "element_type": "button",
+          "interactable": true,
+          "description": "优惠券/领券"
+        }
+      ],
+      "interactions": [
+        "click",
+        "filled"
+      ],
+      "business_semantics": [
+        "coupon_system"
+      ],
+      "source_count": 7,
+      "page_type_display": "商品详情页"
+    },
+    {
+      "page_type": "search_result_page",
+      "page_id": "天猫_search_result_page",
+      "description": "页面顶部有搜索框显示关键词“卡地亚LOVE系列窄版”，下方有“综合”“销量”“价格”“店铺”“筛选”等标签，当前选中标签为“综合”。页面主体显示卡地亚LOVE系列窄版的多款商品及其价格，商品价格从10500元至21784.7元不等。",
+      "elements": [
+        {
+          "name": "search_box",
+          "element_type": "input",
+          "interactable": true,
+          "description": "搜索输入框"
+        },
+        {
+          "name": "search_button",
+          "element_type": "button",
+          "interactable": true,
+          "description": "搜索触发按钮"
+        },
+        {
+          "name": "product_list",
+          "element_type": "list",
+          "interactable": true,
+          "description": "商品列表"
+        },
+        {
+          "name": "sort_options",
+          "element_type": "tab",
+          "interactable": true,
+          "description": "排序选项栏"
+        },
+        {
+          "name": "price_range_input",
+          "element_type": "input",
+          "interactable": true,
+          "description": "价格区间输入"
+        },
+        {
+          "name": "navigation_bar",
+          "element_type": "navigation",
+          "interactable": true,
+          "description": "底部导航栏"
+        },
+        {
+          "name": "sales_info",
+          "element_type": "label",
+          "interactable": false,
+          "description": "销量/好评信息"
+        },
+        {
+          "name": "filter_button",
+          "element_type": "button",
+          "interactable": true,
+          "description": "筛选触发按钮"
+        },
+        {
+          "name": "back_button",
+          "element_type": "button",
+          "interactable": true,
+          "description": "返回按钮"
+        },
+        {
+          "name": "discount_price",
+          "element_type": "label",
+          "interactable": false,
+          "description": "折扣/补贴价"
+        },
+        {
+          "name": "spec_option",
+          "element_type": "tab",
+          "interactable": true,
+          "description": "规格选项"
+        }
+      ],
+      "interactions": [
+        "click",
+        "filled",
+        "select"
+      ],
+      "business_semantics": [
+        "coupon_system"
+      ],
+      "source_count": 7,
+      "page_type_display": "搜索结果页"
+    },
+    {
+      "page_type": "spec_selection_page",
+      "page_id": "天猫_spec_selection_page",
+      "description": "当前页面展示商品图片、款式选择区域（可点击）、价格优惠信息（券后价159元）、商品描述（李宁跑步鞋男鞋黑色运动鞋），以及底部的两个主要操作按钮（加入购物车和立即购买）。",
+      "elements": [
+        {
+          "name": "buy_now",
+          "element_type": "button",
+          "interactable": true,
+          "description": "立即购买按钮"
+        },
+        {
+          "name": "spec_option",
+          "element_type": "tab",
+          "interactable": true,
+          "description": "规格选项"
+        },
+        {
+          "name": "add_to_cart",
+          "element_type": "button",
+          "interactable": true,
+          "description": "加入购物车按钮"
+        },
+        {
+          "name": "discount_price",
+          "element_type": "label",
+          "interactable": false,
+          "description": "折扣/补贴价"
+        },
+        {
+          "name": "coupon",
+          "element_type": "button",
+          "interactable": true,
+          "description": "优惠券/领券"
+        },
+        {
+          "name": "out_of_stock",
+          "element_type": "label",
+          "interactable": false,
+          "description": "缺货标识"
+        }
+      ],
+      "interactions": [
+        "click",
+        "select"
+      ],
+      "business_semantics": [
+        "coupon_system"
+      ],
+      "source_count": 5,
+      "page_type_display": "规格选择页"
+    },
+    {
+      "page_type": "cart_page",
+      "page_id": "天猫_cart_page",
+      "description": "页面顶部有搜索框，当前搜索框内容为“水豚噜噜公仔玩偶”，右侧有红色的搜索按钮。下方展示推荐商品和促销活动，包括天猫年货节和商品价格信息。底部导航栏包括直播、消息、购物车和我。",
+      "elements": [
+        {
+          "name": "search_box",
+          "element_type": "input",
+          "interactable": true,
+          "description": "搜索输入框"
+        },
+        {
+          "name": "search_button",
+          "element_type": "button",
+          "interactable": true,
+          "description": "搜索触发按钮"
+        },
+        {
+          "name": "navigation_bar",
+          "element_type": "navigation",
+          "interactable": true,
+          "description": "底部导航栏"
+        }
+      ],
+      "interactions": [
+        "click",
+        "filled",
+        "select"
+      ],
+      "business_semantics": [],
+      "source_count": 4,
+      "page_type_display": "购物车页"
+    },
+    {
+      "page_type": "checkout_page",
+      "page_id": "天猫_checkout_page",
+      "description": "页面标题为'确认订单'，显示收货地址、商品信息（李宁跑步鞋男鞋黑色/标准白-男，鞋码39，券后价159元）、数量为1件，配送服务为快递包邮，发票选项为'本次不开具发票'，价格明细显示商品总价188元，共减29元，合计159元。底部红色按钮为'提交订单'，可点击。",
+      "elements": [
+        {
+          "name": "submit_order",
+          "element_type": "button",
+          "interactable": true,
+          "description": "提交订单按钮"
+        },
+        {
+          "name": "confirm_button",
+          "element_type": "button",
+          "interactable": true,
+          "description": "确认按钮"
+        },
+        {
+          "name": "shipping_address",
+          "element_type": "label",
+          "interactable": false,
+          "description": "收货地址信息"
+        },
+        {
+          "name": "discount_price",
+          "element_type": "label",
+          "interactable": false,
+          "description": "折扣/补贴价"
+        },
+        {
+          "name": "logistics_filter",
+          "element_type": "tab",
+          "interactable": true,
+          "description": "物流/发货筛选"
+        },
+        {
+          "name": "delivery_method",
+          "element_type": "label",
+          "interactable": false,
+          "description": "配送方式"
+        },
+        {
+          "name": "spec_option",
+          "element_type": "tab",
+          "interactable": true,
+          "description": "规格选项"
+        }
+      ],
+      "interactions": [
+        "click"
+      ],
+      "business_semantics": [
+        "coupon_system"
+      ],
+      "source_count": 2,
+      "page_type_display": "确认订单/结算页"
+    },
+    {
+      "page_type": "filter_page",
+      "page_id": "天猫_filter_page",
+      "description": "筛选界面，包含价格区间输入框、最低价和最高价输入框，复选框选项如店铺类型（旗舰店、专卖店、专营店）和款式（无线）。底部有重置和确认按钮，确认按钮为红色，可点击。",
+      "elements": [
+        {
+          "name": "filter_button",
+          "element_type": "button",
+          "interactable": true,
+          "description": "筛选触发按钮"
+        },
+        {
+          "name": "confirm_button",
+          "element_type": "button",
+          "interactable": true,
+          "description": "确认按钮"
+        },
+        {
+          "name": "price_range_input",
+          "element_type": "input",
+          "interactable": true,
+          "description": "价格区间输入"
+        },
+        {
+          "name": "spec_option",
+          "element_type": "tab",
+          "interactable": true,
+          "description": "规格选项"
+        },
+        {
+          "name": "store_type_filter",
+          "element_type": "tab",
+          "interactable": true,
+          "description": "店铺类型筛选"
+        },
+        {
+          "name": "reset_button",
+          "element_type": "button",
+          "interactable": true,
+          "description": "筛选重置按钮"
+        }
+      ],
+      "interactions": [
+        "click",
+        "input"
+      ],
+      "business_semantics": [
+        "store_quality_tier"
+      ],
+      "source_count": 2,
+      "page_type_display": "筛选页"
+    },
+    {
+      "page_type": "loading_page",
+      "page_id": "天猫_loading_page",
+      "description": "加载中的页面",
+      "elements": [],
+      "interactions": [],
+      "business_semantics": [],
+      "source_count": 2,
+      "page_type_display": "加载/执行页"
+    }
+  ],
+  "unique_features": [
+    "品牌官方店铺为主",
+    "天猫超市/品牌官方标识"
+  ]
+}
