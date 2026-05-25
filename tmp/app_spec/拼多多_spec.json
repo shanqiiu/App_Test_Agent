@@ -1,0 +1,185 @@
+{
+  "app_name": "拼多多",
+  "category": "shopping_ecommerce",
+  "page_specs": [
+    {
+      "page_type": "product_detail_page",
+      "page_id": "拼多多_product_detail_page",
+      "description": "页面为拼多多搜索结果页，搜索框内容为“iPad”。当前排序方式为“综合”，可点击选择其他排序方式，如“价格”或“销量”。页面展示了多个iPad商品，包含图片、价格、优惠信息及销售量。",
+      "elements": [
+        {
+          "name": "search_box",
+          "element_type": "input",
+          "interactable": true,
+          "description": "搜索输入框"
+        },
+        {
+          "name": "sales_info",
+          "element_type": "label",
+          "interactable": false,
+          "description": "销量/好评信息"
+        },
+        {
+          "name": "navigation_bar",
+          "element_type": "navigation",
+          "interactable": true,
+          "description": "底部导航栏"
+        },
+        {
+          "name": "sort_options",
+          "element_type": "tab",
+          "interactable": true,
+          "description": "排序选项栏"
+        },
+        {
+          "name": "buy_now",
+          "element_type": "button",
+          "interactable": true,
+          "description": "立即购买按钮"
+        },
+        {
+          "name": "discount_price",
+          "element_type": "label",
+          "interactable": false,
+          "description": "折扣/补贴价"
+        }
+      ],
+      "interactions": [
+        "click",
+        "filled",
+        "select"
+      ],
+      "business_semantics": [
+        "group_buying"
+      ],
+      "source_count": 5,
+      "page_type_display": "商品详情页"
+    },
+    {
+      "page_type": "search_result_page",
+      "page_id": "拼多多_search_result_page",
+      "description": "当前页面为iPad搜索结果页，顶部搜索框内容为“iPad”，价格排序已选中从低到高。展示的iPad商品按价格从低到高排序，最低价格商品为Apple iPad Air7 256G，券后价格4199元，最后14件。",
+      "elements": [
+        {
+          "name": "search_box",
+          "element_type": "input",
+          "interactable": true,
+          "description": "搜索输入框"
+        },
+        {
+          "name": "subsidy_tag",
+          "element_type": "label",
+          "interactable": false,
+          "description": "百亿补贴标签"
+        },
+        {
+          "name": "sort_options",
+          "element_type": "tab",
+          "interactable": true,
+          "description": "排序选项栏"
+        },
+        {
+          "name": "product_list",
+          "element_type": "list",
+          "interactable": true,
+          "description": "商品列表"
+        },
+        {
+          "name": "discount_price",
+          "element_type": "label",
+          "interactable": false,
+          "description": "折扣/补贴价"
+        },
+        {
+          "name": "sales_info",
+          "element_type": "label",
+          "interactable": false,
+          "description": "销量/好评信息"
+        },
+        {
+          "name": "price_range_input",
+          "element_type": "input",
+          "interactable": true,
+          "description": "价格区间输入"
+        },
+        {
+          "name": "navigation_bar",
+          "element_type": "navigation",
+          "interactable": true,
+          "description": "底部导航栏"
+        }
+      ],
+      "interactions": [
+        "select",
+        "filled"
+      ],
+      "business_semantics": [
+        "coupon_system",
+        "subsidy_pricing"
+      ],
+      "source_count": 5,
+      "page_type_display": "搜索结果页"
+    },
+    {
+      "page_type": "home_page",
+      "page_id": "拼多多_home_page",
+      "description": "当前页面为拼多多首页，顶部是搜索框，已输入“女士夏季短裤”。导航栏提供推荐、年货大促销等分类，底部是导航栏，当前选中首页。",
+      "elements": [
+        {
+          "name": "search_box",
+          "element_type": "input",
+          "interactable": true,
+          "description": "搜索输入框"
+        },
+        {
+          "name": "navigation_bar",
+          "element_type": "navigation",
+          "interactable": true,
+          "description": "底部导航栏"
+        }
+      ],
+      "interactions": [
+        "select",
+        "filled"
+      ],
+      "business_semantics": [],
+      "source_count": 2,
+      "page_type_display": "首页"
+    },
+    {
+      "page_type": "spec_selection_page",
+      "page_id": "拼多多_spec_selection_page",
+      "description": "确认款式页面，展示商品图片和价格，当前已选择颜色为“欢乐派对-米色”，其他颜色选项可选，有数量调整按钮和确认按钮。",
+      "elements": [
+        {
+          "name": "confirm_button",
+          "element_type": "button",
+          "interactable": true,
+          "description": "确认按钮"
+        },
+        {
+          "name": "spec_option",
+          "element_type": "tab",
+          "interactable": true,
+          "description": "规格选项"
+        },
+        {
+          "name": "quantity_adjust",
+          "element_type": "button",
+          "interactable": true,
+          "description": "数量调整"
+        }
+      ],
+      "interactions": [
+        "select"
+      ],
+      "business_semantics": [],
+      "source_count": 1,
+      "page_type_display": "规格选择页"
+    }
+  ],
+  "unique_features": [
+    "拼单/拼团购买模式",
+    "好评排序特色"
+  ]
+}
