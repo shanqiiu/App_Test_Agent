@@ -1,0 +1,851 @@
+{
+  "app_name": "京东",
+  "category": "shopping_ecommerce",
+  "page_specs": [
+    {
+      "page_type": "search_result_page",
+      "page_id": "京东_search_result_page",
+      "description": "页面顶部为搜索框，已输入“统一汤达人方便面”。导航栏中“全部”选中，排序选项展开，当前选中为“综合推荐”，其他选项包括“价格从高到低”、“价格从低到高”、“评论数从高到低”。页面下方是商品列表，包含多个商品卡片，展示名称、价格、销量、优惠信息等。",
+      "elements": [
+        {
+          "name": "search_box",
+          "element_type": "input",
+          "interactable": true,
+          "description": "搜索输入框"
+        },
+        {
+          "name": "search_button",
+          "element_type": "button",
+          "interactable": true,
+          "description": "搜索触发按钮"
+        },
+        {
+          "name": "product_list",
+          "element_type": "list",
+          "interactable": true,
+          "description": "商品列表"
+        },
+        {
+          "name": "navigation_bar",
+          "element_type": "navigation",
+          "interactable": true,
+          "description": "底部导航栏"
+        },
+        {
+          "name": "sales_info",
+          "element_type": "label",
+          "interactable": false,
+          "description": "销量/好评信息"
+        },
+        {
+          "name": "sort_options",
+          "element_type": "tab",
+          "interactable": true,
+          "description": "排序选项栏"
+        },
+        {
+          "name": "filter_button",
+          "element_type": "button",
+          "interactable": true,
+          "description": "筛选触发按钮"
+        },
+        {
+          "name": "self_operated_tag",
+          "element_type": "label",
+          "interactable": false,
+          "description": "自营标识"
+        },
+        {
+          "name": "subsidy_tag",
+          "element_type": "label",
+          "interactable": false,
+          "description": "百亿补贴标签"
+        },
+        {
+          "name": "back_button",
+          "element_type": "button",
+          "interactable": true,
+          "description": "返回按钮"
+        },
+        {
+          "name": "spec_option",
+          "element_type": "tab",
+          "interactable": true,
+          "description": "规格选项"
+        },
+        {
+          "name": "logistics_filter",
+          "element_type": "tab",
+          "interactable": true,
+          "description": "物流/发货筛选"
+        }
+      ],
+      "interactions": [
+        "click",
+        "filled",
+        "select",
+        "scroll",
+        "input"
+      ],
+      "business_semantics": [
+        "subsidy_pricing",
+        "store_quality_tier"
+      ],
+      "source_count": 30,
+      "page_type_display": "搜索结果页"
+    },
+    {
+      "page_type": "filter_page",
+      "page_id": "京东_filter_page",
+      "description": "当前页面为燕窝的搜索结果页面，已选中京东物流筛选，筛选条件包括京东物流/时效、30分钟内、1小时内、2小时内、今日内送达、明日内送达。页面底部显示商品列表，部分商品显示价格、销量和自营信息。页面底部有“重置”和“确定（1700+件商品）”按钮，确定按钮可点击。",
+      "elements": [
+        {
+          "name": "filter_button",
+          "element_type": "button",
+          "interactable": true,
+          "description": "筛选触发按钮"
+        },
+        {
+          "name": "confirm_button",
+          "element_type": "button",
+          "interactable": true,
+          "description": "确认按钮"
+        },
+        {
+          "name": "reset_button",
+          "element_type": "button",
+          "interactable": true,
+          "description": "筛选重置按钮"
+        },
+        {
+          "name": "price_range_input",
+          "element_type": "input",
+          "interactable": true,
+          "description": "价格区间输入"
+        },
+        {
+          "name": "subsidy_tag",
+          "element_type": "label",
+          "interactable": false,
+          "description": "百亿补贴标签"
+        },
+        {
+          "name": "shipping_address",
+          "element_type": "label",
+          "interactable": false,
+          "description": "收货地址信息"
+        },
+        {
+          "name": "self_operated_tag",
+          "element_type": "label",
+          "interactable": false,
+          "description": "自营标识"
+        },
+        {
+          "name": "logistics_filter",
+          "element_type": "tab",
+          "interactable": true,
+          "description": "物流/发货筛选"
+        },
+        {
+          "name": "search_button",
+          "element_type": "button",
+          "interactable": true,
+          "description": "搜索触发按钮"
+        },
+        {
+          "name": "product_list",
+          "element_type": "list",
+          "interactable": true,
+          "description": "商品列表"
+        },
+        {
+          "name": "sales_info",
+          "element_type": "label",
+          "interactable": false,
+          "description": "销量/好评信息"
+        }
+      ],
+      "interactions": [
+        "input",
+        "click",
+        "select"
+      ],
+      "business_semantics": [
+        "subsidy_pricing",
+        "store_quality_tier"
+      ],
+      "source_count": 13,
+      "page_type_display": "筛选页"
+    },
+    {
+      "page_type": "product_detail_page",
+      "page_id": "京东_product_detail_page",
+      "description": "页面顶部为搜索框，已输入“统一汤达人方便面”。导航栏中“综合推荐”选中，下方展示商品列表，包含商品图片、名称、价格和销量信息，其中价格最低的商品为4.8元（统一汤达人海鲜拉面），其他商品价格分别为14元、26.5元、7.5元。商品列表支持上下滑动。",
+      "elements": [
+        {
+          "name": "sales_info",
+          "element_type": "label",
+          "interactable": false,
+          "description": "销量/好评信息"
+        },
+        {
+          "name": "search_box",
+          "element_type": "input",
+          "interactable": true,
+          "description": "搜索输入框"
+        },
+        {
+          "name": "product_list",
+          "element_type": "list",
+          "interactable": true,
+          "description": "商品列表"
+        },
+        {
+          "name": "add_to_cart",
+          "element_type": "button",
+          "interactable": true,
+          "description": "加入购物车按钮"
+        },
+        {
+          "name": "buy_now",
+          "element_type": "button",
+          "interactable": true,
+          "description": "立即购买按钮"
+        },
+        {
+          "name": "self_operated_tag",
+          "element_type": "label",
+          "interactable": false,
+          "description": "自营标识"
+        },
+        {
+          "name": "sort_options",
+          "element_type": "tab",
+          "interactable": true,
+          "description": "排序选项栏"
+        },
+        {
+          "name": "navigation_bar",
+          "element_type": "navigation",
+          "interactable": true,
+          "description": "底部导航栏"
+        },
+        {
+          "name": "subsidy_tag",
+          "element_type": "label",
+          "interactable": false,
+          "description": "百亿补贴标签"
+        },
+        {
+          "name": "confirm_button",
+          "element_type": "button",
+          "interactable": true,
+          "description": "确认按钮"
+        },
+        {
+          "name": "spec_option",
+          "element_type": "tab",
+          "interactable": true,
+          "description": "规格选项"
+        },
+        {
+          "name": "search_button",
+          "element_type": "button",
+          "interactable": true,
+          "description": "搜索触发按钮"
+        },
+        {
+          "name": "filter_button",
+          "element_type": "button",
+          "interactable": true,
+          "description": "筛选触发按钮"
+        },
+        {
+          "name": "logistics_filter",
+          "element_type": "tab",
+          "interactable": true,
+          "description": "物流/发货筛选"
+        },
+        {
+          "name": "discount_price",
+          "element_type": "label",
+          "interactable": false,
+          "description": "折扣/补贴价"
+        }
+      ],
+      "interactions": [
+        "filled",
+        "scroll",
+        "select"
+      ],
+      "business_semantics": [
+        "subsidy_pricing",
+        "store_quality_tier"
+      ],
+      "source_count": 10,
+      "page_type_display": "商品详情页"
+    },
+    {
+      "page_type": "loading_page",
+      "page_id": "京东_loading_page",
+      "description": "加载中的页面",
+      "elements": [],
+      "interactions": [],
+      "business_semantics": [],
+      "source_count": 9,
+      "page_type_display": "加载/执行页"
+    },
+    {
+      "page_type": "cart_page",
+      "page_id": "京东_cart_page",
+      "description": "页面顶部为搜索框和导航栏。中部为全好佳超市信息和商品列表，当前商品列表为“统一汤达人方便面”相关结果，其中最低价商品为“酸酸辣辣豚骨面90g/杯”，价格2.8元（单件预估），右侧有红色加号按钮可选入购物车。页面底部显示满25元运费9.2元及9.9元起送信息。",
+      "elements": [
+        {
+          "name": "product_list",
+          "element_type": "list",
+          "interactable": true,
+          "description": "商品列表"
+        },
+        {
+          "name": "search_box",
+          "element_type": "input",
+          "interactable": true,
+          "description": "搜索输入框"
+        },
+        {
+          "name": "search_button",
+          "element_type": "button",
+          "interactable": true,
+          "description": "搜索触发按钮"
+        },
+        {
+          "name": "navigation_bar",
+          "element_type": "navigation",
+          "interactable": true,
+          "description": "底部导航栏"
+        },
+        {
+          "name": "sales_info",
+          "element_type": "label",
+          "interactable": false,
+          "description": "销量/好评信息"
+        },
+        {
+          "name": "quantity_adjust",
+          "element_type": "button",
+          "interactable": true,
+          "description": "数量调整"
+        },
+        {
+          "name": "min_order_hint",
+          "element_type": "label",
+          "interactable": false,
+          "description": "起送金额提示"
+        },
+        {
+          "name": "price_range_input",
+          "element_type": "input",
+          "interactable": true,
+          "description": "价格区间输入"
+        },
+        {
+          "name": "back_button",
+          "element_type": "button",
+          "interactable": true,
+          "description": "返回按钮"
+        },
+        {
+          "name": "discount_price",
+          "element_type": "label",
+          "interactable": false,
+          "description": "折扣/补贴价"
+        },
+        {
+          "name": "sort_options",
+          "element_type": "tab",
+          "interactable": true,
+          "description": "排序选项栏"
+        },
+        {
+          "name": "self_operated_tag",
+          "element_type": "label",
+          "interactable": false,
+          "description": "自营标识"
+        }
+      ],
+      "interactions": [
+        "select",
+        "filled",
+        "click"
+      ],
+      "business_semantics": [
+        "minimum_order_threshold",
+        "store_quality_tier"
+      ],
+      "source_count": 9,
+      "page_type_display": "购物车页"
+    },
+    {
+      "page_type": "bundle_helper_page",
+      "page_id": "京东_bundle_helper_page",
+      "description": "页面为京东商品详情页，顶部显示搜索框和商家信息，中部展示商品列表，其中最低价商品为“统一汤达人 酸酸辣辣豚骨面90g/杯”，价格2.8元，已加入购物车。底部有购物车图标和去凑单按钮，显示当前购物车金额为25元，运费为9.2元。",
+      "elements": [
+        {
+          "name": "product_list",
+          "element_type": "list",
+          "interactable": true,
+          "description": "商品列表"
+        },
+        {
+          "name": "search_box",
+          "element_type": "input",
+          "interactable": true,
+          "description": "搜索输入框"
+        },
+        {
+          "name": "min_order_hint",
+          "element_type": "label",
+          "interactable": false,
+          "description": "起送金额提示"
+        },
+        {
+          "name": "search_button",
+          "element_type": "button",
+          "interactable": true,
+          "description": "搜索触发按钮"
+        },
+        {
+          "name": "quantity_adjust",
+          "element_type": "button",
+          "interactable": true,
+          "description": "数量调整"
+        },
+        {
+          "name": "sales_info",
+          "element_type": "label",
+          "interactable": false,
+          "description": "销量/好评信息"
+        },
+        {
+          "name": "coupon",
+          "element_type": "button",
+          "interactable": true,
+          "description": "优惠券/领券"
+        },
+        {
+          "name": "navigation_bar",
+          "element_type": "navigation",
+          "interactable": true,
+          "description": "底部导航栏"
+        },
+        {
+          "name": "add_to_cart",
+          "element_type": "button",
+          "interactable": true,
+          "description": "加入购物车按钮"
+        },
+        {
+          "name": "price_range_input",
+          "element_type": "input",
+          "interactable": true,
+          "description": "价格区间输入"
+        }
+      ],
+      "interactions": [
+        "filled",
+        "select"
+      ],
+      "business_semantics": [
+        "minimum_order_threshold",
+        "coupon_system"
+      ],
+      "source_count": 7,
+      "page_type_display": "凑单助手页"
+    },
+    {
+      "page_type": "checkout_page",
+      "page_id": "京东_checkout_page",
+      "description": "当前为京东结算页面，配送地址为华为南京研究所西门，联系人为赵玉康。已选配送方式为立即送，预计送达时间21:22-21:37。订单商品包括壹宝暖宝宝贴6件（到手价4.44元）和统一汤达人酸酸辣辣豚骨面1件（到手价4.33元），总金额11.80元，底部显示立即支付按钮，支付金额27.00元，共减3.00元。",
+      "elements": [
+        {
+          "name": "submit_order",
+          "element_type": "button",
+          "interactable": true,
+          "description": "提交订单按钮"
+        },
+        {
+          "name": "shipping_address",
+          "element_type": "label",
+          "interactable": false,
+          "description": "收货地址信息"
+        },
+        {
+          "name": "logistics_filter",
+          "element_type": "tab",
+          "interactable": true,
+          "description": "物流/发货筛选"
+        },
+        {
+          "name": "delivery_method",
+          "element_type": "label",
+          "interactable": false,
+          "description": "配送方式"
+        },
+        {
+          "name": "discount_price",
+          "element_type": "label",
+          "interactable": false,
+          "description": "折扣/补贴价"
+        },
+        {
+          "name": "spec_option",
+          "element_type": "tab",
+          "interactable": true,
+          "description": "规格选项"
+        },
+        {
+          "name": "national_subsidy_tag",
+          "element_type": "label",
+          "interactable": false,
+          "description": "国补标签"
+        },
+        {
+          "name": "self_operated_tag",
+          "element_type": "label",
+          "interactable": false,
+          "description": "自营标识"
+        },
+        {
+          "name": "confirm_payment",
+          "element_type": "button",
+          "interactable": true,
+          "description": "确认付款按钮"
+        },
+        {
+          "name": "confirm_button",
+          "element_type": "button",
+          "interactable": true,
+          "description": "确认按钮"
+        }
+      ],
+      "interactions": [
+        "click"
+      ],
+      "business_semantics": [
+        "national_subsidy",
+        "store_quality_tier"
+      ],
+      "source_count": 6,
+      "page_type_display": "确认订单/结算页"
+    },
+    {
+      "page_type": "payment_page",
+      "page_id": "京东_payment_page",
+      "description": "页面为京东收银台，金额为27.00元，提示请在倒计时29分38秒内付款。支付方式包括中国银行储蓄卡、招商银行储蓄卡、微信支付、先享后付和白条，其中微信支付已选择。页面弹出对话框提示“京东”想要打开“微信”，提供“取消”和“打开”按钮。",
+      "elements": [
+        {
+          "name": "confirm_payment",
+          "element_type": "button",
+          "interactable": true,
+          "description": "确认付款按钮"
+        },
+        {
+          "name": "payment_method",
+          "element_type": "tab",
+          "interactable": true,
+          "description": "支付方式选项"
+        },
+        {
+          "name": "confirm_button",
+          "element_type": "button",
+          "interactable": true,
+          "description": "确认按钮"
+        },
+        {
+          "name": "shipping_address",
+          "element_type": "label",
+          "interactable": false,
+          "description": "收货地址信息"
+        },
+        {
+          "name": "delivery_method",
+          "element_type": "label",
+          "interactable": false,
+          "description": "配送方式"
+        }
+      ],
+      "interactions": [
+        "click",
+        "select"
+      ],
+      "business_semantics": [],
+      "source_count": 6,
+      "page_type_display": "支付页"
+    },
+    {
+      "page_type": "category_page",
+      "page_id": "京东_category_page",
+      "description": "顶部有返回按钮和确定按钮。中部展示分类列表，包括“热门分类”、“大家电”、“生活电器”、“二手大家电”、“其他分类”、“维修保养”。所有分类未选中，确定按钮可点击。",
+      "elements": [
+        {
+          "name": "confirm_button",
+          "element_type": "button",
+          "interactable": true,
+          "description": "确认按钮"
+        },
+        {
+          "name": "back_button",
+          "element_type": "button",
+          "interactable": true,
+          "description": "返回按钮"
+        },
+        {
+          "name": "search_box",
+          "element_type": "input",
+          "interactable": true,
+          "description": "搜索输入框"
+        },
+        {
+          "name": "search_button",
+          "element_type": "button",
+          "interactable": true,
+          "description": "搜索触发按钮"
+        },
+        {
+          "name": "filter_button",
+          "element_type": "button",
+          "interactable": true,
+          "description": "筛选触发按钮"
+        },
+        {
+          "name": "product_list",
+          "element_type": "list",
+          "interactable": true,
+          "description": "商品列表"
+        },
+        {
+          "name": "self_operated_tag",
+          "element_type": "label",
+          "interactable": false,
+          "description": "自营标识"
+        },
+        {
+          "name": "logistics_filter",
+          "element_type": "tab",
+          "interactable": true,
+          "description": "物流/发货筛选"
+        }
+      ],
+      "interactions": [
+        "click",
+        "filled"
+      ],
+      "business_semantics": [
+        "store_quality_tier"
+      ],
+      "source_count": 4,
+      "page_type_display": "分类页"
+    },
+    {
+      "page_type": "store_page",
+      "page_id": "京东_store_page",
+      "description": "当前为美的京东自营旗舰店页面，顶部有搜索框和放大镜图标，以及更多的按钮。页面中展示了不同型号的美的洗衣机商品，包含价格、销量等信息，且商品列表可上下滑动。页面中部有筛选标签，如推荐、销量、新品、价格等，当前选中“全部”标签。页面底部有导航栏，包含首页、商品、分类、会员等选项。",
+      "elements": [
+        {
+          "name": "product_list",
+          "element_type": "list",
+          "interactable": true,
+          "description": "商品列表"
+        },
+        {
+          "name": "self_operated_tag",
+          "element_type": "label",
+          "interactable": false,
+          "description": "自营标识"
+        },
+        {
+          "name": "search_button",
+          "element_type": "button",
+          "interactable": true,
+          "description": "搜索触发按钮"
+        },
+        {
+          "name": "sales_info",
+          "element_type": "label",
+          "interactable": false,
+          "description": "销量/好评信息"
+        },
+        {
+          "name": "store_type_filter",
+          "element_type": "tab",
+          "interactable": true,
+          "description": "店铺类型筛选"
+        },
+        {
+          "name": "coupon",
+          "element_type": "button",
+          "interactable": true,
+          "description": "优惠券/领券"
+        },
+        {
+          "name": "search_box",
+          "element_type": "input",
+          "interactable": true,
+          "description": "搜索输入框"
+        },
+        {
+          "name": "navigation_bar",
+          "element_type": "navigation",
+          "interactable": true,
+          "description": "底部导航栏"
+        },
+        {
+          "name": "spec_option",
+          "element_type": "tab",
+          "interactable": true,
+          "description": "规格选项"
+        }
+      ],
+      "interactions": [
+        "popup",
+        "scroll",
+        "select"
+      ],
+      "business_semantics": [
+        "store_quality_tier",
+        "coupon_system"
+      ],
+      "source_count": 3,
+      "page_type_display": "店铺页"
+    },
+    {
+      "page_type": "home_page",
+      "page_id": "京东_home_page",
+      "description": "当前为京东首页，顶部有搜索框，当前内容为“小米电视”，右侧有搜索按钮，页面主要内容为推荐商品板块和促销信息。",
+      "elements": [
+        {
+          "name": "search_box",
+          "element_type": "input",
+          "interactable": true,
+          "description": "搜索输入框"
+        },
+        {
+          "name": "search_button",
+          "element_type": "button",
+          "interactable": true,
+          "description": "搜索触发按钮"
+        },
+        {
+          "name": "navigation_bar",
+          "element_type": "navigation",
+          "interactable": true,
+          "description": "底部导航栏"
+        }
+      ],
+      "interactions": [
+        "filled"
+      ],
+      "business_semantics": [],
+      "source_count": 2,
+      "page_type_display": "首页"
+    },
+    {
+      "page_type": "ranking_page",
+      "page_id": "京东_ranking_page",
+      "description": "页面为华为畅享系列手机热卖榜，顶部有返回按钮和标题。商品列表中，第一款为华为畅享70X，售价1400.8元，已补贴109.65元，加号按钮可点击。其他商品信息完整，页面可上下滑动以查看更多内容。",
+      "elements": [
+        {
+          "name": "quantity_adjust",
+          "element_type": "button",
+          "interactable": true,
+          "description": "数量调整"
+        },
+        {
+          "name": "back_button",
+          "element_type": "button",
+          "interactable": true,
+          "description": "返回按钮"
+        },
+        {
+          "name": "product_list",
+          "element_type": "list",
+          "interactable": true,
+          "description": "商品列表"
+        }
+      ],
+      "interactions": [
+        "click",
+        "scroll"
+      ],
+      "business_semantics": [
+        "ranking_recommendation"
+      ],
+      "source_count": 2,
+      "page_type_display": "热卖榜/排行榜页"
+    },
+    {
+      "page_type": "search_suggestion_page",
+      "page_id": "京东_search_suggestion_page",
+      "description": "页面顶部显示返回按钮及已输入的搜索框内容“华为手机”。右侧有搜索按钮。页面主体为推荐搜索内容列表，包括多种华为手机相关选项，页面内容完整，无滚动提示。",
+      "elements": [
+        {
+          "name": "search_box",
+          "element_type": "input",
+          "interactable": true,
+          "description": "搜索输入框"
+        },
+        {
+          "name": "search_button",
+          "element_type": "button",
+          "interactable": true,
+          "description": "搜索触发按钮"
+        },
+        {
+          "name": "back_button",
+          "element_type": "button",
+          "interactable": true,
+          "description": "返回按钮"
+        }
+      ],
+      "interactions": [
+        "scroll",
+        "filled"
+      ],
+      "business_semantics": [],
+      "source_count": 1,
+      "page_type_display": "搜索建议页"
+    },
+    {
+      "page_type": "spec_selection_page",
+      "page_id": "京东_spec_selection_page",
+      "description": "页面顶部为美的品牌标识和促销信息，主要区域显示商品信息，包括价格836.27元、编号100179450879，商品数量为1件。系列选项中“专业内衣洗-台式迷你滚筒”已选中。底部展示款式选项及“确定”按钮。",
+      "elements": [
+        {
+          "name": "confirm_button",
+          "element_type": "button",
+          "interactable": true,
+          "description": "确认按钮"
+        },
+        {
+          "name": "spec_option",
+          "element_type": "tab",
+          "interactable": true,
+          "description": "规格选项"
+        }
+      ],
+      "interactions": [
+        "select"
+      ],
+      "business_semantics": [],
+      "source_count": 1,
+      "page_type_display": "规格选择页"
+    }
+  ],
+  "unique_features": [
+    "京东自营标识体系",
+    "PLUS会员专享价",
+    "凑单助手(满起送)",
+    "收银台(白条/微信/京东支付)"
+  ]
+}
