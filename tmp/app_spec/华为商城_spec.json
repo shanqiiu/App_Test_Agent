@@ -1,0 +1,282 @@
+{
+  "app_name": "华为商城",
+  "category": "brand_direct_store",
+  "page_specs": [
+    {
+      "page_type": "search_result_page",
+      "page_id": "华为商城_search_result_page",
+      "description": "页面顶部显示已输入关键词“手机”的搜索框，筛选条件包括综合、价格等。商品列表展示三款手机，分别为HUAWEI Mate 80（5499元）、HUAWEI Mate 80 Pro Max（7999元）和HUAWEI Mate 80 Pro（6499元）。页面可上下滑动。",
+      "elements": [
+        {
+          "name": "product_list",
+          "element_type": "list",
+          "interactable": true,
+          "description": "商品列表"
+        },
+        {
+          "name": "sort_options",
+          "element_type": "tab",
+          "interactable": true,
+          "description": "排序选项栏"
+        },
+        {
+          "name": "search_box",
+          "element_type": "input",
+          "interactable": true,
+          "description": "搜索输入框"
+        },
+        {
+          "name": "search_button",
+          "element_type": "button",
+          "interactable": true,
+          "description": "搜索触发按钮"
+        },
+        {
+          "name": "filter_button",
+          "element_type": "button",
+          "interactable": true,
+          "description": "筛选触发按钮"
+        },
+        {
+          "name": "out_of_stock",
+          "element_type": "label",
+          "interactable": false,
+          "description": "缺货标识"
+        }
+      ],
+      "interactions": [
+        "click",
+        "filled",
+        "scroll"
+      ],
+      "business_semantics": [],
+      "source_count": 6,
+      "page_type_display": "搜索结果页"
+    },
+    {
+      "page_type": "home_page",
+      "page_id": "华为商城_home_page",
+      "description": "页面顶部有搜索框，内容为“FreeBuds 6”，右侧有扫描按钮。页面主要展示HUAWEI Mate70 Pro的广告和分类导航，底部导航栏显示当前处于首页。",
+      "elements": [
+        {
+          "name": "search_box",
+          "element_type": "input",
+          "interactable": true,
+          "description": "搜索输入框"
+        },
+        {
+          "name": "navigation_bar",
+          "element_type": "navigation",
+          "interactable": true,
+          "description": "底部导航栏"
+        },
+        {
+          "name": "search_button",
+          "element_type": "button",
+          "interactable": true,
+          "description": "搜索触发按钮"
+        },
+        {
+          "name": "scan_button",
+          "element_type": "button",
+          "interactable": true,
+          "description": "扫描按钮"
+        }
+      ],
+      "interactions": [
+        "filled",
+        "input"
+      ],
+      "business_semantics": [
+        "scan_interaction"
+      ],
+      "source_count": 4,
+      "page_type_display": "首页"
+    },
+    {
+      "page_type": "spec_selection_page",
+      "page_id": "华为商城_spec_selection_page",
+      "description": "页面顶部为导航栏，包括返回按钮和更多选项。中部展示HUAWEI FreeClip 2耳机的图片和名称，价格为1299元，当前选中的颜色为摩登黑，可选择三种颜色。底部提供操作按钮，包括‘加入购物车’和‘立即购买’。",
+      "elements": [
+        {
+          "name": "spec_option",
+          "element_type": "tab",
+          "interactable": true,
+          "description": "规格选项"
+        },
+        {
+          "name": "add_to_cart",
+          "element_type": "button",
+          "interactable": true,
+          "description": "加入购物车按钮"
+        },
+        {
+          "name": "buy_now",
+          "element_type": "button",
+          "interactable": true,
+          "description": "立即购买按钮"
+        },
+        {
+          "name": "navigation_bar",
+          "element_type": "navigation",
+          "interactable": true,
+          "description": "底部导航栏"
+        },
+        {
+          "name": "back_button",
+          "element_type": "button",
+          "interactable": true,
+          "description": "返回按钮"
+        },
+        {
+          "name": "delivery_method",
+          "element_type": "label",
+          "interactable": false,
+          "description": "配送方式"
+        },
+        {
+          "name": "warranty_service",
+          "element_type": "label",
+          "interactable": false,
+          "description": "无忧服务标识"
+        },
+        {
+          "name": "out_of_stock",
+          "element_type": "label",
+          "interactable": false,
+          "description": "缺货标识"
+        }
+      ],
+      "interactions": [
+        "select"
+      ],
+      "business_semantics": [
+        "after_sales_service"
+      ],
+      "source_count": 3,
+      "page_type_display": "规格选择页"
+    },
+    {
+      "page_type": "cart_page",
+      "page_id": "华为商城_cart_page",
+      "description": "页面顶部有搜索框，当前内容为“华为智能眼镜 2”，右侧有搜索图标。页面中部展示nova 15 Ultra的广告，下方有分类导航栏，底部导航栏包含首页、分类、发现、购物车和我的等选项。",
+      "elements": [
+        {
+          "name": "search_box",
+          "element_type": "input",
+          "interactable": true,
+          "description": "搜索输入框"
+        },
+        {
+          "name": "navigation_bar",
+          "element_type": "navigation",
+          "interactable": true,
+          "description": "底部导航栏"
+        },
+        {
+          "name": "add_to_cart",
+          "element_type": "button",
+          "interactable": true,
+          "description": "加入购物车按钮"
+        },
+        {
+          "name": "buy_now",
+          "element_type": "button",
+          "interactable": true,
+          "description": "立即购买按钮"
+        },
+        {
+          "name": "spec_option",
+          "element_type": "tab",
+          "interactable": true,
+          "description": "规格选项"
+        }
+      ],
+      "interactions": [
+        "input",
+        "filled"
+      ],
+      "business_semantics": [],
+      "source_count": 3,
+      "page_type_display": "购物车页"
+    },
+    {
+      "page_type": "filter_page",
+      "page_id": "华为商城_filter_page",
+      "description": "筛选页面包含价格区间输入框（最低价和最高价可编辑），分类选项（已选中手机），以及底部的重置按钮和确定按钮（显示符合条件的商品数量47件）。",
+      "elements": [
+        {
+          "name": "filter_button",
+          "element_type": "button",
+          "interactable": true,
+          "description": "筛选触发按钮"
+        },
+        {
+          "name": "reset_button",
+          "element_type": "button",
+          "interactable": true,
+          "description": "筛选重置按钮"
+        },
+        {
+          "name": "confirm_button",
+          "element_type": "button",
+          "interactable": true,
+          "description": "确认按钮"
+        },
+        {
+          "name": "price_range_input",
+          "element_type": "input",
+          "interactable": true,
+          "description": "价格区间输入"
+        }
+      ],
+      "interactions": [
+        "input",
+        "select"
+      ],
+      "business_semantics": [],
+      "source_count": 1,
+      "page_type_display": "筛选页"
+    },
+    {
+      "page_type": "product_detail_page",
+      "page_id": "华为商城_product_detail_page",
+      "description": "当前页面显示华为Mate 80手机商品详情，已选规格：颜色雪域白，版本16GB+512GB，购买方式普通购买，数量1件，配送方式商城配送。底部提供加入购物车和立即购买按钮。",
+      "elements": [
+        {
+          "name": "add_to_cart",
+          "element_type": "button",
+          "interactable": true,
+          "description": "加入购物车按钮"
+        },
+        {
+          "name": "buy_now",
+          "element_type": "button",
+          "interactable": true,
+          "description": "立即购买按钮"
+        },
+        {
+          "name": "delivery_method",
+          "element_type": "label",
+          "interactable": false,
+          "description": "配送方式"
+        },
+        {
+          "name": "spec_option",
+          "element_type": "tab",
+          "interactable": true,
+          "description": "规格选项"
+        }
+      ],
+      "interactions": [],
+      "business_semantics": [],
+      "source_count": 1,
+      "page_type_display": "商品详情页"
+    }
+  ],
+  "unique_features": [
+    "品牌直营(无第三方卖家)",
+    "无忧售后服务",
+    "硬件参数筛选(屏幕/内存)"
+  ]
+}
