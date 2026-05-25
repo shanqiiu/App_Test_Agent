@@ -141,24 +141,12 @@ def convert(
             }
 
         # 5. 构建新步骤
-        #    用 utg 的 thought/action_type 生成更具描述性的 action 文本
+        #    action 直接取 utg 的 ui_summary（已是改写后的异常描述），不做额外加工
         new_steps = []
         for i, s in enumerate(utg_steps):
-            # action 文本: 优先用 ui_summary（已是改写后的异常描述）
-            action_text = s["ui_summary"]
-
-            # 如果有 thought，拼接到 action 前面作为意图说明
-            thought = s.get("thought", "").strip()
-            if thought:
-                # 清理 thought 中的编号前缀如 "【0】"、"【312】"
-                import re
-                cleaned_thought = re.sub(r'^【\d+】\s*', '', thought)
-                action_text = f"{cleaned_thought}。当前页面：{action_text}"
-
-            # 严格遵循模板 step 格式: 只保留 order + action
             step_entry = {
                 "order": s["order"],
-                "action": action_text,
+                "action": s["ui_summary"],
             }
             new_steps.append(step_entry)
 
