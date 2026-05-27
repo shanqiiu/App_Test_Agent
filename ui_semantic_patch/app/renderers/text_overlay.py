@@ -1243,22 +1243,37 @@ class TextOverlayRenderer(BaseRenderer):
             return None
 
         if not result:
+            print(f"    ⚠ VLM 返回空内容")
             return None
 
         # 解析 VLM 响应
+        vlm_data = None
+        # 1) 尝试直接解析完整 JSON
         try:
             vlm_data = json.loads(result)
         except json.JSONDecodeError:
-            try:
-                vlm_data = self._extract_json_array(result)
-                if isinstance(vlm_data, list) and len(vlm_data) > 0:
-                    vlm_data = vlm_data[0]
-                else:
-                    return None
-            except Exception:
-                return None
+            pass
 
-        if not vlm_data or not isinstance(vlm_data, dict):
+        # 2) 尝试提取 ```json ... ``` 中的对象
+        if not isinstance(vlm_data, dict):
+            obj_match = re.search(r'```(?:json)?\s*(\{[\s\S]*?\})\s*```', result)
+            if obj_match:
+                try:
+                    vlm_data = json.loads(obj_match.group(1))
+                except json.JSONDecodeError:
+                    pass
+
+        # 3) 尝试提取 { ... } 块
+        if not isinstance(vlm_data, dict):
+            brace_match = re.search(r'\{[\s\S]*\}', result)
+            if brace_match:
+                try:
+                    vlm_data = json.loads(brace_match.group(0))
+                except json.JSONDecodeError:
+                    pass
+
+        if not isinstance(vlm_data, dict):
+            print(f"    ⚠ VLM 响应解析失败，原始响应前200字: {result[:200]}")
             return None
 
         # 检查 VLM 相关性判定
