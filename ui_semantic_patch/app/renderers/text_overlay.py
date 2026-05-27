@@ -1087,6 +1087,7 @@ class TextOverlayRenderer(BaseRenderer):
         located: List[Dict],
         instruction: str,
         screenshot_path: str,
+        omni_components: Optional[List[Dict]] = None,
     ) -> List[EditOp]:
         """
         从确定性定位结果构建 EditOp 编辑计划。
@@ -1095,6 +1096,11 @@ class TextOverlayRenderer(BaseRenderer):
         1. 裁剪目标区域
         2. 调用 VLM 分析裁剪区（获取语义 text_changes + 样式）
         3. 用确定性定位的 region + VLM 的 content/style_hint 构造 EditOp
+        4. 指令含「按钮置灰」时，通过 source_indices 回溯到原始检测框，
+           将 region 缩小到具体按钮子区域的 bounds，并走 button_disable_gray 路径。
+
+        Args:
+            omni_components: Stage 1 原始 OCR 检测结果，用于回溯按钮级 bounds
 
         Returns:
             EditOp 列表，如果无法构建则返回空列表
@@ -1102,6 +1108,22 @@ class TextOverlayRenderer(BaseRenderer):
         ops = []
         screenshot = Image.open(screenshot_path).convert('RGB')
         img_w, img_h = screenshot.size
+
+        # 检测指令是否含「按钮置灰/禁用」
+        instruction_lower = instruction.lower()
+        need_disable_button = (
+            ('按钮' in instruction and ('灰' in instruction or '禁用' in instruction or '不可点击' in instruction))
+            or ('button' in instruction_lower and ('gray' in instruction_lower or 'grey' in instruction_lower or 'disable' in instruction_lower))
+        )
+
+        # 构建 omni_index → raw bounds 查找表
+        omni_by_index = {}
+        if omni_components:
+            for comp in omni_components:
+                idx = comp.get('index', -1)
+                b = comp.get('bounds', {})
+                if b:
+                    omni_by_index[idx] = b
 
         for i, loc in enumerate(located):
             x1, y1, x2, y2 = loc['crop_bbox']
@@ -1131,6 +1153,33 @@ class TextOverlayRenderer(BaseRenderer):
                 text_changes = vlm_result.get('text_changes',
                                                 [{'from': matched, 'to': content}])
 
+                # 确定最终 region：指令含按钮置灰时尝试回溯到原始按钮级 bounds
+                if need_disable_button:
+                    btn_region = self._find_button_region(
+                        loc, omni_by_index, img_w, img_h, x1, y1, x2, y2
+                    )
+                    if btn_region:
+                        op = EditOp(
+                            action='modify_text',
+                            region=btn_region,
+                            content=content or matched,
+                            style_hint={
+                                'use_ai_edit': False,
+                                'button_disable_gray': True,
+                                'font_color': '#999999',
+                                'original_instruction': instruction,
+                                'matched_text': matched,
+                                'text_changes': text_changes,
+                                'source': 'deterministic_locate_vlm_button',
+                            }
+                        )
+                        ops.append(op)
+                        r = btn_region
+                        logger.info("裁剪区 #%d 按钮置灰 @ (%d,%d) %dx%d",
+                                    i + 1, r['x'], r['y'], r['width'], r['height'])
+                        continue
+
+                # 普通文字编辑路径（或按钮置灰但未找到按钮 bounds 时回退到此）
                 op = EditOp(
                     action='modify_text',
                     region={'x': x1, 'y': y1, 'width': x2 - x1, 'height': y2 - y1},
@@ -1152,6 +1201,56 @@ class TextOverlayRenderer(BaseRenderer):
                 logger.warning("裁剪区 #%d 跳过: %s", i + 1, reason)
 
         return ops
+
+    def _find_button_region(
+        self,
+        loc: Dict,
+        omni_by_index: Dict[int, Dict],
+        img_w: int,
+        img_h: int,
+        crop_x1: int,
+        crop_y1: int,
+        crop_x2: int,
+        crop_y2: int,
+    ) -> Optional[Dict[str, int]]:
+        """
+        从定位结果的 source_indices 中寻找匹配按钮特征（小尺寸、位于卡片边缘）的原始检测框，
+        返回精确的 region dict {x, y, width, height}。
+
+        若找不到合适的按钮框，返回 None 以便调用方回退到整块裁剪区。
+        """
+        source_indices = loc.get('component', {}).get('source_indices', [])
+        if not source_indices:
+            return None
+
+        candidates = []
+        for idx in source_indices:
+            b = omni_by_index.get(idx)
+            if not b:
+                continue
+            bx, by = int(b.get('x', 0)), int(b.get('y', 0))
+            bw, bh = int(b.get('width', 0)), int(b.get('height', 0))
+            # 过滤掉非按钮特征：太矮（<12px 可能是分割线）、太高（>90px 可能是卡片）
+            if bh < 12 or bh > 90:
+                continue
+            # 过滤掉覆盖裁剪区绝大部分的组件（那说明是整个卡片而非按钮）
+            crop_w = crop_x2 - crop_x1
+            crop_h = crop_y2 - crop_y1
+            if crop_w > 0 and crop_h > 0 and (bw * bh) > (crop_w * crop_h) * 0.5:
+                continue
+            candidates.append({
+                'x': max(0, min(bx, img_w - 1)),
+                'y': max(0, min(by, img_h - 1)),
+                'width': min(bw, img_w - bx),
+                'height': min(bh, img_h - by),
+            })
+
+        if not candidates:
+            return None
+
+        # 选高度最小的（按钮通常在卡片内是较矮的独立元素）
+        candidates.sort(key=lambda c: c['height'])
+        return candidates[0]
 
     def _vlm_plan_on_crop(
         self,
@@ -3247,6 +3346,7 @@ class TextOverlayRenderer(BaseRenderer):
                     located=located,
                     instruction=instruction,
                     screenshot_path=screenshot_path,
+                    omni_components=omni_components,
                 )
                 if located_plan:
                     edit_plan = located_plan
