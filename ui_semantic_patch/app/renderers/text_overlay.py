@@ -16,6 +16,7 @@ text_overlay_renderer.py - 文字覆盖编辑渲染器
 """
 
 import json
+import logging
 import os
 import re
 import requests
@@ -24,6 +25,8 @@ from typing import Dict, List, Tuple, Optional, Any
 from pathlib import Path
 from PIL import Image, ImageDraw, ImageFont, ImageFilter, ImageEnhance
 from datetime import datetime
+
+logger = logging.getLogger(__name__)
 
 from .base import BaseRenderer, RenderResult
 from app.core.schemas import TextStyle, EditOp
@@ -1112,8 +1115,8 @@ class TextOverlayRenderer(BaseRenderer):
             crop = screenshot.crop((x1, y1, x2, y2))
 
             # VLM 分析裁剪区 — VLM 自行判断是否相关、如何编辑
-            print(f"    [VLM] 分析裁剪区 #{i+1}: \"{matched}\" "
-                  f"@ ({x1},{y1})-({x2},{y2})")
+            logger.info("分析裁剪区 #%d: \"%s\" @ (%d,%d)-(%d,%d)",
+                        i + 1, matched, x1, y1, x2, y2)
             vlm_result = self._vlm_plan_on_crop(
                 crop_image=crop,
                 crop_bbox=(x1, y1, x2, y2),
@@ -1126,7 +1129,7 @@ class TextOverlayRenderer(BaseRenderer):
                 content = vlm_result.get('content', matched)
                 style_hint = vlm_result.get('style_hint', {})
                 text_changes = vlm_result.get('text_changes',
-                                               [{'from': matched, 'to': content}])
+                                                [{'from': matched, 'to': content}])
 
                 op = EditOp(
                     action='modify_text',
@@ -1142,11 +1145,11 @@ class TextOverlayRenderer(BaseRenderer):
                     }
                 )
                 ops.append(op)
-                print(f"    [VLM] ✓ 相关 → \"{content}\" "
-                      f"style={style_hint.get('font_color', 'default')}")
+                logger.info("裁剪区 #%d 相关 → \"%s\" style=%s",
+                            i + 1, content, style_hint.get('font_color', 'default'))
             else:
                 reason = (vlm_result or {}).get('skip_reason', 'VLM 判定不相关') if vlm_result else 'VLM 调用失败'
-                print(f"    [VLM] ✗ 跳过: {reason}")
+                logger.warning("裁剪区 #%d 跳过: %s", i + 1, reason)
 
         return ops
 
@@ -1243,7 +1246,7 @@ class TextOverlayRenderer(BaseRenderer):
             return None
 
         if not result:
-            print(f"    ⚠ VLM 返回空内容")
+            logger.warning("VLM 返回空内容")
             return None
 
         # 解析 VLM 响应
@@ -1273,7 +1276,7 @@ class TextOverlayRenderer(BaseRenderer):
                     pass
 
         if not isinstance(vlm_data, dict):
-            print(f"    ⚠ VLM 响应解析失败，原始响应前200字: {result[:200]}")
+            logger.error("VLM 响应解析失败，原始响应前200字: %s", result[:200])
             return None
 
         # 检查 VLM 相关性判定
@@ -1305,7 +1308,7 @@ class TextOverlayRenderer(BaseRenderer):
     ) -> Optional[str]:
         """使用 base64 图片调用 VLM（与 _call_vlm_with_image 保持一致的请求格式）"""
         if not self.api_key:
-            print("    ⚠ VLM API Key 未配置，跳过调用")
+            logger.warning("VLM API Key 未配置，跳过调用")
             return None
 
         payload = {
@@ -1333,9 +1336,7 @@ class TextOverlayRenderer(BaseRenderer):
             data = resp.json()
             return data['choices'][0]['message']['content']
         except Exception as e:
-            print(f"    ⚠ VLM API 调用失败: {e}")
-            import traceback
-            traceback.print_exc()
+            logger.error("VLM API 调用失败: %s", e, exc_info=True)
             return None
         """
         解析指令语义，提取替换目标文字和替换结果。
@@ -3448,7 +3449,7 @@ class TextOverlayRenderer(BaseRenderer):
             return content
 
         except Exception as e:
-            print(f"  ⚠ VLM 调用失败: {e}")
+            logger.error("VLM 调用失败: %s", e, exc_info=True)
             return None
 
     def _extract_json_array(self, text: str) -> list:
