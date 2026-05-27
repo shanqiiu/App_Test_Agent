@@ -1288,24 +1288,29 @@ class TextOverlayRenderer(BaseRenderer):
         mime_type: str,
         prompt: str,
     ) -> Optional[str]:
-        """使用 base64 图片调用 VLM"""
+        """使用 base64 图片调用 VLM（与 _call_vlm_with_image 保持一致的请求格式）"""
+        if not self.api_key:
+            print("    ⚠ VLM API Key 未配置，跳过调用")
+            return None
+
         payload = {
             "model": self.vlm_model,
             "messages": [
                 {
                     "role": "user",
                     "content": [
-                        {"type": "text", "text": prompt},
                         {"type": "image_url", "image_url": {"url": f"data:{mime_type};base64,{image_b64}"}},
+                        {"type": "text", "text": prompt},
                     ]
                 }
             ],
             "max_tokens": 2048,
-            "temperature": 0.1,
+            "temperature": 0.3,
         }
-        headers = {'Content-Type': 'application/json'}
-        if self.api_key and self.api_key != 'not-needed':
-            headers['Authorization'] = f'Bearer {self.api_key}'
+        headers = {
+            'Content-Type': 'application/json',
+            'Authorization': f'Bearer {self.api_key}',
+        }
 
         try:
             resp = requests.post(self.vlm_api_url, headers=headers, json=payload, timeout=120)
@@ -1314,6 +1319,8 @@ class TextOverlayRenderer(BaseRenderer):
             return data['choices'][0]['message']['content']
         except Exception as e:
             print(f"    ⚠ VLM API 调用失败: {e}")
+            import traceback
+            traceback.print_exc()
             return None
         """
         解析指令语义，提取替换目标文字和替换结果。
