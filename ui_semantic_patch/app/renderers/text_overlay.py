@@ -1174,9 +1174,9 @@ class TextOverlayRenderer(BaseRenderer):
         import io
         import base64 as b64
 
-        # 将 crop 保存为临时 base64
+        # 将 crop 保存为临时 base64（JPEG 显著减小 payload 体积，避免触发 API 大小限制）
         buf = io.BytesIO()
-        crop_image.convert('RGB').save(buf, format='PNG')
+        crop_image.convert('RGB').save(buf, format='JPEG', quality=85)
         crop_b64 = b64.b64encode(buf.getvalue()).decode('utf-8')
 
         crop_w, crop_h = crop_image.size
@@ -1237,7 +1237,7 @@ class TextOverlayRenderer(BaseRenderer):
 4. 优先判断相关性，不相关的果断跳过"""
 
         try:
-            result = self._call_vlm_with_image_base64(crop_b64, 'image/png', prompt)
+            result = self._call_vlm_with_image_base64(crop_b64, 'image/jpeg', prompt)
         except Exception as e:
             print(f"    ⚠ VLM crop 调用失败: {e}")
             return None
