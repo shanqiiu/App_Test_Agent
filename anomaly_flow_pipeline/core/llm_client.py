@@ -84,30 +84,51 @@ class LLMClient:
         raise RuntimeError(f"LLM 调用失败，已重试 {max_retries} 次: {last_error}")
 
     @staticmethod
-    def extract_json(text: str) -> Dict:
-        """从 LLM 响应中提取 JSON，带自动修复"""
+    def extract_json(text: str):
+        """
+        从 LLM 响应中提取 JSON，支持对象 {...} 和数组 [...]。
+
+        Returns:
+            Dict | List | None — 解析结果，失败返回 None
+        """
 
         def _clean_json(raw: str) -> str:
             raw = re.sub(r'^```(?:json)?\s*', '', raw.strip())
             raw = re.sub(r'\s*```$', '', raw.strip())
+
+            # 尝试提取数组 [...]（优先，因为一些 prompt 要求输出数组）
+            bracket_start = raw.find('[')
+            bracket_end = raw.rfind(']')
+            if bracket_start >= 0 and bracket_end > bracket_start:
+                before = raw[:bracket_start].strip()
+                after = raw[bracket_end + 1:].strip()
+                # 仅当数组前后没有非空内容时提取
+                if not before and not after:
+                    raw = raw[bracket_start:bracket_end + 1]
+                    return raw
+
+            # 尝试提取对象 {...}
             brace_start = raw.find('{')
             brace_end = raw.rfind('}')
             if brace_start >= 0 and brace_end > brace_start:
                 raw = raw[brace_start:brace_end + 1]
+
             raw = re.sub(r',\s*}', '}', raw)
             raw = re.sub(r',\s*]', ']', raw)
             return raw
 
         raw = _clean_json(text)
-        try:
-            return json.loads(raw)
-        except json.JSONDecodeError:
+        for attempt in range(2):
             try:
-                raw = raw.replace("'", '"')
                 return json.loads(raw)
             except json.JSONDecodeError:
-                m = re.search(r'"page_types"\s*:\s*(\[[\s\S]*?\])', raw)
-                if m:
-                    partial = '{"page_types": ' + m.group(1) + '}'
-                    return json.loads(partial)
-                raise
+                if attempt == 0:
+                    # 第一次失败：尝试修复单引号
+                    raw = raw.replace("'", '"')
+                else:
+                    # 第二次失败：尝试从原始文本中提取 page_types（旧兼容）
+                    m = re.search(r'"page_types"\s*:\s*(\[[\s\S]*?\])', text)
+                    if m:
+                        return json.loads('{"page_types": ' + m.group(1) + '}')
+                    logger.warning(f"extract_json 解析失败，raw[:200]={raw[:200]}")
+                    return None

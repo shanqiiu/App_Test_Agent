@@ -1,257 +1,197 @@
 """
-flow_converter.py — 将修改后的 utg_info.json 智能合并到 Flow 模板（Phase 2）
+flow_converter.py — Phase 2: 将改写后的 UTG 数据转换为符合 Schema 的 Flow JSON
 
-相比原始版本的盲替换，新增：
-1. 步骤 → screenKey (targetPage) 语义映射
-2. 利用模板 mockInstances 做数据绑定（单一真相源）
-3. 支持补充缺失的关键页面（从模板补齐）
-4. LLM 智能分配 targetPage（当 Rule-based 无法匹配时）
+设计原则：
+  - 场景无关（不假设购物/外卖/社交等具体业务）
+  - LLM 驱动内容填充，不硬编码规则（无 SCREEN_KEY_KEYWORDS / 品牌正则等）
+  - 字段定义来源：model-schema.json（运行时读取）
+  - 结构骨架来源：模板 JSON（mainFlow 外的大部分字段保留）
 
-输出格式符合 Schema：
-{
-  "order": 1,
-  "action": "用户在搜索框输入'iPhone 16 Pro'，系统展示搜索结果",
-  "targetPage": "searchResult",
-  "anomalyTag": null
-}
+流程：
+  1. 读取 injected UTG → 提取有效步骤 (stepData)
+  2. 读取模板 JSON → 作为输出结构的骨架
+  3. 读取 model-schema.json → 获取各字段的约束定义
+  4. LLM 生成 mainFlow.steps（从 ui_summary 改写为 action 描述）
+  5. LLM 提取业务实体（从 steps → topics[].mockInstances）
+  6. 合并到模板骨架 + 按模板 step 字段过滤输出
+  7. Schema 校验 + 保存
 """
 
 import json
 import logging
-import re
 from copy import deepcopy
 from pathlib import Path
-from typing import Dict, List, Optional, Any, Tuple
+from typing import Dict, List, Optional, Any
 
 from .llm_client import LLMClient
 
 logger = logging.getLogger(__name__)
 
-# ── 内置 screenKey → 中文关键词映射 ─────────────────────
-
-SCREEN_KEY_KEYWORDS: Dict[str, List[str]] = {
-    "home": ["首页", "推荐", "主页", "启动"],
-    "search": ["搜索框", "输入关键词", "搜索页", "联想词", "搜索"],
-    "searchResult": ["搜索结果", "商品列表", "筛选", "排序", "热卖榜", "商品信息"],
-    "productDetail": ["商品详情", "轮播图", "图片轮播", "规格", "SKU", "选择规格",
-                      "加入购物车", "加购"],
-    "cart": ["购物车", "结算", "去结算"],
-    "checkout": ["结算确认", "确认订单", "订单确认", "收货地址", "提交订单",
-                 "优惠券", "支付方式"],
-    "payment": ["支付", "收银台", "付款", "确认付款"],
-    "orders": ["订单", "我的订单"],
-    "orderDetail": ["订单详情", "支付成功", "订单号", "待发货"],
-}
-
-SCREEN_KEY_ORDER = [
-    "home", "search", "searchResult", "productDetail",
-    "cart", "checkout", "payment", "orders", "orderDetail",
-]
+# ── 默认 schema 路径（相对于 anomaly_flow_pipeline/） ───
+_DEFAULT_SCHEMA_PATH = Path(__file__).resolve().parent.parent / "schema" / "model-schema.json"
 
 
-def _match_screen_key(ui_summary: str, prev_key: Optional[str] = None) -> str:
-    """
-    基于关键词匹配 + 流程拓扑序生成 screenKey 参考建议。
+# ═══════════════════════════════════════════════════════════
+# 提示词模板（场景无关，引用 Schema 定义）
+# ═══════════════════════════════════════════════════════════
 
-    注意：此函数不再作为最终的 targetPage 决策路径，仅用于生成
-    LLM prompt 中的 rule_hint 参考信息。最终决策由 LLM 做出。
+STEPS_GENERATION_PROMPT = """你是一个 APP 操作流程数据生成专家。根据用户操作轨迹数据，生成符合建模规范的操作步骤。
 
-    Args:
-        ui_summary: 步骤的 UI 描述文本
-        prev_key: 上一步的 targetPage（用于拓扑约束）
+## Action 描述规范
+每条 action 应包含三个层次：
 
-    Returns:
-        建议的 screenKey（供 LLM 参考）
-    """
-    if not ui_summary:
-        return "home"
+1. **用户操作**：用户在[当前页面]上[操作哪个控件/区域]
+2. **页面布局**：当前页面的静态 UI 结构（来自 ui_summary，不受用户操作影响的部分，如顶部导航栏、底部Tab、搜索框等）
+3. **状态变化**：操作前后的页面空间/内容变化
 
-    # 精确匹配：从后往前匹配（更具体的关键词优先）
-    best_key = "home"
-    best_score = 0
+格式：
+```
+用户在[页面]上[操作]
+页面布局是：[页面静态布局描述]
+初始状态是：[操作前页面空间/内容状态]
+最终状态是：[操作后页面空间/内容状态]
+```
 
-    for key, keywords in SCREEN_KEY_KEYWORDS.items():
-        score = 0
-        for kw in keywords:
-            # 大小写不敏感，检查是否在文本中
-            if kw.lower() in ui_summary.lower():
-                score += 1
-        if score > best_score:
-            best_score = score
-            best_key = key
+示例:
+- ✅ "用户在首页搜索框输入'华为手机'
+    页面布局是：顶部搜索栏、底部导航栏、中间商品推荐区域
+    初始状态是：搜索框内容为'海尔洗衣机'
+    最终状态是：搜索框内容更新为'华为手机'"
+- ✅ "用户在搜索结果页点击筛选按钮
+    页面布局是：顶部搜索栏、底部导航栏、右侧筛选按钮
+    初始状态是：搜索结果页展示全部商品列表
+    最终状态是：弹出筛选菜单面板"
+- ✅ "用户点击'提交订单'按钮
+    页面布局是：订单确认页、收货地址区域、商品清单、底部提交按钮
+    初始状态是：订单确认页展示商品信息和¥2999
+    最终状态是：页面跳转至支付收银台"
 
-    # 如果 prev_key 存在且匹配得分相同，优先保持连续
-    if prev_key and best_key == "home" and prev_key != "home":
-        # 检查是否可能是上一步的延续
-        for key in SCREEN_KEY_KEYWORDS:
-            if key == prev_key:
-                for kw in SCREEN_KEY_KEYWORDS[key]:
-                    if kw.lower() in ui_summary.lower():
-                        return prev_key
+## 输出步骤的字段规范（来自建模 Schema）
 
-    # 拓扑约束：不允许往回跳（除非是返回操作）
-    if prev_key and best_key != prev_key:
-        prev_idx = SCREEN_KEY_ORDER.index(prev_key) if prev_key in SCREEN_KEY_ORDER else -1
-        best_idx = SCREEN_KEY_ORDER.index(best_key) if best_key in SCREEN_KEY_ORDER else -1
-        # 如果是返回操作（back），允许往回跳
-        is_back = any(w in ui_summary.lower() for w in ["返回", "back"])
-        if not is_back and best_idx < prev_idx and best_idx >= 0:
-            # 可能是误匹配，保留上一步
-            if best_score <= 1:
-                return prev_key
+{step_schema_text}
 
-    return best_key
+## 用户操作轨迹
 
-
-# ── 智能 screenKey 分配（LLM 主导 + 关键词约束） ────────────
-
-SCREEN_KEY_LLM_PROMPT = """你是一个 App 页面类型分类专家。根据 UI 描述判断该步骤所属的页面类型。
-
-## 可选页面类型（screenKey）及对应关键词参考
-{screen_keys_str}
-
-## 当前步骤
-- UI 描述: {ui_summary}
-- 用户操作意图: {thought}
-- 上一步页面类型: {prev_key}
-
-## 规则匹配参考（仅参考，需结合语义综合判断）
-{rule_hint}
+{step_data_text}
 
 ## 要求
-1. **必须**从上述可选页面类型中选择最匹配的一项
-2. 遵循购物流程拓扑顺序：首页 → 搜索 → 搜索结果 → 商品详情 → 购物车 → 结算 → 支付 → 订单。不应无理由往回跳转（除非是明确的返回操作）
-3. 规则匹配参考仅作提示，优先根据 UI 描述的语义判断
-4. 仅返回 screenKey 字符串，不要其他内容"""
+1. 每个 stepData 条目对应一个输出步骤，按 order 顺序排列
+2. action 必须包含上述三个层次（操作、布局、状态变化）
+3. 页面布局来自 ui_summary 中对页面结构的描述，是不受操作影响的静态部分
+4. 初始状态和最终状态描述的是受操作影响的空间/内容变化
+5. 保留原始轨迹中的异常状态信息（如加载失败、错误提示等异常内容必须保留）
+6. 保持步骤之间的因果连贯性：后一步应能从前一步的结果自然推导
+7. 严格遵循输出字段规范中的类型约束
+
+## 输出格式
+直接输出 JSON 数组，不要 markdown 包裹或额外说明：
+[
+  {{"order": 1, "action": "..."}},
+  ...
+]"""
 
 
-# ── 智能实例匹配（LLM 主导） ────────────────────────────
+STEPS_COMPRESS_PROMPT = """你是一个 APP 操作流程编辑专家。合并相邻的**同页面**操作步骤，使流程更简洁，同时保留页面布局信息。
 
-INSTANCE_MATCH_PROMPT = """你是一个电商商品匹配专家。根据用户搜索意图，从可用商品列表中选择最匹配的一个。
+## Action 描述规范
+每条 action 应包含三个层次：
 
-## 用户搜索
-{query}
+1. **用户操作**：用户在[当前页面]上依次[操作1]、[操作2]…
+2. **页面布局**：当前页面的静态 UI 结构（不受操作影响的部分，如顶部导航栏、底部Tab等）
+3. **状态变化**：操作前后的页面空间/内容变化
 
-## 规则分析参考（仅参考）
-- 品牌提示: {brand_hint}
-- 品类提示: {category_hint}
-- 价格提示: {price_hint}
+### 单步格式
+```
+用户在[页面]上[操作]
+页面布局是：[页面静态布局描述]
+初始状态是：[操作前页面空间/内容状态]
+最终状态是：[操作后页面空间/内容状态]
+```
 
-## 可用商品列表
-{instances_str}
+### 合并后格式
+```
+用户在[页面]上依次[操作1]、[操作2]…
+页面布局是：[页面静态布局描述（不受操作影响）]
+初始状态是：[合并前第一步的初始页面状态]
+最终状态是：[合并后最后一步的最终页面状态]
+```
 
-## 要求
-1. 分析用户搜索意图中的品牌、品类和价格区间
-2. 从可用商品列表中选择最匹配的一个
-3. 匹配优先级：品牌一致性 > 品类一致性 > 价格区间接近度
-4. 仅返回 instanceId，不要其他内容"""
+## 合并规则
+1. 识别相邻步骤是否发生在**同一个页面**上（根据 action 和原始 ui_summary 语义判断）
+2. 如果是，合并为 1 个步骤，按上述"合并后格式"输出
+3. **页面布局使用原始 ui_summary 中的页面结构描述，不丢失布局信息**
+4. 如果相邻步骤发生在**不同页面**，保持独立，不合并
+5. 合并后保留异常状态信息
 
+## 示例
 
-# ── 从 UTG stepData 提取 mock 实例（LLM 主导） ──────────
+输入:
+  Step 1: "用户在首页搜索框输入'华为手机'
+    页面布局是：顶部搜索栏、底部导航栏
+    初始状态是：搜索框内容为'海尔洗衣机'
+    最终状态是：搜索框内容更新为'华为手机'"
+  原始 ui_summary: "京东首页，顶部有搜索框，当前内容为"海尔洗衣机"。搜索框右侧有搜索按钮。页面展示多种商品推荐。"
+  Step 2: "用户点击搜索按钮
+    页面布局是：顶部搜索栏、底部导航栏
+    初始状态是：搜索框内容为'华为手机'
+    最终状态是：页面跳转至搜索结果页"
+  原始 ui_summary: "页面顶部有搜索框，右侧有搜索按钮。页面主体显示商品推荐。底部为导航栏。"
+输出:
+  [{"order": 1, "action": "用户在首页依次在搜索框输入'华为手机'并点击搜索按钮\n页面布局是：顶部搜索栏、底部导航栏、中间商品推荐区域\n初始状态是：搜索框内容为'海尔洗衣机'\n最终状态是：页面跳转至搜索结果页"}]
 
-EXTRACT_MOCK_PROMPT = """你是一个电商数据抽取专家。从以下用户操作步骤中提取用户最终购买的主要商品信息，生成一个 mock 商品实例。
-
-输出的 JSON 结构必须严格遵循以下格式，所有字段不可缺失、不可捏造。步骤中未提及的字段一律设为 null。
-
-## 用户意图（参考）
-{query}
-
-## 操作步骤描述
+## 待处理的步骤
 {steps_text}
 
-## 输出结构（严格遵循，不可增减字段）
-{{
-  "instanceId": "instance_from_query",
-  "imageUrl": null,
-  "values": {{
-    "brand": "<品牌>",
-    "model": "<型号>",
-    "price": <价格数字>,
-    "storage": "<存储容量>",
-    "color": "<颜色>",
-    "processor": "<处理器>",
-    "rating": <评分数字>,
-    "salesVolume": <销量数字>,
-    "productId": null,
-    "skuId": null,
-    "orderId": null,
-    "addressId": null,
-    "couponId": null,
-    "subsidyPrice": null,
-    "subsidyAmount": null,
-    "maxPrice": null,
-    "promotionTag": null,
-    "quantity": null,
-    "deliveryMethod": null,
-    "deliveryTime": null,
-    "address": null
+## 原始轨迹数据（参考页面布局用）
+{utg_context}
+
+## 输出
+直接输出合并后的 JSON 数组（order 重新编号从 1 开始），不要 markdown 包裹：
+[
+  {{"order": 1, "action": "..."}},
+  ...
+]"""
+
+
+ENTITY_EXTRACTION_PROMPT = """你是一个 APP 数据抽取专家。从操作步骤中提取关键业务实体信息，填充到建模模板的数据主题中。
+
+## 实体的字段规范（来自建模 Schema）
+
+{entity_schema_text}
+
+## 操作步骤
+
+{steps_text}
+
+## 要求
+1. 分析所有步骤中提到的具体业务实体（商品、服务、内容、商品等）
+2. 从步骤描述中提取实体的具体属性值，严格遵循字段规范中的类型（string / number / price / enum 等）
+3. 步骤中未提及的字段设为 null
+4. 如果步骤中没有可提取的业务实体，返回空数组 []
+5. 不捏造步骤中不存在的数据
+6. 严格遵循输出 JSON 结构，不要增减字段
+
+## 输出格式
+直接输出 JSON 数组，不要 markdown 包裹：
+[
+  {{
+    "instanceId": "entity_from_steps",
+    "imageUrl": null,
+    "values": {{ ... }}
   }}
-}}
-
-## 填充规则（严格遵循）
-1. brand/model/price/storage/color/processor 必须从**操作步骤描述**中提取，禁止凭空捏造
-2. 如果步骤中明确提到了具体型号（如"畅享70X"、"Mate 50"），必须使用步骤中的型号，不得从 query 的模糊描述（如"华为手机"）中自行实例化
-3. 如果步骤中出现多个价格，以最终结算/支付步骤的金额为准
-4. rating/salesVolume 用合理默认值
-5. 其余字段一律设为 null
-6. price 必须是数字，不可为字符串
-7. 不得添加输出结构中不存在的字段"""
+]"""
 
 
-# ── 后备：从 UTG query 生成 mock 实例（仅当步骤提取失败时使用） ──
-
-GENERATE_MOCK_PROMPT = """你是一个电商数据抽取专家。从用户搜索查询中提取商品信息，生成一个 mock 商品实例。
-
-输出的 JSON 结构必须严格遵循以下格式，所有字段不可缺失、不可捏造。
-
-## 用户搜索
-{query}
-
-## 输出结构（严格遵循，不可增减字段）
-{{
-  "instanceId": "instance_from_query",
-  "imageUrl": null,
-  "values": {{
-    "brand": "<品牌>",
-    "model": "<型号>",
-    "price": <价格数字>,
-    "storage": "<存储容量>",
-    "color": "<颜色>",
-    "processor": "<处理器>",
-    "rating": <评分数字>,
-    "salesVolume": <销量数字>,
-    "productId": null,
-    "skuId": null,
-    "orderId": null,
-    "addressId": null,
-    "couponId": null,
-    "subsidyPrice": null,
-    "subsidyAmount": null,
-    "maxPrice": null,
-    "promotionTag": null,
-    "quantity": null,
-    "deliveryMethod": null,
-    "deliveryTime": null,
-    "address": null
-  }}
-}}
-
-## 填充规则
-1. brand/model/price/storage/color/processor 从查询中推断
-2. rating/salesVolume 用合理默认值
-3. 其余所有字段（productId/skuId/orderId/addressId/couponId/subsidyPrice/subsidyAmount/maxPrice/promotionTag/quantity/deliveryMethod/deliveryTime/address）一律设为 null
-4. price 必须是数字，不可为字符串
-5. 不得添加输出结构中不存在的字段"""
-
+# ═══════════════════════════════════════════════════════════
+# 主类
+# ═══════════════════════════════════════════════════════════
 
 class FlowConverter:
     """
-    Flow 模板智能转换器
+    LLM 驱动的 Flow 内容生成器。
 
-    整合：
-    - targetPage 语义映射（Rule-based + LLM 兜底）
-    - mockInstances 数据绑定
-    - 缺失步骤补齐（从模板获取）
+    不再依赖硬编码的页面关键词/品牌列表/价格正则等场景特定规则。
+    所有内容填充决策由 LLM 根据 Schema 定义 + 实际轨迹数据做出。
     """
 
     def __init__(
@@ -260,345 +200,65 @@ class FlowConverter:
         api_url: Optional[str] = None,
         model: Optional[str] = None,
     ):
-        self.llm = LLMClient(
+        # 步骤生成用低 temperature 确保一致性
+        self.llm_steps = LLMClient(
             api_key=api_key,
             api_url=api_url,
             model=model,
             temperature=0.0,
-            max_tokens=64,
+            max_tokens=4096,
+        )
+        # 实体提取可略高 temperature 鼓励多样性
+        self.llm_entity = LLMClient(
+            api_key=api_key,
+            api_url=api_url,
+            model=model,
+            temperature=0.1,
+            max_tokens=1024,
         )
 
-    # ── screenKey 分配 ────────────────────────────────────
-
-    def assign_screen_keys(
-        self,
-        steps: List[Dict],
-    ) -> List[Dict]:
-        """
-        为每步分配 targetPage (screenKey)。
-
-        LLM 主导分配，SCREEN_KEY_KEYWORDS 预定义关键词映射作为 prompt 中的分类约束。
-        规则匹配结果作为参考提示，LLM 结合语义做出最终判断。
-
-        Args:
-            steps: [{"order": int, "action": str}, ...]
-
-        Returns:
-            [{"order": int, "action": str, "targetPage": str}, ...]
-        """
-        screen_keys_str = "\n".join(
-            f"- {k}: {'/'.join(v)}"
-            for k, v in SCREEN_KEY_KEYWORDS.items()
-        )
-
-        prev_key = None
-        result = []
-
-        for step in steps:
-            action = step.get("action", "")
-            thought = step.get("thought", "")
-            order = step.get("order", 0)
-
-            # 规则匹配（仅作为 LLM prompt 中的参考提示）
-            rule_result = _match_screen_key(action, prev_key)
-            matched_kws = []
-            for kw in SCREEN_KEY_KEYWORDS.get(rule_result, []):
-                if kw.lower() in action.lower():
-                    matched_kws.append(kw)
-            if matched_kws:
-                rule_hint = (
-                    f"→ 规则分析: {rule_result} "
-                    f"（匹配关键词: {', '.join(matched_kws[:3])}）"
-                )
-            else:
-                rule_hint = f"→ 规则分析: {rule_result}（未直接匹配关键词）"
-
-            # LLM 主导判断
-            target_page = "home"
-            try:
-                prompt = SCREEN_KEY_LLM_PROMPT.format(
-                    screen_keys_str=screen_keys_str,
-                    ui_summary=action[:500],
-                    thought=thought[:200] if thought else "(无)",
-                    prev_key=prev_key or "home",
-                    rule_hint=rule_hint,
-                )
-                llm_result = self.llm.chat(prompt).strip().lower()
-                if llm_result in SCREEN_KEY_KEYWORDS:
-                    target_page = llm_result
-            except Exception as e:
-                logger.warning(
-                    f"  LLM screenKey 分配失败 (Step {order}): {e}，使用规则结果"
-                )
-                target_page = rule_result
-
-            result.append({
-                "order": order,
-                "action": action,
-                "targetPage": target_page,
-            })
-            prev_key = target_page
-
-        return result
-
-    # ── mockInstances 数据绑定 ────────────────────────────
-
-    def bind_mock_data(
-        self,
-        steps: List[Dict],
-        mock_instances: List[Dict],
-        query: str,
-    ) -> List[Dict]:
-        """
-        将 steps 中的商品数据与 mockInstances 绑定，实现数据一致性。
-
-        匹配策略：
-        1. 从 query 提取商品意图（LLM 驱动，规则提取作为 prompt 参考）
-        2. LLM 匹配最佳 mockInstance
-        3. 将匹配的实例数据注入到 action 描述中
-
-        Args:
-            steps: [{"order": int, "action": str, "targetPage": str}, ...]
-            mock_instances: 模板中的 mockInstances 列表
-            query: utg_info.json 中的 query 字段
-
-        Returns:
-            数据绑定后的步骤列表
-        """
-        if not mock_instances:
-            return steps
-
-        # Step 1: 规则提取意图（作为 LLM prompt 中的参考提示）
-        intent = self._extract_product_intent(query)
-
-        # Step 2: LLM 匹配最佳 mockInstance
-        matched = self._llm_match_instance(query, intent, mock_instances)
-
-        if not matched:
-            logger.info("  数据绑定: 无匹配的 mockInstance")
-            return steps
-
-        instance_id = matched.get("instanceId", "")
-        values = matched.get("values", {})
-        logger.info(
-            f"  数据绑定: 匹配 {instance_id} "
-            f"({values.get('brand', '')} {values.get('model', '')})"
-        )
-
-        # Step 3: 将数据注入 action 描述
-        bound_steps = []
-        for step in steps:
-            action = step.get("action", "")
-            target_page = step.get("targetPage", "")
-
-            # 仅对商品相关页面做数据注入
-            if target_page in ("searchResult", "productDetail", "cart", "checkout", "payment", "orderDetail"):
-                action = self._inject_data_into_action(action, values)
-
-            bound_steps.append({
-                "order": step["order"],
-                "action": action,
-                "targetPage": target_page,
-                "boundMockId": instance_id,
-            })
-
-        return bound_steps
-
-    def _extract_product_intent(self, query: str) -> Dict[str, str]:
-        """从 query 提取商品意图"""
-        intent = {"brand": "", "category": "", "keyword": query[:100]}
-
-        # 简单的品牌提取
-        brand_patterns = [
-            (r'华为|HUAWEI', "华为"),
-            (r'iPhone|Apple|苹果', "Apple"),
-            (r'小米|Xiaomi', "小米"),
-            (r'三星|Samsung', "三星"),
-        ]
-        for pattern, brand in brand_patterns:
-            if re.search(pattern, query, re.IGNORECASE):
-                intent["brand"] = brand
-                break
-
-        # 品类提取
-        category_patterns = [
-            r'手机', r'电脑|笔记本', r'平板', r'耳机',
-            r'电视', r'冰箱', r'洗衣机', r'空调',
-        ]
-        for pattern in category_patterns:
-            if re.search(pattern, query):
-                intent["category"] = pattern
-                break
-
-        # 价格区间提取
-        price_match = re.search(r'(\d+)\s*[以之内下\-\~]\s*(\d*)', query)
-        if price_match:
-            intent["max_price"] = price_match.group(1)
-
-        return intent
-
-    def _llm_match_instance(
-        self, query: str, intent: Dict[str, str], mock_instances: List[Dict]
-    ) -> Optional[Dict]:
-        """
-        LLM 驱动的实例匹配。
-
-        预定义的品牌/品类/价格提取规则作为 prompt 中的参考提示，
-        LLM 结合语义做出最终匹配决策。
-
-        Args:
-            query: 用户搜索查询
-            intent: 规则提取的商品意图（作为 LLM 参考）
-            mock_instances: 可用商品实例列表
-
-        Returns:
-            匹配的实例，或 None
-        """
-        if not mock_instances:
-            return None
-
-        brand_hint = intent.get("brand") or "未识别"
-        category_hint = intent.get("category") or "未识别"
-        price_hint = (
-            f"最高 {intent['max_price']} 元"
-            if intent.get("max_price") else "未指定"
-        )
-
-        instances_str = "\n".join(
-            f"- {inst['instanceId']}: "
-            f"{inst.get('values', {}).get('brand', '')} "
-            f"{inst.get('values', {}).get('model', '')}, "
-            f"¥{inst.get('values', {}).get('price', '')}, "
-            f"{inst.get('values', {}).get('storage', '')}, "
-            f"{inst.get('values', {}).get('color', '')}"
-            for inst in mock_instances
-        )
-
-        prompt = INSTANCE_MATCH_PROMPT.format(
-            query=query[:200],
-            brand_hint=brand_hint,
-            category_hint=category_hint,
-            price_hint=price_hint,
-            instances_str=instances_str,
-        )
-
-        try:
-            result = self.llm.chat(prompt).strip()
-            matched = next(
-                (inst for inst in mock_instances if inst.get("instanceId") == result),
-                None,
-            )
-            if matched:
-                logger.info(
-                    f"  LLM 匹配实例: {matched.get('instanceId')} "
-                    f"({matched.get('values', {}).get('brand', '')} "
-                    f"{matched.get('values', {}).get('model', '')})"
-                )
-                return matched
-            logger.warning(f"  LLM 返回的 instanceId 无效: {result}")
-        except Exception as e:
-            logger.warning(f"  LLM 实例匹配失败: {e}")
-
-        # Fallback: 返回第一个实例（仅发生在 LLM 调用失败时，不是独立决策路径）
-        logger.info("  LLM 匹配失败，使用第一个可用实例作为 fallback")
-        return mock_instances[0]
-
-    def _inject_data_into_action(self, action: str, values: Dict) -> str:
-        """将商品数据注入 action 描述"""
-        brand = values.get("brand", "")
-        model = values.get("model", "")
-        storage = values.get("storage", "")
-        color = values.get("color", "")
-        price = str(values.get("price", ""))
-
-        # 构建商品全称
-        product_name = f"{brand} {model}"
-        if storage:
-            product_name += f" {storage}"
-        if color:
-            product_name += f" {color}"
-
-        # 尝试替换现有商品引用
-        # 匹配常见的中文商品名模式
-        patterns = [
-            (r'华为\S*', product_name),
-            (r'iPhone\s*\S*', product_name),
-            (r'小米\S*', product_name),
-            (r'三星\S*', product_name),
-            (r'畅享\S*', product_name),
-            (r'nova\S*', product_name),
-        ]
-        replaced = False
-        for pattern, replacement in patterns:
-            if re.search(pattern, action):
-                action = re.sub(pattern, replacement, action)
-                replaced = True
-                break
-
-        # 替换价格
-        price_patterns = [
-            r'¥?\s*\d+[\.\d]*\s*元',
-            r'价格\s*\d+[\.\d]*',
-            r'\d+\.?\d*\s*元',
-        ]
-        for p in price_patterns:
-            if re.search(p, action):
-                action = re.sub(p, f"¥{price}元", action)
-                break
-
-        if not replaced:
-            # 在结果页、详情页等场景，注入商品名
-            if any(kw in action for kw in ["搜索", "结果", "列表", "展示"]):
-                action = action.rstrip("。，") + f"，展示{product_name}相关信息"
-
-        return action
-
-    # ── 主转换流程 ────────────────────────────────────────
+    # ── 主入口 ─────────────────────────────────────────────
 
     def convert(
         self,
         utg_path: str,
         template_path: str,
         output_path: str,
+        schema_path: Optional[str] = None,
         mode: str = "replace",
         enable_screen_key: bool = True,
         enable_data_binding: bool = True,
+        compress_steps: bool = False,
     ) -> Dict[str, Any]:
         """
-        智能转换：UTG + Flow 模板 → 高质量 Flow JSON。
+        LLM 驱动转换：injected UTG + 模板 + Schema → Flow JSON。
 
         Args:
-            utg_path: 预处理后的 utg_info.json 路径
-            template_path: Flow 模板 JSON 路径（优先 _new.json）
+            utg_path: 注入异常后的 utg_info.json 路径
+            template_path: Flow 模板 JSON 路径
             output_path: 输出路径
-            mode: "replace" - 完全替换, "fill" - 按顺序填充, "smart" - 智能合并
-            enable_screen_key: 是否分配 targetPage
-            enable_data_binding: 是否绑定 mockInstances 数据
+            schema_path: model-schema.json 路径（默认 schema/model-schema.json）
+            mode: 保留参数（兼容旧调用方，实际行为已简化为 replace）
+            enable_screen_key: 保留参数（兼容旧调用方）
+            enable_data_binding: 保留参数（兼容旧调用方）
+            compress_steps: 是否合并相邻同页面步骤（LLM 驱动，按 action 范式凝练）
 
         Returns:
-            {
-                "success": bool,
-                "output_path": str,
-                "step_count": int,
-                "screen_keys_assigned": int|None,
-                "bound_mock_id": str|None,
-                "error": str|None,
-            }
+            {"success": bool, "output_path": str, "step_count": int, "error": str|None}
         """
         result = {
             "success": False,
             "output_path": output_path,
             "step_count": 0,
-            "screen_keys_assigned": None,
-            "bound_mock_id": None,
             "error": None,
         }
 
         try:
             utg_data = self._load_json(utg_path)
             template = self._load_json(template_path)
+            schema = self._load_schema(schema_path)
 
-            # 提取有效步骤
+            # Step 0: 提取有效步骤
             utg_steps = self._get_valid_steps_from_utg(utg_data)
             if not utg_steps:
                 result["error"] = "utg_info.json 中没有有效的 ui_summary 步骤"
@@ -606,94 +266,56 @@ class FlowConverter:
 
             logger.info(f"UTG 有效步骤: {len(utg_steps)}")
 
+            # 构建 merged 骨架（deepcopy 模板保留 events/topics/ui/baselineMapping）
             merged = deepcopy(template)
+            self._init_main_flow(merged, utg_data)
 
-            # 确保 mainFlow 存在
-            if "mainFlow" not in merged:
-                merged["mainFlow"] = {
-                    "id": "flow-from-utg",
-                    "steps": [],
-                }
-
-            # mainFlow 的实例化字段由 UTG 数据决定，模板原有数据仅作 spec 参考，不作数
-            merged["mainFlow"]["id"] = "flow-from-utg"
-            merged["mainFlow"]["name"] = utg_data.get("query", "操作流程")
-            merged["mainFlow"]["description"] = utg_data.get("query", "")
-            merged["mainFlow"]["precondition"] = (
-                f"用户已登录，{utg_data.get('appName', 'APP')}首页正常加载"
+            # ── Step 1: LLM 生成 mainFlow.steps ────────────
+            logger.info(">>> LLM 生成 steps ...")
+            step_schema_text = self._get_step_schema_text(schema)
+            new_steps = self._llm_generate_steps(
+                utg_steps, step_schema_text, utg_data.get("query", "")
             )
-
-            # 构建基础步骤
-            new_steps = [
-                {"order": s["order"], "action": s["ui_summary"]}
-                for s in utg_steps
-            ]
-
-            # Step 1: 分配 targetPage（screenKey 映射）
-            if enable_screen_key:
-                new_steps = self.assign_screen_keys(new_steps)
-                screen_key_count = sum(
-                    1 for s in new_steps if s.get("targetPage") and s["targetPage"] != "home"
-                )
-                result["screen_keys_assigned"] = screen_key_count
-                logger.info(f"  targetPage 分配: {screen_key_count}/{len(new_steps)} 步")
-
-            # Step 2: 数据绑定（从 UTG stepData 提取 mock 实例，与 mainFlow.steps 保持一致）
-            if enable_data_binding:
-                query = utg_data.get("query", "")
-                # 主路径：从步骤描述提取（确保与 step 内容一致）
-                mock_instance = self._extract_mock_from_steps(utg_steps, query)
-                # 后备：query 生成（仅步骤提取失败时）
-                if not mock_instance and query:
-                    mock_instance = self._generate_mock_from_query(query)
-                if mock_instance:
-                    mock_instances = [mock_instance]
-                    new_steps = self.bind_mock_data(new_steps, mock_instances, query)
-                    # 同步更新 topics 中的 mockInstances（替换模板预设数据）
-                    self._update_merged_mock_instances(merged, mock_instances)
-                    # 记录绑定的 mock ID
-                    bound_ids = set(
-                        s.get("boundMockId") for s in new_steps if s.get("boundMockId")
-                    )
-                    if bound_ids:
-                        result["bound_mock_id"] = list(bound_ids)[0]
-                        logger.info(f"  数据绑定: {list(bound_ids)}")
-                else:
-                    logger.info("  数据绑定: 无 query 或生成失败，跳过")
-
-            # Step 3: 合并到模板
-            if mode == "smart":
-                # 智能合并：模板为框架，UTG 填充
-                merged_steps = self._smart_merge(new_steps, merged["mainFlow"].get("steps", []))
-                merged["mainFlow"]["steps"] = merged_steps
-            elif mode == "replace":
-                merged["mainFlow"]["steps"] = new_steps
-            elif mode == "fill":
-                template_steps = merged["mainFlow"].get("steps", [])
-                for i, ns in enumerate(new_steps):
-                    if i < len(template_steps):
-                        merged_step = template_steps[i]
-                        merged_step["action"] = ns.get("action", merged_step.get("action", ""))
-                        if enable_screen_key and "targetPage" in ns:
-                            merged_step["targetPage"] = ns["targetPage"]
-                    else:
-                        template_steps.append(ns)
-                merged["mainFlow"]["steps"] = template_steps
-            else:
-                result["error"] = f"未知的合并模式: {mode}"
+            if not new_steps:
+                result["error"] = "LLM 生成 steps 失败"
                 return result
 
-            # 按模板 mainFlow.steps 的字段输出，避免生成模板外字段。
+            merged["mainFlow"]["steps"] = new_steps
+            logger.info(f"  LLM 生成 steps: {len(new_steps)} 步")
+
+            # ── Step 1.5: 可选 — 合并相邻同页面步骤 ─────────
+            if compress_steps and len(new_steps) > 1:
+                logger.info(">>> 合并相邻同页面步骤 ...")
+                compressed = self._llm_compress_steps(new_steps, utg_steps)
+                if compressed and len(compressed) < len(new_steps):
+                    merged["mainFlow"]["steps"] = compressed
+                    logger.info(f"  合并后: {len(new_steps)} → {len(compressed)} 步")
+                elif compressed:
+                    logger.info(f"  无需合并（仍为 {len(new_steps)} 步）")
+                else:
+                    logger.info("  合并失败，使用原始步骤")
+
+            # ── Step 2: LLM 提取业务实体 → topics.mockInstances ──
+            if enable_data_binding:
+                logger.info(">>> LLM 提取业务实体 ...")
+                entity_schema_text = self._get_entity_schema_text(schema, template)
+                mock_instances = self._llm_extract_entities(
+                    new_steps, entity_schema_text, utg_data.get("query", "")
+                )
+                if mock_instances:
+                    self._update_merged_mock_instances(merged, mock_instances)
+                    result["bound_mock_id"] = mock_instances[0].get("instanceId")
+                    logger.info(f"  提取实体: {len(mock_instances)} 个")
+                else:
+                    logger.info("  实体提取: 无法提取或无实体信息")
+
+            # ── Step 3: 按模板字段过滤输出 ─────────────────
             step_fields = self._get_template_step_fields(template)
             if step_fields:
                 merged["mainFlow"]["steps"] = self._filter_step_fields(
                     merged["mainFlow"].get("steps", []),
                     step_fields,
                 )
-                if "targetPage" not in step_fields:
-                    result["screen_keys_assigned"] = None
-                if "boundMockId" not in step_fields:
-                    result["bound_mock_id"] = None
 
             self._save_json(merged, output_path)
             step_count = len(merged["mainFlow"]["steps"])
@@ -709,9 +331,281 @@ class FlowConverter:
             result["error"] = str(e)
             return result
 
+    # ── LLM 步骤生成 ─────────────────────────────────────
+
+    def _llm_generate_steps(
+        self, utg_steps: List[Dict], step_schema_text: str, query: str
+    ) -> Optional[List[Dict]]:
+        """
+        LLM 生成 mainFlow.steps。
+
+        输入：UTG stepData（含已注入异常的 ui_summary）
+        输出：[{"order": int, "action": str, ...}]
+        """
+        # 构建步骤文本
+        lines = []
+        for s in utg_steps:
+            summary = (s.get("ui_summary") or "").strip()
+            thought = (s.get("thought") or "").strip()
+            if summary:
+                line = f"Step {s['order']}: {summary[:300]}"
+                if thought:
+                    line += f"\n   意图: {thought[:100]}"
+                lines.append(line)
+        if not lines:
+            return None
+
+        step_data_text = "\n\n".join(lines)[:4000]
+
+        prompt = STEPS_GENERATION_PROMPT.format(
+            step_schema_text=step_schema_text,
+            step_data_text=step_data_text,
+        )
+
+        try:
+            raw = self.llm_steps.chat(prompt)
+            logger.debug(f"  LLM raw[:300]: {raw[:300]}")
+            parsed = self.llm_steps.extract_json(raw)
+
+            if parsed is None:
+                logger.warning("  LLM 返回无法解析的内容")
+                return None
+
+            # 兼容两种格式：直接返回数组，或包裹在 {steps: [...]} / {mainFlow: {steps: [...]}}
+            if not isinstance(parsed, list):
+                steps = parsed.get("steps") or parsed.get("mainFlow", {}).get("steps")
+                if isinstance(steps, list):
+                    parsed = steps
+                else:
+                    logger.warning(f"  LLM 返回非数组且无法提取 steps: {type(parsed)}")
+                    return None
+
+            if not parsed:
+                logger.warning("  LLM 返回空数组")
+                return None
+
+            # 确保 order 连续且从 1 开始
+            for i, step in enumerate(parsed):
+                step["order"] = i + 1
+                # 确保 action 非空
+                if not isinstance(step, dict) or not step.get("action", "").strip():
+                    logger.warning(f"  Step {i+1}: action 无效，跳过")
+                    return None
+
+            logger.info(f"  LLM 生成成功: {len(parsed)} 步")
+            return parsed
+
+        except Exception as e:
+            logger.warning(f"  LLM 生成 steps 失败: {e}")
+            return None
+
+    # ── LLM 步骤合并（同页面压缩） ───────────────────────
+
+    def _llm_compress_steps(
+        self, steps: List[Dict], utg_steps: Optional[List[Dict]] = None
+    ) -> Optional[List[Dict]]:
+        """
+        合并相邻同页面步骤，保留页面布局信息。
+
+        输入：生成的 steps + 原始 UTG 步骤（含 ui_summary 页面布局描述）
+        输出：合并后 steps（order 重新编号），或 None 表示合并失败
+        """
+        # 构建已生成 steps 的文本
+        lines = []
+        for s in steps:
+            action = (s.get("action") or "").strip()
+            if action:
+                lines.append(f"  Step {s['order']}: {action[:300]}")
+        if not lines:
+            return None
+        steps_text = "\n".join(lines)
+
+        # 构建原始 UTG 上下文（含 ui_summary 页面布局信息）
+        utg_context = ""
+        if utg_steps:
+            ctx_lines = []
+            for s in utg_steps:
+                summary = (s.get("ui_summary") or "").strip()
+                if summary:
+                    ctx_lines.append(
+                        f"  Step {s['order']} ui_summary: {summary[:200]}"
+                    )
+            if ctx_lines:
+                utg_context = "\n".join(ctx_lines)
+
+        prompt = STEPS_COMPRESS_PROMPT.format(
+            steps_text=steps_text,
+            utg_context=utg_context or "（无原始轨迹数据）",
+        )
+
+        try:
+            raw = self.llm_steps.chat(prompt)
+            parsed = self.llm_steps.extract_json(raw)
+
+            if parsed is None:
+                return None
+
+            # 兼容两种格式
+            if not isinstance(parsed, list):
+                steps_data = parsed.get("steps") or parsed.get("mainFlow", {}).get("steps")
+                if isinstance(steps_data, list):
+                    parsed = steps_data
+                else:
+                    return None
+
+            if not parsed:
+                return None
+
+            # 重新编号
+            for i, step in enumerate(parsed):
+                step["order"] = i + 1
+                if not isinstance(step, dict) or not step.get("action", "").strip():
+                    return None
+
+            return parsed
+
+        except Exception as e:
+            logger.warning(f"  合并步骤失败: {e}")
+            return None
+
+    # ── LLM 实体提取 ─────────────────────────────────────
+
+    def _llm_extract_entities(
+        self, steps: List[Dict], entity_schema_text: str, query: str
+    ) -> Optional[List[Dict]]:
+        """
+        LLM 从步骤中提取业务实体 → mockInstances。
+
+        输入：已生成的 steps + 模板 topics/fields 定义
+        输出：[{"instanceId": str, "imageUrl": null, "values": {...}}]
+        """
+        if not entity_schema_text.strip():
+            logger.info("  实体提取: 模板无 topics/fields 定义，跳过")
+            return None
+
+        # 构建步骤摘要
+        lines = []
+        for s in steps:
+            action = (s.get("action") or "").strip()
+            if action:
+                lines.append(f"Step {s['order']}: {action[:200]}")
+        steps_text = "\n".join(lines)[:3000]
+
+        prompt = ENTITY_EXTRACTION_PROMPT.format(
+            entity_schema_text=entity_schema_text,
+            steps_text=steps_text,
+        )
+
+        try:
+            raw = self.llm_entity.chat(prompt)
+            parsed = self.llm_entity.extract_json(raw)
+
+            if not isinstance(parsed, list) or not parsed:
+                return None
+
+            # 确保每个实例有 instanceId 和 values
+            valid = []
+            for inst in parsed:
+                if not isinstance(inst, dict):
+                    continue
+                inst.setdefault("instanceId", "entity_from_steps")
+                inst.setdefault("imageUrl", None)
+                if "values" not in inst:
+                    continue
+                valid.append(inst)
+
+            return valid if valid else None
+
+        except Exception as e:
+            logger.warning(f"  LLM 实体提取失败: {e}")
+            return None
+
+    # ── Schema 文本构建 ──────────────────────────────────
+
+    def _get_step_schema_text(self, schema: Dict) -> str:
+        """从 schema 中提取 FlowStep 字段定义文本"""
+        try:
+            flow_step = schema.get("definitions", {}).get("FlowStep", {})
+            props = flow_step.get("properties", {})
+            required = flow_step.get("required", [])
+            lines = []
+            for field_name, field_def in props.items():
+                is_required = "（必填）" if field_name in required else "（可选）"
+                desc = field_def.get("description", "")
+                ftype = field_def.get("type", "string")
+                lines.append(f"- {field_name} ({ftype}){is_required}: {desc}")
+            return "\n".join(lines) if lines else "- order (integer)（必填）: 步骤序号\n- action (string)（必填）: 用户动作或系统行为描述"
+        except Exception:
+            return "- order (integer)（必填）: 步骤序号\n- action (string)（必填）: 用户动作或系统行为描述"
+
+    def _get_entity_schema_text(self, schema: Dict, template: Dict) -> str:
+        """从 schema + 模板中提取 topics/fields 定义文本"""
+        try:
+            # 从模板获取实际的 topics/fields 结构
+            topics = template.get("topics", [])
+            if not topics:
+                return ""
+
+            lines = []
+            for topic in topics:
+                topic_name = topic.get("name", "")
+                topic_id = topic.get("id", "")
+                lines.append(f"\n## 数据主题: {topic_name} ({topic_id})")
+                fields = topic.get("fields", [])
+                for field in fields:
+                    fid = field.get("id", "")
+                    fname = field.get("name", "")
+                    ftype = field.get("type", "string")
+                    required = "（必填）" if field.get("required") else "（可选）"
+                    desc = field.get("description", "")
+                    enum_vals = field.get("enumValues")
+                    unit = field.get("unit", "")
+                    extra = f" 单位: {unit}" if unit else ""
+                    if enum_vals:
+                        extra += f" 枚举值: {', '.join(enum_vals)}"
+                    lines.append(
+                        f"  - {fid} ({ftype}){required}: {fname}{' - ' + desc if desc else ''}{' | ' + extra if extra else ''}"
+                    )
+            return "\n".join(lines) if lines else ""
+
+        except Exception as e:
+            logger.warning(f"  构建实体 schema 文本失败: {e}")
+            return ""
+
     # ── 辅助方法 ──────────────────────────────────────────
 
-    def _get_valid_steps_from_utg(self, utg_data: Dict) -> List[Dict]:
+    @staticmethod
+    def _load_schema(schema_path: Optional[str]) -> Dict:
+        """加载 model-schema.json，失败时返回空 dict"""
+        if schema_path:
+            p = Path(schema_path)
+        else:
+            p = _DEFAULT_SCHEMA_PATH
+        if p.exists():
+            try:
+                with open(p, 'r', encoding='utf-8') as f:
+                    return json.load(f)
+            except Exception as e:
+                logger.warning(f"加载 schema 失败 ({p}): {e}")
+        else:
+            logger.warning(f"Schema 文件不存在: {p}")
+        return {}
+
+    @staticmethod
+    def _init_main_flow(merged: Dict, utg_data: Dict):
+        """初始化 mainFlow 元数据字段"""
+        if "mainFlow" not in merged:
+            merged["mainFlow"] = {"id": "flow-from-utg", "steps": []}
+
+        merged["mainFlow"]["id"] = "flow-from-utg"
+        merged["mainFlow"]["name"] = utg_data.get("query", "操作流程")
+        merged["mainFlow"]["description"] = utg_data.get("query", "")
+        merged["mainFlow"]["precondition"] = (
+            f"用户已登录，{utg_data.get('appName', 'APP')}首页正常加载"
+        )
+
+    @staticmethod
+    def _get_valid_steps_from_utg(utg_data: Dict) -> List[Dict]:
         """从 utg_info.json 中提取有效步骤"""
         step_data = utg_data.get("stepData", [])
         valid = []
@@ -731,172 +625,28 @@ class FlowConverter:
             })
         return valid
 
-    def _extract_mock_from_steps(self, utg_steps: List[Dict], query: str) -> Optional[Dict]:
-        """
-        从 UTG stepData 提取 mock 商品实例（主路径）。
-
-        优先从步骤描述中抽取实际商品信息，query 仅作为辅助上下文。
-        确保 mock 实例与 mainFlow.steps 中描述的商品一致，避免无中生有。
-
-        Args:
-            utg_steps: 有效步骤列表，每项含 ui_summary/thought
-            query: 用户搜索查询（辅助上下文）
-
-        Returns:
-            包含 instanceId/imageUrl/values 的 mock 实例字典，或 None
-        """
-        _ALL_VALUES_FIELDS = [
-            "brand", "model", "price", "storage", "color", "processor",
-            "rating", "salesVolume", "productId", "skuId", "orderId",
-            "addressId", "couponId", "subsidyPrice", "subsidyAmount",
-            "maxPrice", "promotionTag", "quantity", "deliveryMethod",
-            "deliveryTime", "address",
-        ]
-
-        # 构建步骤文本摘要（截取避免超 tokens）
-        texts = []
-        for s in utg_steps:
-            summary = (s.get("ui_summary") or "").strip()
-            if summary:
-                texts.append(f"Step {s['order']}: {summary[:200]}")
-        if not texts:
-            return None
-        steps_text = "\n".join(texts)[:2500]
-
-        try:
-            gen_llm = LLMClient(temperature=0.1, max_tokens=1024)
-            prompt = EXTRACT_MOCK_PROMPT.format(
-                query=(query or "")[:200],
-                steps_text=steps_text,
-            )
-            raw = gen_llm.chat(prompt)
-            parsed = gen_llm.extract_json(raw)
-
-            instance = parsed if "instanceId" in parsed else {
-                "instanceId": "instance_from_query",
-                "imageUrl": None,
-                "values": parsed,
-            }
-            instance.setdefault("imageUrl", None)
-
-            values = instance.get("values", {})
-            if not values:
-                logger.warning(f"  LLM 返回的 mock 实例缺少 values: {parsed}")
-                return None
-
-            cleaned = {}
-            for field in _ALL_VALUES_FIELDS:
-                cleaned[field] = values.get(field) if field in values else None
-            instance["values"] = cleaned
-
-            logger.info(
-                f"  从步骤提取 mock 实例: "
-                f"{cleaned.get('brand', '')} {cleaned.get('model', '')} "
-                f"¥{cleaned.get('price', '')}"
-            )
-            return instance
-
-        except Exception as e:
-            logger.warning(f"  从步骤提取 mock 实例失败: {e}")
-
-        return None
-
-    def _generate_mock_from_query(self, query: str) -> Optional[Dict]:
-        """
-        从 UTG query 用 LLM 生成 mock 商品实例（后备路径）。
-
-        仅当 _extract_mock_from_steps 失败时使用此后备方法。
-        模板中的 mockInstances 仅作 spec 参考，实际数据由 LLM 从查询中提取生成。
-        输出的字段结构严格与模板 spec 一致，UTG 未涉及的字段一律置 null。
-
-        Args:
-            query: 用户搜索查询（如 "去京东下单一台华为手机"）
-
-        Returns:
-            包含 instanceId/imageUrl/values 的 mock 实例字典，或 None
-        """
-        if not query or not query.strip():
-            return None
-
-        # 模板 spec 定义的 21 个 values 字段
-        _ALL_VALUES_FIELDS = [
-            "brand", "model", "price", "storage", "color", "processor",
-            "rating", "salesVolume", "productId", "skuId", "orderId",
-            "addressId", "couponId", "subsidyPrice", "subsidyAmount",
-            "maxPrice", "promotionTag", "quantity", "deliveryMethod",
-            "deliveryTime", "address",
-        ]
-
-        try:
-            # 使用独立的 LLM 调用（需要更高 max_tokens 生成完整 JSON）
-            gen_llm = LLMClient(
-                temperature=0.1,
-                max_tokens=1024,
-            )
-            prompt = GENERATE_MOCK_PROMPT.format(query=query[:300])
-            raw = gen_llm.chat(prompt)
-            parsed = gen_llm.extract_json(raw)
-
-            # 标准化 instanceId 和 imageUrl
-            instance = parsed if "instanceId" in parsed else {
-                "instanceId": "instance_from_query",
-                "imageUrl": None,
-                "values": parsed,
-            }
-            instance.setdefault("imageUrl", None)
-
-            values = instance.get("values", {})
-            if not values:
-                logger.warning(f"  LLM 返回的 mock 实例缺少 values: {parsed}")
-                return None
-
-            # 补全缺失字段为 null，去除多余字段
-            cleaned = {}
-            for field in _ALL_VALUES_FIELDS:
-                cleaned[field] = values.get(field) if field in values else None
-            instance["values"] = cleaned
-
-            logger.info(
-                f"  LLM 生成 mock 实例(后备): "
-                f"{cleaned.get('brand', '')} {cleaned.get('model', '')} "
-                f"¥{cleaned.get('price', '')}"
-            )
-            return instance
-
-        except Exception as e:
-            logger.warning(f"  LLM 生成 mock 实例失败: {e}")
-
-        return None
-
     @staticmethod
     def _update_merged_mock_instances(merged: Dict, new_instances: List[Dict]):
-        """
-        用 LLM 生成的新 mock 实例替换 merged 中所有模板预设的 mockInstances。
-
-        Args:
-            merged: 合并后的输出字典（deepcopy of template）
-            new_instances: 新生成的 mock 实例列表
-        """
+        """替换模板中所有 topics/fields 下的 mockInstances"""
         if not new_instances:
             return
 
         replaced = 0
         for topic in merged.get("topics", []):
-            # topics 层级的 mockInstances
             if "mockInstances" in topic:
                 topic["mockInstances"] = new_instances
                 replaced += 1
-            # fields 层级嵌套的 mockInstances
             for field in topic.get("fields", []):
                 if "mockInstances" in field:
                     field["mockInstances"] = new_instances
                     replaced += 1
 
         if replaced > 0:
-            logger.info(f"  topics mockInstances 已替换（{len(new_instances)} 实例, {replaced} 处）")
+            logger.info(f"  topics mockInstances 已更新（{len(new_instances)} 实例, {replaced} 处）")
 
-    def _get_template_step_fields(self, template: Dict) -> List[str]:
-        """获取模板步骤字段顺序，用于约束输出字段。"""
+    @staticmethod
+    def _get_template_step_fields(template: Dict) -> List[str]:
+        """获取模板步骤字段列表，用于约束输出字段"""
         steps = template.get("mainFlow", {}).get("steps", [])
         if not steps:
             return ["order", "action"]
@@ -907,76 +657,13 @@ class FlowConverter:
                 fields.append(required)
         return fields
 
-    def _filter_step_fields(self, steps: List[Dict], fields: List[str]) -> List[Dict]:
-        """仅保留模板声明的步骤字段。"""
-        filtered = []
-        for step in steps:
-            filtered.append({
-                field: step[field]
-                for field in fields
-                if field in step
-            })
-        return filtered
-
-    def _smart_merge(self, utg_steps: List[Dict], template_steps: List[Dict]) -> List[Dict]:
-        """
-        智能合并：
-        - 以 UTG 步骤为主体（已由 LLM 分配 targetPage）
-        - 对模板中有、但 UTG 缺失的关键步骤，从模板补充
-        - 确保 screenKey 拓扑序正确
-
-        注意：模板步骤分析使用 _match_screen_key 作为页面类型推断的
-        辅助工具，这仅是参考分析，不构成独立决策路径。
-        """
-        if not template_steps:
-            return utg_steps
-
-        # 分析模板步骤的页面类型（模板无 targetPage 字段，使用关键词辅助判断）
-        template_keys = [
-            _match_screen_key(s.get("action", "")) for s in template_steps
-        ]
-
-        # 提取 UTG 中的 screenKey（已由 LLM 分配）
-        utg_keys = [s.get("targetPage", "") for s in utg_steps]
-
-        # 检查缺失的关键页面
-        missing = []
-        for i, key in enumerate(template_keys):
-            if key in ("productDetail", "orderDetail") and key not in utg_keys:
-                # 找到插入位置
-                insert_after = -1
-                for j, uk in enumerate(utg_keys):
-                    if uk == self._get_prev_key(key, template_keys, i):
-                        insert_after = j
-                if insert_after >= 0 and insert_after < len(utg_steps) - 1:
-                    missing.append({
-                        "key": key,
-                        "action": template_steps[i].get("action", ""),
-                        "insert_after": insert_after,
-                    })
-
-        if missing:
-            # 从后往前插入
-            missing.sort(key=lambda x: x["insert_after"], reverse=True)
-            for m in missing:
-                logger.info(f"  补齐: 在 Step {m['insert_after']} 后插入 '{m['key']}'")
-                utg_steps.insert(m["insert_after"] + 1, {
-                    "order": m["insert_after"] + 2,
-                    "action": m["action"],
-                    "targetPage": m["key"],
-                })
-            # 重新编号
-            for i, s in enumerate(utg_steps):
-                s["order"] = i + 1
-
-        return utg_steps
-
     @staticmethod
-    def _get_prev_key(key: str, keys: List[str], idx: int) -> str:
-        """获取 key 在拓扑序中的前一个 key"""
-        if idx > 0:
-            return keys[idx - 1]
-        return "home"
+    def _filter_step_fields(steps: List[Dict], fields: List[str]) -> List[Dict]:
+        """仅保留模板声明的步骤字段"""
+        return [
+            {field: step[field] for field in fields if field in step}
+            for step in steps
+        ]
 
     @staticmethod
     def _load_json(path: str) -> Dict:

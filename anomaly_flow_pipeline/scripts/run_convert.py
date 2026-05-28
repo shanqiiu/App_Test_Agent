@@ -1,33 +1,29 @@
 #!/usr/bin/env python3
 """
-run_convert.py — 将修改后的 utg_info.json 智能合并到 Flow 模板 CLI 入口
+run_convert.py — Phase 2 CLI 入口：LLM 驱动的内容填充
 
-支持：
-- targetPage (screenKey) 语义映射
-- mockInstances 数据绑定
-- 三种合并模式: replace / fill / smart
+将注入异常后的 UTG 转换为符合 Schema 的 Flow JSON。
 
 用法:
-    # replace 模式（完全替换 steps）
-    python -m anomaly_flow_pipeline.scripts.run_convert \\
-        --utg /tmp/modified_utg.json \\
-        --template example_data/shopping-flow-search-and-buy_new.json \\
+    python -m anomaly_flow_pipeline.scripts.run_convert \
+        --utg /tmp/modified_utg.json \
+        --template example_data/shopping-flow-search-and-buy_new.json \
         --output /tmp/flow.json
 
-    # smart 模式（智能合并，推荐）
-    python -m anomaly_flow_pipeline.scripts.run_convert \\
-        --utg /tmp/modified_utg.json \\
-        --template example_data/shopping-flow-search-and-buy_new.json \\
-        --output /tmp/flow.json --mode smart --screen-key
+    python -m anomaly_flow_pipeline.scripts.run_convert \
+        --utg /tmp/modified_utg.json \
+        --template example_data/shopping-flow-search-and-buy_new.json \
+        --output /tmp/flow.json \
+        --schema schema/model-schema.json
 
 链式:
-    python -m anomaly_flow_pipeline.scripts.run_inject \\
+    python -m anomaly_flow_pipeline.scripts.run_inject \
         --utg tmp/utg.json --scenario "..." --output /tmp/modified.json
 
-    python -m anomaly_flow_pipeline.scripts.run_convert \\
-        --utg /tmp/modified.json \\
-        --template example_data/shopping-flow-search-and-buy_new.json \\
-        --output /tmp/flow.json --mode smart --screen-key
+    python -m anomaly_flow_pipeline.scripts.run_convert \
+        --utg /tmp/modified.json \
+        --template example_data/shopping-flow-search-and-buy_new.json \
+        --output /tmp/flow.json
 """
 
 import argparse
@@ -53,20 +49,16 @@ from anomaly_flow_pipeline.core.flow_converter import FlowConverter
 
 
 def main():
-    parser = argparse.ArgumentParser(description="UTG → Flow 智能转换")
-    parser.add_argument("--utg", required=True, help="修改后的 utg_info.json 路径")
-    parser.add_argument("--template", required=True, help="Flow 模板 JSON 路径（推荐 _new.json）")
+    parser = argparse.ArgumentParser(description="Phase 2: LLM 驱动内容填充")
+    parser.add_argument("--utg", required=True, help="注入异常后的 utg_info.json 路径")
+    parser.add_argument("--template", required=True, help="Flow 模板 JSON 路径")
     parser.add_argument("--output", "-o", required=True, help="输出路径")
-    parser.add_argument("--mode", choices=["replace", "fill", "smart"], default="smart",
-                        help="合并模式: replace(完全替换), fill(按序填充), smart(智能合并,默认)")
-    parser.add_argument("--screen-key", action="store_true", default=True,
-                        help="分配 targetPage (screenKey)")
-    parser.add_argument("--no-screen-key", action="store_false", dest="screen_key",
-                        help="不分配 targetPage")
-    parser.add_argument("--data-binding", action="store_true", default=True,
-                        help="启用 mockInstances 数据绑定")
-    parser.add_argument("--no-data-binding", action="store_false", dest="data_binding",
-                        help="禁用数据绑定")
+    parser.add_argument("--schema", default=None,
+                        help="model-schema.json 路径（默认 schema/model-schema.json）")
+    parser.add_argument("--no-data-binding", action="store_true",
+                        help="禁用实体提取（不生成 mockInstances）")
+    parser.add_argument("--compress-steps", action="store_true",
+                        help="合并相邻同页面步骤（LLM 驱动）")
     parser.add_argument("--verbose", "-v", action="store_true", help="详细日志")
     args = parser.parse_args()
 
@@ -79,14 +71,14 @@ def main():
             sys.exit(1)
 
     print("=" * 60)
-    print("UTG → Flow 智能转换 (Phase 2)")
+    print("Phase 2: LLM 驱动内容填充")
     print("=" * 60)
     print(f"  UTG:      {args.utg}")
     print(f"  模板:     {args.template}")
     print(f"  输出:     {args.output}")
-    print(f"  模式:     {args.mode}")
-    print(f"  targetPage: {'✓' if args.screen_key else '✗'}")
-    print(f"  数据绑定:  {'✓' if args.data_binding else '✗'}")
+    print(f"  Schema:   {args.schema or '默认'}")
+    print(f"  实体提取: {'✗' if args.no_data_binding else '✓'}")
+    print(f"  合并同页: {'✓' if args.compress_steps else '✗'}")
     print()
 
     converter = FlowConverter()
@@ -94,18 +86,16 @@ def main():
         utg_path=args.utg,
         template_path=args.template,
         output_path=args.output,
-        mode=args.mode,
-        enable_screen_key=args.screen_key,
-        enable_data_binding=args.data_binding,
+        schema_path=args.schema,
+        enable_data_binding=not args.no_data_binding,
+        compress_steps=args.compress_steps,
     )
 
     if result["success"]:
         print(f"✅ 转换完成: {result['step_count']} 步")
         print(f"   输出: {result['output_path']}")
-        if result.get("screen_keys_assigned") is not None:
-            print(f"   targetPage: {result['screen_keys_assigned']} 步已分配")
         if result.get("bound_mock_id"):
-            print(f"   数据绑定: {result['bound_mock_id']}")
+            print(f"   实体: {result['bound_mock_id']}")
         # 输出样例预览
         with open(result['output_path'], 'r', encoding='utf-8') as f:
             flow_data = json.load(f)
@@ -113,9 +103,8 @@ def main():
         if steps:
             print(f"\n  ── 步骤预览 (前3步) ──")
             for s in steps[:3]:
-                tp = s.get("targetPage", "")
-                action = s.get("action", "")[:80]
-                print(f"  Step {s['order']}: [{tp}] {action}...")
+                action = s.get("action", "")[:100]
+                print(f"  Step {s['order']}: {action}...")
     else:
         print(f"❌ 转换失败: {result['error']}")
         sys.exit(1)

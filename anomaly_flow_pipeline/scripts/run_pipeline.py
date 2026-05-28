@@ -91,6 +91,10 @@ def main():
                         help="跳过 Phase 1 相邻步微调")
     parser.add_argument("--no-validation", action="store_true",
                         help="跳过 Phase 3 质量验证")
+    parser.add_argument("--schema", default=None,
+                        help="model-schema.json 路径（默认 schema/model-schema.json）")
+    parser.add_argument("--compress-steps", action="store_true",
+                        help="Phase 2 合并相邻同页面步骤")
     parser.add_argument("--model", default=None, help="VLM 模型名")
     parser.add_argument("--verbose", "-v", action="store_true", help="详细日志")
     args = parser.parse_args()
@@ -144,7 +148,9 @@ def main():
     print(f"  anomaly_flow_pipeline — 端到端流程")
     print(f"  UTG:        {utg_path.name}")
     print(f"  模板:       {template_path.name}")
+    print(f"  Schema:     {Path(args.schema).name if args.schema else 'model-schema.json'}")
     print(f"  异常场景:   {scenarios}")
+    print(f"  合并同页:   {'✓' if args.compress_steps else '✗'}")
     print(f"  输出目录:   {output_dir}")
     print("=" * 60)
     print()
@@ -237,16 +243,15 @@ def main():
         utg_path=injected_utg,
         template_path=str(template_path),
         output_path=str(output_dir / "phase2_flow.json"),
-        mode="smart",
-        enable_screen_key=True,
+        schema_path=args.schema,
         enable_data_binding=True,
+        compress_steps=args.compress_steps,
     )
     t1 = time.time()
 
     phase2_report = {
         "success": convert_result["success"],
         "step_count": convert_result.get("step_count", 0),
-        "screen_keys_assigned": convert_result.get("screen_keys_assigned", 0),
         "bound_mock_id": convert_result.get("bound_mock_id"),
         "error": convert_result.get("error"),
     }

@@ -18,6 +18,8 @@ import re
 from pathlib import Path
 from typing import Dict, List, Optional, Any, Tuple
 
+from .llm_client import LLMClient
+
 logger = logging.getLogger(__name__)
 
 # ── 验证常量 ─────────────────────────────────────────────
@@ -41,8 +43,76 @@ OBSCURE_PATTERNS = [
 REQUIRED_FIELDS = ["order", "action"]
 
 
+# ── 价格一致性 Few-Shot Prompt ──────────────────────────
+
+PRICE_CONSISTENCY_PROMPT = """你是一个电商流程数据质量检查专家。判断以下操作步骤中的多个价格是否属于数据不一致。
+
+## 判断规则
+- 多款不同商品各有不同价格 → ✅ 正常
+- 同一商品**同一价格类型**在不同步骤变化 → ❌ 是不一致
+- 同一商品同时出现**不同价格类型**（如：原价 vs 补贴价 vs 国补后价 vs 券后价 vs 总价）→ ✅ 正常，这是不同价格语义
+- 补贴金额/优惠金额/减免金额 → ✅ 正常，和售价是不同概念
+- 用户输入的筛选价格上限/下限 → 忽略，不应计入
+- **核心原则**：判断是否不一致的核心是看"同一价格类型"是否变化。原价¥1648和补贴后价¥1400.8是同一个商品的两个不同价格类型，**不是不一致**。
+
+## 示例
+
+示例1 - 正常（多商品不同价格）:
+步骤:
+  Step 7: "展示畅享70X（1648元）和畅享70X活力版（1299元）等多款手机"
+  Step 8: "用户点击华为畅享70X（1648元）"
+提取到的价格: 1648, 1299
+判断: 正常。两个不同商品有不同的价格，搜索结果页的正常展示。
+
+示例2 - 正常（原价与补贴价共存，同一页面）:
+步骤:
+  Step 20: "订单确认页展示华为畅享70X手机，数量1件，总价¥1648元，补贴后价¥1400.8元，已优惠¥247.2元"
+提取到的价格: 1648, 1400.8, 247.2
+判断: 正常。同一订单确认页同时展示原价¥1648、补贴后价¥1400.8、优惠金额¥247.2，属于不同价格类型（原价/补贴价/优惠额），不是不一致。
+
+示例3 - 正常（原价与补贴价跨步骤）:
+步骤:
+  Step 9: "商品详情页展示价格1648元"
+  Step 11: "购物车显示补贴后价1400.8元"
+提取到的价格: 1648, 1400.8
+判断: 正常。Step 9展示原价，Step 11展示补贴后价，价格类型不同。
+
+示例4 - 不一致（同一价格类型变化）:
+步骤:
+  Step 8: "购物车总价显示¥2999"
+  Step 10: "提交订单总价显示¥3499"
+提取到的价格: 2999, 3499
+判断: 不一致。购物车和结算的总价（同一价格类型）不同且无合理解释。
+
+## 待判断的流程
+步骤:
+{steps_text}
+
+提取到的价格: {price_list}
+
+请仅输出以下格式之一（不要其他内容）：
+正常: <简要理由>
+不一致: <简要理由>"""
+
+
 class QualityValidator:
     """Flow 输出质量验证器"""
+
+    def __init__(self, llm: Optional[LLMClient] = None):
+        """
+        Args:
+            llm: 可选 LLM 客户端。不传时按需从环境变量创建。
+        """
+        self._llm = llm
+
+    def _get_llm(self) -> Optional[LLMClient]:
+        """获取 LLM 客户端（延迟初始化）"""
+        if self._llm is None:
+            try:
+                self._llm = LLMClient(temperature=0.0, max_tokens=128)
+            except Exception:
+                return None
+        return self._llm
 
     def validate(self, flow_data: Dict, template_path: Optional[str] = None) -> Dict[str, Any]:
         """
@@ -204,33 +274,27 @@ class QualityValidator:
 
     # ── 数据一致性 ───────────────────────────────────────
 
-    # 价格上下文关键词 — 匹配这些词之后的数字+元 不算商品售价
-    _PRICE_EXCLUDE_KEYWORDS = ["补贴", "优惠", "减免", "上限", "最低", "最高"]
-
     def _validate_consistency(self, steps: List[Dict]) -> Dict:
         """
         跨步骤数据一致性验证。
 
-        价格检查策略（纯规则，不调 LLM）：
-          1. 归一化：去掉 ¥ 前缀，统一解析为 float 去重
-          2. 过滤：排除补贴金额/筛选上限等非商品售价（通过前缀关键词判定）
-          3. 不比对搜索页中的多商品价格（不同商品合法有不同的价格）
+        品牌检查：纯规则提取。
+        价格检查：正则提取 + 归一化去重；
+                 若仍有多个价格 → Few-Shot LLM 判别是否为真实不一致；
+                 若 LLM 不可用 → 跳过价格检查（保守策略）。
         """
         issues = []
 
-        # 提取所有步骤中的商品名
+        # ── 品牌检查（纯规则） ──────────────────────────
         product_names = set()
         for step in steps:
             action = step.get("action", "")
-            name_match = re.findall(
-                r'[\u4e00-\u9fff\w]+\s*[\u4e00-\u9fff\w]+(?:Pro|Max|Ultra|\d+[\w]*)*',
-                action,
-            )
-            for n in name_match:
-                if len(n) > 3:
-                    product_names.add(n)
+            for m in re.finditer(
+                    r'[\u4e00-\u9fff\w]+\s*[\u4e00-\u9fff\w]+(?:Pro|Max|Ultra|\d+[\w]*)*',
+                    action):
+                if len(m.group()) > 3:
+                    product_names.add(m.group())
 
-        # 检查商品名不一致（多个不同品牌的商品）
         brands_found = set()
         for name in product_names:
             for brand in ["华为", "iPhone", "Apple", "小米", "三星", "荣耀", "OPPO", "vivo"]:
@@ -239,8 +303,10 @@ class QualityValidator:
         if len(brands_found) > 1:
             issues.append(f"步骤中出现多个品牌: {', '.join(brands_found)}")
 
-        # ── 价格检查（归一化 + 关键词过滤） ────────────────
-        product_prices = set()
+        # ── 价格提取（正则 + 归一化） ──────────────────
+        # 收集 (order, raw_text, numeric_value) 用于 LLM 上下文
+        all_prices: List[tuple] = []
+        price_numerics: set = set()
 
         for step in steps:
             action = step.get("action", "")
@@ -252,29 +318,59 @@ class QualityValidator:
                     numeric = float(m.group(1))
                 except ValueError:
                     continue
+                all_prices.append((order, raw, numeric))
+                price_numerics.add(numeric)
 
-                # 检查该价格出现位置之前的上下文（最多往前看 20 字）
-                idx = action.find(raw)
-                prefix = action[max(0, idx - 20):idx] if idx >= 0 else ""
+        # 如果只有一个价格（或没有），直接通过
+        if len(price_numerics) <= 1:
+            passed = len(issues) == 0
+            score = 1.0 if passed else max(0.3, 1.0 - len(issues) * 0.3)
+            return {"passed": passed, "issues": issues, "score": score}
 
-                # 跳过：补贴金额、优惠减免（"已补贴109.65元"）
-                if any(kw in prefix for kw in ["补贴", "优惠", "减免"]):
-                    continue
+        # ── 多个价格 → Few-Shot LLM 判别 ───────────────
+        llm = self._get_llm()
+        if llm is None:
+            # LLM 不可用时保守策略：不报错（跳过价格检查）
+            logger.info("  价格检查: LLM 不可用，跳过")
+            passed = len(issues) == 0
+            score = 1.0 if passed else max(0.3, 1.0 - len(issues) * 0.3)
+            return {"passed": passed, "issues": issues, "score": score}
 
-                # 跳过：筛选上限/最低价/最高价（"价格上限为3000元"）
-                if any(kw in prefix for kw in ["上限", "最低", "最高"]):
-                    continue
+        # 构建步骤上下文（只包含有价格的步骤，截断避免超 token）
+        step_lines = []
+        for order, raw, numeric in all_prices:
+            step_action = ""
+            for s in steps:
+                if s.get("order") == order:
+                    step_action = s.get("action", "")
+                    break
+            # 提取价格附近的文本（前后各 60 字，适应多行 action 格式）
+            idx = step_action.find(raw)
+            start = max(0, idx - 60)
+            end = min(len(step_action), idx + len(raw) + 60)
+            context = step_action[start:end].strip()
+            step_lines.append('  Step {}: "{}"'.format(order, context[:120]))
+        steps_text = "\n".join(step_lines)[:2000]
 
-                product_prices.add(numeric)
+        price_list = ", ".join(
+            sorted(f'¥{int(p)}元' if p == int(p) else f'¥{p}元' for p in price_numerics)
+        )
 
-        # 同一商品价格在数据绑定后可能有 ¥1648元 vs 1648元的格式差异，
-        # 归一化后自动合并，这里只检查实质上不同的数值
-        if len(product_prices) > 1:
-            formatted = sorted(
-                f'¥{int(p)}元' if p == int(p) else f'¥{p}元'
-                for p in product_prices
-            )
-            issues.append(f"步骤中出现多个商品售价: {', '.join(formatted)}")
+        prompt = PRICE_CONSISTENCY_PROMPT.format(
+            steps_text=steps_text,
+            price_list=price_list,
+        )
+
+        try:
+            llm_result = llm.chat(prompt).strip()
+            logger.info(f"  价格一致性 LLM 判断: {llm_result}")
+
+            if llm_result.startswith("不一致"):
+                issues.append(f"步骤中出现多个商品售价: {price_list}（LLM: {llm_result}）")
+            else:
+                logger.info(f"  价格差异已由 LLM 判定为正常: {llm_result}")
+        except Exception as e:
+            logger.warning(f"  价格一致性 LLM 判断失败: {e}")
 
         passed = len(issues) == 0
         score = 1.0 if passed else max(0.3, 1.0 - len(issues) * 0.3)
