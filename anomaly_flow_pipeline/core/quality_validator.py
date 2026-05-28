@@ -39,7 +39,6 @@ OBSCURE_PATTERNS = [
 ]
 
 REQUIRED_FIELDS = ["order", "action"]
-OPTIONAL_FIELDS = ["targetPage", "anomalyTag", "boundMockId"]
 
 
 class QualityValidator:
@@ -51,7 +50,7 @@ class QualityValidator:
 
         Args:
             flow_data: Flow JSON 数据
-            template_path: 模板路径（可选，用于对比 screenKeys）
+            template_path: 模板路径（可选，用于推导字段约束 + 拓扑 screenKeys）
 
         Returns:
             {
@@ -76,15 +75,29 @@ class QualityValidator:
 
         steps = flow_data.get("mainFlow", {}).get("steps", [])
 
+        # 从模板读取步骤字段约束（仅验证模板中存在的字段）
+        template_step_fields = None
+        template = None
+        if template_path:
+            template = self._load_template(template_path)
+            if template:
+                template_steps = template.get("mainFlow", {}).get("steps", [])
+                if template_steps:
+                    template_step_fields = list(template_steps[0].keys())
+                    # 确保必填字段始终在列表中
+                    for required in REQUIRED_FIELDS:
+                        if required not in template_step_fields:
+                            template_step_fields.append(required)
+
         # 各维度验证
-        schema_result = self._validate_schema(steps)
+        schema_result = self._validate_schema(steps, template_step_fields)
         consistency_result = self._validate_consistency(steps)
         coherence_result = self._validate_coherence(steps)
         readability_result = self._validate_readability(steps)
 
         topology_result = {"passed": True, "issues": [], "score": 1.0}
-        if template_path:
-            topology_result = self._validate_topology(steps, template_path)
+        if template and template_step_fields and "targetPage" in template_step_fields:
+            topology_result = self._validate_topology(steps, template)
 
         dimensions = {
             "schema": schema_result,
@@ -122,8 +135,17 @@ class QualityValidator:
 
     # ── Schema 合规性 ────────────────────────────────────
 
-    def _validate_schema(self, steps: List[Dict]) -> Dict:
-        """Schema 合规性验证"""
+    def _validate_schema(self, steps: List[Dict],
+                         template_step_fields: Optional[List[str]] = None) -> Dict:
+        """
+        Schema 合规性验证。
+
+        Args:
+            steps: 步骤列表
+            template_step_fields: 模板定义的步骤字段列表。
+                                  仅验证这些字段的覆盖度，避免对模板不存在的字段误报。
+                                  为 None 时使用硬编码后备（兼容未传模板的场景）。
+        """
         issues = []
         scores = []
 
@@ -154,43 +176,59 @@ class QualityValidator:
                 issues.append(f"Step {order}: action 为空或过短")
                 scores.append(0)
 
-        # 可选字段 coverage
+        # 可选字段 coverage — 仅验证模板中存在的字段
+        optional_fields = self._get_optional_fields(template_step_fields)
         optional_coverage = {}
-        for field in OPTIONAL_FIELDS:
+        for field in optional_fields:
             count = sum(1 for s in steps if field in s)
             optional_coverage[field] = f"{count}/{len(steps)}"
-
-        if optional_coverage.get("targetPage", "0/0").startswith("0"):
-            issues.append("所有步骤均缺少 targetPage 字段")
+            if count == 0:
+                issues.append(f"所有步骤均缺少 {field} 字段")
 
         score = sum(scores) / len(scores) if scores else 0
         passed = len([i for i in issues if "缺少必填" in i]) == 0
 
         return {"passed": passed, "issues": issues, "score": score, "coverage": optional_coverage}
 
+    @staticmethod
+    def _get_optional_fields(template_step_fields: Optional[List[str]]) -> List[str]:
+        """
+        从模板步骤字段中推导可选字段列表。
+
+        模板字段中剔除必填字段后即为可选字段。
+        若 template_step_fields 为 None（未传入模板），返回空列表（不检查可选字段覆盖度）。
+        """
+        if template_step_fields is None:
+            return []
+        return [f for f in template_step_fields if f not in REQUIRED_FIELDS]
+
     # ── 数据一致性 ───────────────────────────────────────
 
+    # 价格上下文关键词 — 匹配这些词之后的数字+元 不算商品售价
+    _PRICE_EXCLUDE_KEYWORDS = ["补贴", "优惠", "减免", "上限", "最低", "最高"]
+
     def _validate_consistency(self, steps: List[Dict]) -> Dict:
-        """跨步骤数据一致性验证"""
+        """
+        跨步骤数据一致性验证。
+
+        价格检查策略（纯规则，不调 LLM）：
+          1. 归一化：去掉 ¥ 前缀，统一解析为 float 去重
+          2. 过滤：排除补贴金额/筛选上限等非商品售价（通过前缀关键词判定）
+          3. 不比对搜索页中的多商品价格（不同商品合法有不同的价格）
+        """
         issues = []
 
-        # 提取所有步骤中的商品名和价格
+        # 提取所有步骤中的商品名
         product_names = set()
-        prices = set()
-
         for step in steps:
             action = step.get("action", "")
-
-            # 提取商品名（如 "iPhone 16 Pro"、"华为畅享70X"）
-            name_match = re.findall(r'[\u4e00-\u9fff\w]+\s*[\u4e00-\u9fff\w]+(?:Pro|Max|Ultra|\d+[\w]*)*', action)
+            name_match = re.findall(
+                r'[\u4e00-\u9fff\w]+\s*[\u4e00-\u9fff\w]+(?:Pro|Max|Ultra|\d+[\w]*)*',
+                action,
+            )
             for n in name_match:
-                if len(n) > 3:  # 排除短词
+                if len(n) > 3:
                     product_names.add(n)
-
-            # 提取价格（如 ¥6999、1648.00元）
-            price_match = re.findall(r'¥?\s*\d+[\.\d]*\s*元', action)
-            for p in price_match:
-                prices.add(p)
 
         # 检查商品名不一致（多个不同品牌的商品）
         brands_found = set()
@@ -201,9 +239,42 @@ class QualityValidator:
         if len(brands_found) > 1:
             issues.append(f"步骤中出现多个品牌: {', '.join(brands_found)}")
 
-        # 检查价格不一致
-        if len(prices) > 1:
-            issues.append(f"步骤中出现多个价格: {', '.join(prices)}")
+        # ── 价格检查（归一化 + 关键词过滤） ────────────────
+        product_prices = set()
+
+        for step in steps:
+            action = step.get("action", "")
+            order = step.get("order", 0)
+
+            for m in re.finditer(r'¥?\s*(\d+[\.\d]*)\s*元', action):
+                raw = m.group(0)
+                try:
+                    numeric = float(m.group(1))
+                except ValueError:
+                    continue
+
+                # 检查该价格出现位置之前的上下文（最多往前看 20 字）
+                idx = action.find(raw)
+                prefix = action[max(0, idx - 20):idx] if idx >= 0 else ""
+
+                # 跳过：补贴金额、优惠减免（"已补贴109.65元"）
+                if any(kw in prefix for kw in ["补贴", "优惠", "减免"]):
+                    continue
+
+                # 跳过：筛选上限/最低价/最高价（"价格上限为3000元"）
+                if any(kw in prefix for kw in ["上限", "最低", "最高"]):
+                    continue
+
+                product_prices.add(numeric)
+
+        # 同一商品价格在数据绑定后可能有 ¥1648元 vs 1648元的格式差异，
+        # 归一化后自动合并，这里只检查实质上不同的数值
+        if len(product_prices) > 1:
+            formatted = sorted(
+                f'¥{int(p)}元' if p == int(p) else f'¥{p}元'
+                for p in product_prices
+            )
+            issues.append(f"步骤中出现多个商品售价: {', '.join(formatted)}")
 
         passed = len(issues) == 0
         score = 1.0 if passed else max(0.3, 1.0 - len(issues) * 0.3)
@@ -298,16 +369,10 @@ class QualityValidator:
 
     # ── 流程拓扑 ─────────────────────────────────────────
 
-    def _validate_topology(self, steps: List[Dict], template_path: str) -> Dict:
+    def _validate_topology(self, steps: List[Dict], template: Dict) -> Dict:
         """验证步骤流程是否符合业务页面拓扑"""
         issues = []
         violations = 0
-
-        try:
-            with open(template_path, 'r', encoding='utf-8') as f:
-                template = json.load(f)
-        except Exception:
-            return {"passed": True, "issues": [], "score": 1.0}
 
         screen_keys = template.get("baselineMapping", {}).get("screenKeys", SCREEN_KEY_ORDER)
 
@@ -337,6 +402,16 @@ class QualityValidator:
         passed = violations == 0
         score = max(0, 1.0 - violations * 0.2)
         return {"passed": passed, "issues": issues, "score": score, "pages_covered": list(pages_covered)}
+
+    @staticmethod
+    def _load_template(template_path: str) -> Optional[Dict]:
+        """安全加载模板 JSON"""
+        try:
+            with open(template_path, 'r', encoding='utf-8') as f:
+                return json.load(f)
+        except Exception:
+            logger.warning(f"无法加载模板: {template_path}")
+            return None
 
 
 def validate_flow(
