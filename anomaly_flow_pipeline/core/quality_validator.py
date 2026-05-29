@@ -19,6 +19,10 @@ from pathlib import Path
 from typing import Dict, List, Optional, Any, Tuple
 
 from .llm_client import LLMClient
+from ..prompts import (
+    PRICE_CONSISTENCY_PROMPT,
+    HOLISTIC_VALIDATION_PROMPT,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -42,58 +46,7 @@ OBSCURE_PATTERNS = [
 
 REQUIRED_FIELDS = ["order", "action"]
 
-
 # ── 价格一致性 Few-Shot Prompt ──────────────────────────
-
-PRICE_CONSISTENCY_PROMPT = """你是一个电商流程数据质量检查专家。判断以下操作步骤中的多个价格是否属于数据不一致。
-
-## 判断规则
-- 多款不同商品各有不同价格 → ✅ 正常
-- 同一商品**同一价格类型**在不同步骤变化 → ❌ 是不一致
-- 同一商品同时出现**不同价格类型**（如：原价 vs 补贴价 vs 国补后价 vs 券后价 vs 总价）→ ✅ 正常，这是不同价格语义
-- 补贴金额/优惠金额/减免金额 → ✅ 正常，和售价是不同概念
-- 用户输入的筛选价格上限/下限 → 忽略，不应计入
-- **核心原则**：判断是否不一致的核心是看"同一价格类型"是否变化。原价¥1648和补贴后价¥1400.8是同一个商品的两个不同价格类型，**不是不一致**。
-
-## 示例
-
-示例1 - 正常（多商品不同价格）:
-步骤:
-  Step 7: "展示畅享70X（1648元）和畅享70X活力版（1299元）等多款手机"
-  Step 8: "用户点击华为畅享70X（1648元）"
-提取到的价格: 1648, 1299
-判断: 正常。两个不同商品有不同的价格，搜索结果页的正常展示。
-
-示例2 - 正常（原价与补贴价共存，同一页面）:
-步骤:
-  Step 20: "订单确认页展示华为畅享70X手机，数量1件，总价¥1648元，补贴后价¥1400.8元，已优惠¥247.2元"
-提取到的价格: 1648, 1400.8, 247.2
-判断: 正常。同一订单确认页同时展示原价¥1648、补贴后价¥1400.8、优惠金额¥247.2，属于不同价格类型（原价/补贴价/优惠额），不是不一致。
-
-示例3 - 正常（原价与补贴价跨步骤）:
-步骤:
-  Step 9: "商品详情页展示价格1648元"
-  Step 11: "购物车显示补贴后价1400.8元"
-提取到的价格: 1648, 1400.8
-判断: 正常。Step 9展示原价，Step 11展示补贴后价，价格类型不同。
-
-示例4 - 不一致（同一价格类型变化）:
-步骤:
-  Step 8: "购物车总价显示¥2999"
-  Step 10: "提交订单总价显示¥3499"
-提取到的价格: 2999, 3499
-判断: 不一致。购物车和结算的总价（同一价格类型）不同且无合理解释。
-
-## 待判断的流程
-步骤:
-{steps_text}
-
-提取到的价格: {price_list}
-
-请仅输出以下格式之一（不要其他内容）：
-正常: <简要理由>
-不一致: <简要理由>"""
-
 
 class QualityValidator:
     """Flow 输出质量验证器"""
@@ -164,6 +117,11 @@ class QualityValidator:
         consistency_result = self._validate_consistency(steps)
         coherence_result = self._validate_coherence(steps)
         readability_result = self._validate_readability(steps)
+        redundancy_result = self._validate_redundancy(steps)
+        clarity_result = self._validate_clarity(steps)
+        page_stack_result = self._validate_page_stack(steps)
+        completeness_result = self._validate_flow_completeness(steps, template)
+        holistic_result = self._validate_holistic(flow_data)
 
         topology_result = {"passed": True, "issues": [], "score": 1.0}
         if template and template_step_fields and "targetPage" in template_step_fields:
@@ -174,6 +132,11 @@ class QualityValidator:
             "consistency": consistency_result,
             "coherence": coherence_result,
             "readability": readability_result,
+            "redundancy": redundancy_result,
+            "clarity": clarity_result,
+            "page_stack": page_stack_result,
+            "completeness": completeness_result,
+            "holistic": holistic_result,
             "topology": topology_result,
         }
         result["dimensions"] = dimensions
@@ -302,6 +265,63 @@ class QualityValidator:
                     brands_found.add(brand)
         if len(brands_found) > 1:
             issues.append(f"步骤中出现多个品牌: {', '.join(brands_found)}")
+
+        # ── 数量一致性检查 ──────────────────────────────
+        # 提取各步骤中的商品数量表述，追踪数量变化链
+        quantity_history: List[tuple] = []  # [(order, quantity, context)]
+        quantity_patterns = [
+            r'(?:共|已选|已添加)\s*(\d+)\s*件',
+            r'(\d+)\s*件\s*商品',
+            r'去结算\s*[（(]\s*(\d+)\s*[）)]',
+            r'购物车中有\s*(\d+)\s*件',
+            r'数量[：:]\s*(\d+)',
+            r'共\s*(\d+)\s*件',
+        ]
+
+        for step in steps:
+            action = step.get("action", "")
+            order = step.get("order", 0)
+            for pat in quantity_patterns:
+                m = re.search(pat, action)
+                if m:
+                    qty = int(m.group(1))
+                    # 获取数量附近的上下文（±30字）
+                    idx = m.start()
+                    start = max(0, idx - 30)
+                    end = min(len(action), idx + len(m.group()) + 30)
+                    ctx = action[start:end].strip()[:80]
+                    quantity_history.append((order, qty, ctx))
+                    break  # 每个步骤只取第一个匹配
+
+        # 检查数量突变
+        for i in range(1, len(quantity_history)):
+            prev_order, prev_qty, prev_ctx = quantity_history[i - 1]
+            curr_order, curr_qty, curr_ctx = quantity_history[i]
+
+            # 检查两步骤之间是否有加减操作
+            steps_between = action_between = ""
+            if curr_order - prev_order <= 2:
+                # 检查中间步骤是否有"添加"/"删除"/"清空"/"移出"操作
+                for s in steps:
+                    so = s.get("order", 0)
+                    if prev_order < so < curr_order:
+                        a = s.get("action", "")
+                        steps_between += a[:100]
+                        if re.search(r'添加|删除|移出|清空|增加|减少|加购|勾选|取消', a):
+                            action_between = s.get("action", "")[:80]
+
+            # 如果没有合理解释的数量变化 > 1，标记
+            if abs(curr_qty - prev_qty) > 1 and not action_between:
+                issues.append(
+                    f"Step {prev_order}→{curr_order}: "
+                    f"数量从 {prev_qty}件 突变为 {curr_qty}件 "
+                    f"且无添加/删除等操作解释"
+                )
+            elif abs(curr_qty - prev_qty) > 10:
+                issues.append(
+                    f"Step {prev_order}→{curr_order}: "
+                    f"数量异常跳动 ({prev_qty}件 → {curr_qty}件)"
+                )
 
         # ── 价格提取（正则 + 归一化） ──────────────────
         # 收集 (order, raw_text, numeric_value) 用于 LLM 上下文
@@ -463,6 +483,325 @@ class QualityValidator:
         score = max(0, 1.0 - violations * 0.15)
         return {"passed": passed, "issues": issues, "score": score}
 
+    # ── 操作重复检测 ───────────────────────────────────────
+
+    def _validate_redundancy(self, steps: List[Dict]) -> Dict:
+        """
+        检测操作重复：连续相同操作、操作-目标对重复、同页面过度停留、返回操作链。
+        """
+        issues = []
+        violations = 0
+
+        if len(steps) < 2:
+            return {"passed": True, "issues": [], "score": 1.0}
+
+        # 提取操作动词和操作目标
+        ops: List[tuple] = []
+        for step in steps:
+            action = step.get("action", "")
+            order = step.get("order", 0)
+            # 从 "用户在XX上YY" 中提取动词
+            verb = ""
+            target = ""
+            m = re.search(r'用户在\S*上(?:依次)?\s*(\S+)', action)
+            if m:
+                verb = m.group(1)
+            m2 = re.search(r'(?:点击|输入|滑动|选择|切换)(\S+)', action)
+            if m2:
+                target = m2.group(1)[:20]
+            ops.append((order, verb, target, action))
+
+        # 连续同操作检测
+        for i in range(1, len(ops)):
+            prev_verb = ops[i - 1][1]
+            curr_verb = ops[i][1]
+            if prev_verb and curr_verb and prev_verb == curr_verb:
+                prev_order = ops[i - 1][0]
+                curr_order = ops[i][0]
+                violations += 1
+                issues.append(
+                    f"Step {prev_order}→{curr_order}: "
+                    f"连续相同操作 '{prev_verb}'"
+                )
+
+        # 返回操作链检测（连续3+次"返回"操作）
+        return_chain = 0
+        for i, (order, verb, target, action) in enumerate(ops):
+            if '返回' in action or '退回' in action:
+                return_chain += 1
+            else:
+                if return_chain >= 3:
+                    violations += 1
+                    issues.append(
+                        f"Step {order - return_chain}→{order - 1}: "
+                        f"连续 {return_chain} 次返回操作，建议合并"
+                    )
+                return_chain = 0
+        if return_chain >= 3:
+            violations += 1
+            last_order = ops[-1][0]
+            issues.append(
+                f"Step {last_order - return_chain + 1}→{last_order}: "
+                f"连续 {return_chain} 次返回操作，建议合并"
+            )
+
+        passed = violations == 0
+        score = max(0, 1.0 - violations * 0.15)
+        return {"passed": passed, "issues": issues, "score": score}
+
+    # ── 二义性描述检测 ─────────────────────────────────────
+
+    def _validate_clarity(self, steps: List[Dict]) -> Dict:
+        """
+        检测二义性描述：二选一结构、不确定性词汇。
+        """
+        issues = []
+        violations = 0
+
+        ambiguity_patterns = [
+            (r'或\s*[（(]', '二选一结构（"A或B"）'),
+            (r'[（(]\S+[）)]\s*或\s*[（(]', '二选一结构'),
+            (r'可能[是会]?', '不确定表述 "可能"'),
+            (r'大概[是会]?', '不确定表述 "大概"'),
+            (r'不确定', '不确定表述'),
+            (r'也许是', '不确定表述'),
+        ]
+
+        for step in steps:
+            action = step.get("action", "")
+            order = step.get("order", 0)
+            for pat, label in ambiguity_patterns:
+                m = re.search(pat, action)
+                if m:
+                    violations += 1
+                    issues.append(
+                        f"Step {order}: 含{label} — "
+                        f"\"{action[m.start():m.start()+40]}...\""
+                    )
+                    break  # 每步只报一次
+
+        passed = violations == 0
+        score = max(0, 1.0 - violations * 0.2)
+        return {"passed": passed, "issues": issues, "score": score}
+
+    # ── 页面堆栈一致性验证 ─────────────────────────────────
+
+    def _validate_page_stack(self, steps: List[Dict]) -> Dict:
+        """
+        维护简化的页面堆栈模型，验证返回操作的合法性。
+        push: "进入""跳转至""前往""打开"
+        pop: "返回""退回""退出"
+        """
+        issues = []
+        violations = 0
+        stack: List[str] = ["home"]  # 初始页面
+
+        push_patterns = [r'进入\s*(\S+页)', r'跳转至\s*(\S+页?)',
+                         r'前往\s*(\S+页)', r'打开\s*(\S+页)']
+        pop_patterns = [r'返回', r'退回', r'退出(?!\s*登录)']
+
+        for step in steps:
+            action = step.get("action", "")
+            order = step.get("order", 0)
+
+            # 检测 push
+            pushed = False
+            for pat in push_patterns:
+                m = re.search(pat, action)
+                if m:
+                    page = m.group(1) if m.lastindex else "未知页面"
+                    stack.append(page)
+                    pushed = True
+                    break
+
+            if pushed:
+                continue
+
+            # 检测 pop
+            is_pop = any(re.search(pat, action) for pat in pop_patterns)
+            if is_pop:
+                if len(stack) <= 1:
+                    violations += 1
+                    issues.append(
+                        f"Step {order}: 返回操作但页面堆栈已空 "
+                        f"(当前栈: {stack})"
+                    )
+                else:
+                    popped = stack.pop()
+                    logger.debug(f"  Step {order}: pop '{popped}', 剩余栈: {stack}")
+
+        passed = violations == 0
+        score = max(0, 1.0 - violations * 0.2)
+        return {"passed": passed, "issues": issues, "score": score}
+
+    # ── 流程完成度检查 ─────────────────────────────────────
+
+    def _validate_flow_completeness(
+        self, steps: List[Dict], template: Optional[Dict] = None
+    ) -> Dict:
+        """
+        检查流程是否包含合理的结束状态。
+        根据模板的 screenKeys 或默认购物流程判断。
+        """
+        issues = []
+        violations = 0
+
+        if len(steps) < 3:
+            return {"passed": True, "issues": [], "score": 1.0}
+
+        # 从模板获取期望的结束页面
+        expected_end = ["payment", "orderDetail", "orderComplete", "orders"]
+        if template:
+            screen_keys = template.get("baselineMapping", {}).get("screenKeys", [])
+            if screen_keys:
+                # 取最后 3 个 screenKey 作为可能终点
+                end_candidates = [k for k in screen_keys[-3:]
+                                 if k not in ("home", "search")]
+                if end_candidates:
+                    expected_end = end_candidates
+
+        # 检查最后 3 步是否包含任一预期终点
+        last_3_actions = " ".join(
+            s.get("action", "") for s in steps[-3:]
+        )
+        last_3_pages: set = set()
+        for key in expected_end:
+            if re.search(key, last_3_actions, re.IGNORECASE):
+                last_3_pages.add(key)
+
+        if not last_3_pages:
+            violations += 1
+            issues.append(
+                f"流程最后 3 步未包含预期结束页面: {expected_end}. "
+                f"流程可能未完成"
+            )
+
+        passed = violations == 0
+        score = 1.0 if passed else 0.7
+        return {"passed": passed, "issues": issues, "score": score}
+
+    # ── 整体流程校验（LLM 五维度审视） ──────────────────────
+
+    def _validate_holistic(self, flow_data: Dict) -> Dict:
+        """
+        调用 LLM 对 mainFlow 所有步骤做五维度整体审视。
+        一次性检查衔接性、逻辑清晰性、内容重复性、顺序合理性、数据一致性。
+
+        返回维度级诊断结果，与 diagnose.md 的评估方法对齐。
+        """
+        main_flow = flow_data.get("mainFlow", {})
+        steps = main_flow.get("steps", [])
+
+        if len(steps) < 2:
+            return {
+                "passed": True, "score": 1.0,
+                "issues": [], "grade": "正常",
+                "detail": {},
+            }
+
+        llm = self._get_llm()
+        if llm is None:
+            logger.info("  整体校验: LLM 不可用，跳过")
+            return {
+                "passed": True, "score": 0.8,
+                "issues": ["LLM 不可用，跳过整体校验"],
+                "grade": "跳过",
+                "detail": {},
+            }
+
+        # 整体校验需要较大输出空间，用独立 LLM 客户端
+        try:
+            llm_holistic = LLMClient(temperature=0.0, max_tokens=2048)
+        except Exception:
+            llm_holistic = llm
+
+        # 构建步骤文本
+        step_lines = []
+        for s in steps:
+            order = s.get("order", "?")
+            action = (s.get("action") or "").strip()[:300]
+            step_lines.append(f"Step {order}: {action}")
+        steps_text = "\n\n".join(step_lines)[:6000]
+
+        prompt = HOLISTIC_VALIDATION_PROMPT.format(
+            flow_name=main_flow.get("name", ""),
+            flow_desc=main_flow.get("description", ""),
+            precondition=main_flow.get("precondition", ""),
+            steps_text=steps_text,
+        )
+
+        try:
+            raw = llm_holistic.chat(prompt)
+            # 清理可能的 markdown 包裹
+            raw = raw.strip()
+            if raw.startswith("```"):
+                raw = re.sub(r'^```(?:json)?\s*', '', raw)
+                raw = re.sub(r'\s*```$', '', raw)
+                raw = raw.strip()
+
+            parsed = llm_holistic.extract_json(raw)
+
+            if not isinstance(parsed, dict):
+                return {
+                    "passed": True, "score": 0.5,
+                    "issues": ["整体校验 LLM 返回格式异常"],
+                    "grade": "未知",
+                    "detail": {},
+                }
+
+            # 汇总各维度 issue
+            all_issues = []
+            grades = []
+            detail = {}
+
+            for dim_key in ("coherence", "clarity", "redundancy", "sequence", "consistency"):
+                dim = parsed.get(dim_key, {})
+                dim_grade = dim.get("grade", "正常")
+                dim_issues = dim.get("issues", [])
+                grades.append(dim_grade)
+                detail[dim_key] = dim
+
+                for issue in dim_issues:
+                    all_issues.append(f"[{dim_key}] {issue}")
+
+            # 额外字段
+            extra = {}
+            for key in ("missing_pages", "irrelevant_steps", "suggestions"):
+                val = parsed.get("sequence", {}).get(key) or parsed.get(key)
+                if val:
+                    extra[key] = val
+                    if isinstance(val, list) and key != "suggestions":
+                        all_issues.append(f"[sequence] {key}: {', '.join(str(v) for v in val)}")
+
+            overall = parsed.get("overall_grade", "正常")
+
+            # 综合评分
+            grade_map = {"正常": 1.0, "轻微": 0.8, "严重": 0.5, "致命": 0.2, "跳过": 0.6}
+            score = grade_map.get(overall, 0.5)
+            passed = overall in ("正常", "轻微")
+
+            logger.info(f"  整体校验: {overall} (score={score})")
+            if all_issues:
+                for issue in all_issues[:5]:
+                    logger.info(f"    ⚠ {issue}")
+
+            return {
+                "passed": passed,
+                "score": score,
+                "issues": all_issues,
+                "grade": overall,
+                "detail": detail,
+            }
+
+        except Exception as e:
+            logger.warning(f"  整体校验 LLM 调用失败: {e}")
+            return {
+                "passed": True, "score": 0.5,
+                "issues": [f"整体校验异常: {e}"],
+                "grade": "异常",
+                "detail": {},
+            }
+
     # ── 流程拓扑 ─────────────────────────────────────────
 
     def _validate_topology(self, steps: List[Dict], template: Dict) -> Dict:
@@ -508,7 +847,6 @@ class QualityValidator:
         except Exception:
             logger.warning(f"无法加载模板: {template_path}")
             return None
-
 
 def validate_flow(
     flow_path: str,

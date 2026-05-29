@@ -21,6 +21,12 @@ from typing import Dict, List, Optional, Any, Tuple
 
 from .llm_client import LLMClient
 from .utg_loader import UTGLoader
+from ..prompts import (
+    DECISION_PROMPT,
+    REWRITE_PROMPT,
+    NEIGHBOR_ADJUST_PROMPT,
+    VALIDATION_PROMPT,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -56,124 +62,7 @@ NATURAL_ALTERNATIVES = {
     },
 }
 
-
 # ── Prompt 模板 ──────────────────────────────────────────
-
-DECISION_PROMPT = """你是一个 App 异常测试场景生成专家。给定一个 App 操作序列中每步的 UI 状态描述，以及一个待注入的异常场景描述，你需要选择在序列的哪一步注入该异常最合理。
-
-## 异常场景描述
-{anomaly_scenario}
-
-## 操作序列 UI 状态描述（按时间顺序）
-{steps_text}
-
-## 决策原则
-1. 选择与异常场景描述**最自然契合**的步骤
-2. 优先选择用户刚完成关键操作后、进入关键页面的时机
-3. 避免选在首页、加载中状态、纯输入步骤
-4. 避免选在序列的末尾步骤
-5. 避免选在 thought 包含"澄清"、"确认"的步骤（通常是非操作性的中间对话）
-
-## 输出格式（仅返回 JSON）
-{{
-  "injection_step": <int>,
-  "reason": "<string>"
-}}
-"""
-
-REWRITE_PROMPT = """你是一个 App 异常测试场景生成专家。你需要改写 App 操作序列中**某一步**的 UI 描述（ui_summary），使其反映指定的异常场景状态。
-
-改写时必须保证**前后步骤的逻辑连贯性** — 异常不能凭空出现、也不能凭空消失。
-
-## 异常场景描述
-{anomaly_scenario}
-
-## 被改写步骤的信息
-- 步骤索引: Step {step_index}
-- 操作意图: {thought}
-- 操作类型: {action_type}
-- 原始 UI 描述: {original_ui_summary}
-
-## ← 前一步骤的上下文（供参考，不要改写）
-{prev_summary}
-
-## → 后一步骤的上下文（供参考，不要改写）
-{next_summary}
-
-## 改写要求
-1. **保持上下文逻辑连贯**：
-   - 从前一步操作自然过渡到异常状态
-   - 异常不能"凭空出现" — 应在描述中体现因果链
-   - 异常状态能被后一步感知（后一步会看到异常的影响）
-
-2. **保持原有页面核心结构** — 不要在描述中改变页面的基本布局
-
-3. **语言自然口语化** — 模拟真实用户看到的界面反馈，而非开发/测试视角：
-   ✅ "页面顶部提示'网络连接失败，轻触屏幕重试'，内容区域显示空白占位图"
-   ✅ "商品价格显示为'¥0.00'，明显偏离正常价格范围"
-   ❌ "系统抛出NetworkErrorException异常"  
-   ❌ "数据库查询超时返回空结果集"
-   ❌ "API接口返回500状态码"
-   ❌ "JSON解析异常导致渲染失败"
-
-4. **不改变操作意图（thought）** — 用户在做什么操作不变
-
-5. **具体而非抽象** — 说明异常的具体表现（什么元素、什么位置、什么变化）
-
-## 输出格式
-只输出改写后的 ui_summary 文本，不要包含其他内容。
-"""
-
-NEIGHBOR_ADJUST_PROMPT = """你是一个 App 异常测试场景生成专家。操作序列的 {pos} 步（Step {step_index}）刚被注入了异常，现在需要微调 {pos} 步的描述来配合异常场景，使整体流程连贯自然。
-
-## 被注入的异常场景
-{anomaly_scenario}
-
-## 异常步的描述（已改写）
-{current_step_description}
-
-## 需要微调的步骤信息
-- 步骤索引: Step {step_index}
-- 原始 UI 描述: {original_ui_summary}
-- 操作意图: {thought}
-- 操作类型: {action_type}
-
-## 微调要求
-1. 只做微调，不做大幅度改写
-2. {pos} 步应自然衔接异常步（前一步导致异常 / 后一步体现异常影响）
-3. 保持语言自然口语化
-4. 不要引入开发/测试术语
-
-## 输出格式
-只输出微调后的文本，不要包含其他内容。
-"""
-
-VALIDATION_PROMPT = """你是一个 App 测试数据质量专家。检查以下改写后的异常步骤描述是否存在问题。
-
-## 原始 UI 描述
-{original}
-
-## 改写后 UI 描述
-{rewritten}
-
-## 异常场景
-{scenario}
-
-## 检查项
-1. 改写后是否为空或过于简短（<20字）？ [是/否]
-2. 是否包含开发/测试术语（exception, error, null, API, 状态码等）？ [是/否]
-3. 改写后是否保留了原始页面的核心结构信息？ [是/否]
-4. 异常描述是否自然融入了页面描述（而不是生硬拼接）？ [是/否]
-5. 是否存在明显的数据矛盾或逻辑不一致？ [是/否]
-
-## 输出格式
-{{
-  "is_valid": true/false,
-  "issues": ["<问题1>", "<问题2>"],
-  "suggestion": "<改进建议>"
-}}
-"""
-
 
 def _contains_obscure(text: str) -> List[str]:
     """检测文本中是否包含晦涩表述"""
@@ -182,7 +71,6 @@ def _contains_obscure(text: str) -> List[str]:
         matches = re.findall(pattern, text, re.IGNORECASE)
         found.extend(matches)
     return found
-
 
 def _clean_obscure(text: str) -> str:
     """对已知的晦涩模式做基本清理"""
@@ -196,14 +84,12 @@ def _clean_obscure(text: str) -> str:
     text = re.sub(r'后端返回', '页面显示', text)
     return text
 
-
 def _format_context(context: str, label: str, max_chars: int = 300) -> str:
     """格式化上下文文本"""
     if not context or context == "(无)":
         return f"  {label}: (无前序步骤)"
     truncated = context.strip()[:max_chars]
     return f"  {label}: {truncated}"
-
 
 class UTGAnomalyInjector:
     """
@@ -619,63 +505,53 @@ class UTGAnomalyInjector:
         """
         注入后微调相邻步骤的 ui_summary，使异常在序列中自然流动。
 
-        策略：
-        - 前一步（如果存在）：微调使其操作结果自然引向异常
-        - 后一步（如果存在）：微调使其体现异常的影响或用户的应对
+        策略（扩展版，前后各 2 步）：
+        - 前 2 步：微调使其操作结果自然引向异常
+        - 前 1 步：微调作为异常的直接前导
+        - 后 1 步：微调使其体现异常的直接影响
+        - 后 2 步：微调体现异常的残余效应（如用户尝试恢复、数据逐步恢复）
         """
         adjustments = []
 
-        # 微调前一步
+        # 需要微调的偏移量列表：(offset, position_label)
+        offsets = []
+        if injection_step > 1:
+            offsets.append((-2, "前2"))
         if injection_step > 0:
-            prev_step = valid_steps[injection_step - 1]
-            try:
-                prompt = NEIGHBOR_ADJUST_PROMPT.format(
-                    pos="前",
-                    step_index=injection_step - 1,
-                    anomaly_scenario=anomaly_scenario,
-                    current_step_description=rewritten_summary[:300],
-                    original_ui_summary=prev_step.ui_summary,
-                    thought=prev_step.thought.strip() if prev_step.thought else "(无)",
-                    action_type=prev_step.action_type.strip() if prev_step.action_type else "(无)",
-                )
-                adjusted = self.llm.chat(prompt).strip()
-                if adjusted and len(adjusted) > 20:
-                    adjustments.append({
-                        "position": "prev",
-                        "step_index": injection_step - 1,
-                        "step_id": prev_step.step_id,
-                        "original": prev_step.ui_summary[:200],
-                        "adjusted_text": adjusted,
-                    })
-                    logger.debug(f"  前步微调: Step {injection_step - 1}")
-            except Exception as e:
-                logger.debug(f"  前步微调跳过: {e}")
-
-        # 微调后一步
+            offsets.append((-1, "前1"))
         if injection_step < len(valid_steps) - 1:
-            next_step = valid_steps[injection_step + 1]
+            offsets.append((1, "后1"))
+        if injection_step < len(valid_steps) - 2:
+            offsets.append((2, "后2"))
+
+        for offset, pos in offsets:
+            neighbor_idx = injection_step + offset
+            if neighbor_idx < 0 or neighbor_idx >= len(valid_steps):
+                continue
+
+            neighbor_step = valid_steps[neighbor_idx]
             try:
                 prompt = NEIGHBOR_ADJUST_PROMPT.format(
-                    pos="后",
-                    step_index=injection_step + 1,
+                    pos=pos,
+                    step_index=neighbor_idx,
                     anomaly_scenario=anomaly_scenario,
                     current_step_description=rewritten_summary[:300],
-                    original_ui_summary=next_step.ui_summary,
-                    thought=next_step.thought.strip() if next_step.thought else "(无)",
-                    action_type=next_step.action_type.strip() if next_step.action_type else "(无)",
+                    original_ui_summary=neighbor_step.ui_summary,
+                    thought=neighbor_step.thought.strip() if neighbor_step.thought else "(无)",
+                    action_type=neighbor_step.action_type.strip() if neighbor_step.action_type else "(无)",
                 )
                 adjusted = self.llm.chat(prompt).strip()
                 if adjusted and len(adjusted) > 20:
                     adjustments.append({
-                        "position": "next",
-                        "step_index": injection_step + 1,
-                        "step_id": next_step.step_id,
-                        "original": next_step.ui_summary[:200],
+                        "position": pos,
+                        "step_index": neighbor_idx,
+                        "step_id": neighbor_step.step_id,
+                        "original": neighbor_step.ui_summary[:200],
                         "adjusted_text": adjusted,
                     })
-                    logger.debug(f"  后步微调: Step {injection_step + 1}")
+                    logger.debug(f"  {pos}步微调: Step {neighbor_idx}")
             except Exception as e:
-                logger.debug(f"  后步微调跳过: {e}")
+                logger.debug(f"  {pos}步微调跳过: {e}")
 
         return adjustments
 

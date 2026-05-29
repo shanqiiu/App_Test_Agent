@@ -21,92 +21,31 @@ from typing import Dict, List, Optional, Any, Tuple
 
 from .llm_client import LLMClient
 from .utg_loader import UTGLoader, UTGStep
+from ..prompts import (
+    ACTION_REWRITE_PROMPT,
+    DATA_ALIGN_PROMPT,
+    PAGE_COMPLETE_PROMPT,
+    SEMANTIC_DEDUP_PROMPT,
+    CAUSAL_REPAIR_PROMPT,
+    SHOPPING_PAGE_TOPOLOGY,
+)
 
 logger = logging.getLogger(__name__)
 
-# ── Prompt 模板 ──────────────────────────────────────────
+# ── 规则模式（非 Prompt，保留） ──────────────────────
 
-ACTION_REWRITE_PROMPT = """你是一个 App 操作步骤描述优化专家。你的任务是将"页面状态快照"改写为"用户动作 → 系统响应"格式的动作驱动描述。
+ANOMALY_PATTERNS = [
+    r'网络连接失败', r'网络错误', r'加载失败', r'无法加载',
+    r'空白占位图', r'内容区域为空', r'白屏', r'黑屏',
+    r'错误提示', r'显示异常', r'请求超时', r'服务不可用',
+    r'页面崩溃', r'闪退', r'无响应',
+]
 
-## 原始输入
-- 当前页面描述: {ui_summary}
-- 用户操作意图: {thought}
-- 操作类型: {action_type}
-
-## 改写要求
-1. 格式: "用户[做了什么操作]，系统[如何响应]，当前页面展示[关键UI信息]"
-2. 语言自然口语化，模拟真实用户的视角
-3. 聚焦页面核心功能信息，省略次要装饰性描述
-4. 保留所有重要的数据（价格、商品名、数量等）
-5. 每步一句或两句，不超过80字
-6. 不要使用开发/测试术语（exception, error, null, undefined等）
-7. 不要假设用户看不到的信息
-
-## 示例
-原始: "京东首页，顶部有搜索框，当前内容为'海尔洗衣机'。搜索框右侧有搜索按钮。页面展示多种商品推荐..."
-改写: "用户在首页搜索框输入'海尔洗衣机'，系统跳转到搜索结果页，展示华为手机相关商品推荐列表"
-
-原始: "页面展示筛选选项，包含服务/折扣、价格区间、配送至、品牌及全部分类。价格区间包含最低价、最高价和价格选项..."
-改写: "用户打开筛选面板设置价格上限为3000元，系统展示服务/折扣、品牌等筛选选项，底部有确定按钮显示'1400+件商品'"
-
-## 输出
-只输出改写后的文本，不要包含其他内容，不要加引号包裹。"""
-
-DATA_ALIGN_PROMPT = """你是一个 App 测试数据一致性专家。检查以下操作序列中所有步骤的 UI 描述，找出数据不一致问题并修正。
-
-## 用户原始查询
-{query}
-
-## 操作序列步骤
-{steps_text}
-
-## 检查要点
-1. 搜索的商品名称在各步骤中是否一致
-2. 同一商品的价格在各步骤中是否一致
-3. 购物车数量等数据是否逻辑自洽
-4. 描述与实际语义是否匹配
-
-## 输出格式（只输出 JSON）
-{{
-  "issues": [
-    {{
-      "step_index": <int>,
-      "field": "商品名称|价格|数量|其他",
-      "original": "<当前不一致的值>",
-      "corrected": "<修正后的值>",
-      "reason": "<修正原因>"
-    }}
-  ],
-  "consistency_summary": "<整体一致性评估，一句话>"
-}}
-
-如果没有发现问题，返回 {{"issues": [], "consistency_summary": "数据一致"}}"""
-
-PAGE_COMPLETE_PROMPT = """你是一个 App 操作流程专家。分析以下操作序列，判断是否需要补充关键页面。
-
-## 操作序列步骤
-{steps_text}
-
-## 预期购物流程页面拓扑
-{expected_topology}
-
-## 要求
-1. 对照预期拓扑，找出缺失的关键页面
-2. 如果需要补充，为每个缺失页面生成一段动作驱动描述
-3. 补充步骤应插入到最合理的相邻位置
-
-## 输出格式（只输出 JSON）
-{{
-  "missing_pages": [
-    {{
-      "page_name": "<缺失页面名称>",
-      "insert_after_step": <int, 在此步骤后插入>,
-      "action_description": "<动作驱动描述，格式: 用户[动作]，系统[响应]，页面展示[关键信息]>"
-    }}
-  ]
-}}
-
-如果无缺失，返回 {{"missing_pages": []}}"""
+RECOVERY_PATTERNS = [
+    r'重试', r'刷新', r'恢复', r'重新加载', r'重新进入',
+    r'返回.*重', r'点击.*刷新', r'网络.*恢复', r'数据.*加载成功',
+    r'页面.*正常', r'自动.*恢复', r'重新.*登录',
+]
 
 
 def _compute_page_fingerprint(ui_summary: str, n_chars: int = 50) -> str:
@@ -161,6 +100,14 @@ class UTGPreprocessor:
             temperature=0.1,
             max_tokens=2048,
         )
+        # 语义去重用极轻量 LLM（输出仅 "same"/"different"，≤5 token）
+        self.llm_dedup = LLMClient(
+            api_key=api_key,
+            api_url=api_url,
+            model=model,
+            temperature=0.0,
+            max_tokens=8,
+        )
 
     # ── Phase 0-1: 去重合并（Rule-based） ────────────────
 
@@ -214,6 +161,75 @@ class UTGPreprocessor:
             logger.info(f"  合并组: {', '.join(stat['merged_groups'])}")
 
         return deduped, stat
+
+    # ── Phase 0-1b: 语义兜底去重（LLM） ──────────────
+
+    def _semantic_deduplicate(self, steps: List[UTGStep]) -> Tuple[List[UTGStep], Dict]:
+        """
+        L2 语义去重：对 L1 文本指纹已判定不同的相邻步骤，
+        用 LLM 做语义等价判断，捕获表述不同但实质同页的重复。
+
+        每次 LLM 调用约 2-5 token，全序列总成本 < 200 token。
+        """
+        if len(steps) < 2:
+            return steps, {"l2_removed": 0, "l2_merged": []}
+
+        stat = {"l2_removed": 0, "l2_merged": [], "l2_checks": 0}
+
+        merged = []
+        skip_next = False
+
+        for i in range(len(steps)):
+            if skip_next:
+                skip_next = False
+                continue
+
+            if i == len(steps) - 1:
+                merged.append(steps[i])
+                break
+
+            curr = steps[i]
+            next_step = steps[i + 1]
+
+            # L1 已判定不同，L2 做语义判断
+            stat["l2_checks"] += 1
+
+            try:
+                prompt = SEMANTIC_DEDUP_PROMPT.format(
+                    summary_a=curr.ui_summary[:300],
+                    summary_b=next_step.ui_summary[:300],
+                )
+                result = self.llm_dedup.chat(prompt).strip().lower()
+                logger.debug(
+                    f"  L2 语义比较 Step{i}-Step{i+1}: {result}"
+                )
+
+                if result.startswith("same"):
+                    # 合并：保留前一步，跳过后一步
+                    merged.append(curr)
+                    skip_next = True
+                    stat["l2_removed"] += 1
+                    stat["l2_merged"].append(
+                        f"Step{curr.step_id}~Step{next_step.step_id}"
+                    )
+                    logger.info(
+                        f"  L2 语义合并: Step{curr.step_id} + Step{next_step.step_id}"
+                    )
+                else:
+                    merged.append(curr)
+
+            except Exception as e:
+                logger.debug(f"  L2 语义比较失败 (Step{i}): {e}")
+                merged.append(curr)
+
+        logger.info(
+            f"  语义去重: L2 检查 {stat['l2_checks']} 对, "
+            f"合并 {stat['l2_removed']} 对"
+        )
+        if stat["l2_merged"]:
+            logger.info(f"  L2 合并组: {', '.join(stat['l2_merged'])}")
+
+        return merged, stat
 
     # ── Phase 0-2: 动作驱动重写（LLM） ────────────────────
 
@@ -418,21 +434,17 @@ class UTGPreprocessor:
 
     def _get_expected_topology(self, template_path: Optional[str] = None) -> List[str]:
         """从模板获取预期的页面拓扑"""
-        default_topology = [
-            "home", "search", "searchResult", "productDetail",
-            "cart", "checkout", "payment", "orderDetail"
-        ]
         if not template_path:
-            return default_topology
+            return list(SHOPPING_PAGE_TOPOLOGY)
 
         try:
             with open(template_path, 'r', encoding='utf-8') as f:
                 template = json.load(f)
             return template.get("baselineMapping", {}).get(
-                "screenKeys", default_topology
+                "screenKeys", list(SHOPPING_PAGE_TOPOLOGY)
             )
         except Exception:
-            return default_topology
+            return list(SHOPPING_PAGE_TOPOLOGY)
 
     # ── 全流程（Phase 0） ─────────────────────────────────
 
@@ -490,7 +502,10 @@ class UTGPreprocessor:
             # Phase 0-1: 去重
             if not skip_dedup:
                 deduped_steps, dedup_stat = self.deduplicate(loader)
+                # L2 语义兜底去重：在 L1 规则基础上再次合并同页面步骤
+                deduped_steps, semantic_stat = self._semantic_deduplicate(deduped_steps)
                 result["phases"]["dedup"] = dedup_stat
+                result["phases"]["semantic_dedup"] = semantic_stat
             else:
                 deduped_steps = loader.get_valid_steps()
                 result["phases"]["dedup"] = {
@@ -498,6 +513,7 @@ class UTGPreprocessor:
                     "total_before": len(deduped_steps),
                     "total_after": len(deduped_steps),
                 }
+                result["phases"]["semantic_dedup"] = {"skipped": True}
 
             # 初始 rewritten 来自各步的 ui_summary
             rewritten = [s.ui_summary for s in deduped_steps]
@@ -517,6 +533,17 @@ class UTGPreprocessor:
                 result["phases"]["align"] = align_stat
             else:
                 result["phases"]["align"] = {"skipped": True}
+
+            # Phase 0-3.5: 因果链断裂检测与修复
+            causal_breaks = self._validate_causal_chain(rewritten)
+            if causal_breaks:
+                rewritten = self._repair_causal_chain(rewritten, causal_breaks)
+                result["phases"]["causal_repair"] = {
+                    "breaks_found": len(causal_breaks),
+                    "breaks_indices": causal_breaks,
+                }
+            else:
+                result["phases"]["causal_repair"] = {"breaks_found": 0}
 
             # Phase 0-4: 页面补齐
             if not skip_complete:
@@ -549,6 +576,96 @@ class UTGPreprocessor:
             logger.exception("Phase 0 预处理失败")
             result["error"] = str(e)
             return result
+
+    # ── Phase 0-5: 因果链断裂检测 ──────────────────────────
+
+    def _validate_causal_chain(self, rewritten: List[str]) -> List[int]:
+        """
+        检测相邻步骤间的因果链断裂。
+
+        规则：若 Step i 的最终状态包含异常（网络失败/空白页等），
+        而 Step i+1 的初始状态没有任何恢复/过渡描述 → 标记为断裂。
+
+        Returns:
+            断裂点的前一步索引列表 (i)
+        """
+        breaks = []
+        for i in range(len(rewritten) - 1):
+            prev = rewritten[i]
+            next_step = rewritten[i + 1]
+
+            # 只检查前一步的描述的后半段（最终状态部分）
+            prev_end = prev[-(min(len(prev), 200)):]
+
+            # 检查是否含异常
+            has_anomaly = any(
+                re.search(pat, prev_end) for pat in ANOMALY_PATTERNS
+            )
+            if not has_anomaly:
+                continue
+
+            # 检查后一步是否含恢复/过渡描述
+            has_recovery = any(
+                re.search(pat, next_step) for pat in RECOVERY_PATTERNS
+            )
+            if not has_recovery:
+                breaks.append(i)
+                logger.warning(
+                    f"  因果链断裂: Step {i} 存在异常但 Step {i+1} 无恢复过渡"
+                )
+
+        return breaks
+
+    # ── Phase 0-5b: 因果链修复 ──────────────────────────────
+
+    def _repair_causal_chain(
+        self, rewritten: List[str], breaks: List[int]
+    ) -> List[str]:
+        """
+        对断裂点调用 LLM 修复后一步的描述，插入恢复/过渡语句。
+
+        Args:
+            rewritten: 当前 ui_summary 列表
+            breaks: 断裂点前一步索引列表
+
+        Returns:
+            修复后的 ui_summary 列表
+        """
+        if not breaks:
+            return rewritten
+
+        repaired = list(rewritten)
+        for i in breaks:
+            prev = repaired[i]
+            next_idx = i + 1
+            if next_idx >= len(repaired):
+                continue
+
+            try:
+                prompt = CAUSAL_REPAIR_PROMPT.format(
+                    prev_summary=prev[:400],
+                    next_summary=repaired[next_idx][:400],
+                )
+                result = self.llm_align.chat(prompt).strip()
+
+                # 清理可能的 markdown 包裹
+                if result.startswith("```"):
+                    result = re.sub(r'^```(?:text|plain|json)?\s*', '', result)
+                    result = re.sub(r'\s*```$', '', result)
+                    result = result.strip()
+
+                if result and len(result) > 20:
+                    repaired[next_idx] = result
+                    logger.info(
+                        f"  ✓ 修复 Step {next_idx}: 插入恢复过渡"
+                    )
+                else:
+                    logger.warning(f"  LLM 修复 Step {next_idx} 返回内容过短，跳过")
+
+            except Exception as e:
+                logger.warning(f"  修复 Step {next_idx} 失败: {e}")
+
+        return repaired
 
     def _build_modified_utg(
         self,

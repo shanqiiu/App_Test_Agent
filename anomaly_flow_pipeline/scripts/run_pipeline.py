@@ -50,9 +50,9 @@ if str(_project_root) not in sys.path:
 
 try:
     from dotenv import load_dotenv
-    for p in [_project_root / ".env", _project_root.parent / ".env"]:
-        if p.exists():
-            load_dotenv(p)
+    pipeline_env = Path(__file__).resolve().parent.parent / ".env"
+    if pipeline_env.exists():
+        load_dotenv(pipeline_env)
 except ImportError:
     pass
 
@@ -93,8 +93,8 @@ def main():
                         help="跳过 Phase 3 质量验证")
     parser.add_argument("--schema", default=None,
                         help="model-schema.json 路径（默认 schema/model-schema.json）")
-    parser.add_argument("--compress-steps", action="store_true",
-                        help="Phase 2 合并相邻同页面步骤")
+    parser.add_argument("--no-compress-steps", action="store_true",
+                        help="禁用 Phase 2 相邻同页面步骤合并（默认启用合并）")
     parser.add_argument("--model", default=None, help="VLM 模型名")
     parser.add_argument("--verbose", "-v", action="store_true", help="详细日志")
     args = parser.parse_args()
@@ -150,7 +150,7 @@ def main():
     print(f"  模板:       {template_path.name}")
     print(f"  Schema:     {Path(args.schema).name if args.schema else 'model-schema.json'}")
     print(f"  异常场景:   {scenarios}")
-    print(f"  合并同页:   {'✓' if args.compress_steps else '✗'}")
+    print(f"  合并同页:   {'✓' if not args.no_compress_steps else '✗'}")
     print(f"  输出目录:   {output_dir}")
     print("=" * 60)
     print()
@@ -245,7 +245,7 @@ def main():
         output_path=str(output_dir / "phase2_flow.json"),
         schema_path=args.schema,
         enable_data_binding=True,
-        compress_steps=args.compress_steps,
+        compress_steps=not args.no_compress_steps,
     )
     t1 = time.time()
 

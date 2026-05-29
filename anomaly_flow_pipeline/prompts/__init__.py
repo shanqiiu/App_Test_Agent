@@ -1,0 +1,59 @@
+"""
+prompts — 主题提示词集合
+
+当前默认使用购物类（shopping）提示词。
+未来添加新主题（如出行 travel.py）时，修改此文件的选择逻辑即可：
+  from . import travel as _active
+"""
+
+from . import shopping as _active
+
+# 从主题无关的 base 模块导入
+from .base import (
+    DATA_ALIGN_PROMPT,
+    SEMANTIC_DEDUP_PROMPT,
+    CAUSAL_REPAIR_PROMPT,
+    DECISION_PROMPT,
+    REWRITE_PROMPT,
+    NEIGHBOR_ADJUST_PROMPT,
+    VALIDATION_PROMPT,
+    STEPS_COMPRESS_PROMPT,
+    STEPS_DEDUP_PROMPT,
+    ENTITY_EXTRACTION_PROMPT,
+    HOLISTIC_VALIDATION_PROMPT,
+)
+
+# 从当前活跃主题导入
+from .shopping import (
+    ACTION_REWRITE_PROMPT,
+    PAGE_COMPLETE_PROMPT,
+    STEPS_GENERATION_PROMPT,
+    PRICE_CONSISTENCY_PROMPT,
+    SHOPPING_PAGE_TOPOLOGY,
+    SHOPPING_STANDARD_FLOW,
+)
+
+__all__ = [
+    # Phase 0
+    "ACTION_REWRITE_PROMPT",
+    "DATA_ALIGN_PROMPT",
+    "PAGE_COMPLETE_PROMPT",
+    "SEMANTIC_DEDUP_PROMPT",
+    "CAUSAL_REPAIR_PROMPT",
+    # Phase 1
+    "DECISION_PROMPT",
+    "REWRITE_PROMPT",
+    "NEIGHBOR_ADJUST_PROMPT",
+    "VALIDATION_PROMPT",
+    # Phase 2
+    "STEPS_GENERATION_PROMPT",
+    "STEPS_COMPRESS_PROMPT",
+    "STEPS_DEDUP_PROMPT",
+    "ENTITY_EXTRACTION_PROMPT",
+    # Phase 3
+    "PRICE_CONSISTENCY_PROMPT",
+    "HOLISTIC_VALIDATION_PROMPT",
+    # Data
+    "SHOPPING_PAGE_TOPOLOGY",
+    "SHOPPING_STANDARD_FLOW",
+]

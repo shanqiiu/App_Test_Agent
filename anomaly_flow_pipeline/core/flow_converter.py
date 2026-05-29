@@ -24,163 +24,21 @@ from pathlib import Path
 from typing import Dict, List, Optional, Any
 
 from .llm_client import LLMClient
+from ..prompts import (
+    STEPS_GENERATION_PROMPT,
+    STEPS_COMPRESS_PROMPT,
+    STEPS_DEDUP_PROMPT,
+    ENTITY_EXTRACTION_PROMPT,
+)
 
 logger = logging.getLogger(__name__)
 
 # ── 默认 schema 路径（相对于 anomaly_flow_pipeline/） ───
 _DEFAULT_SCHEMA_PATH = Path(__file__).resolve().parent.parent / "schema" / "model-schema.json"
 
-
 # ═══════════════════════════════════════════════════════════
 # 提示词模板（场景无关，引用 Schema 定义）
 # ═══════════════════════════════════════════════════════════
-
-STEPS_GENERATION_PROMPT = """你是一个 APP 操作流程数据生成专家。根据用户操作轨迹数据，生成符合建模规范的操作步骤。
-
-## Action 描述规范
-每条 action 应包含三个层次：
-
-1. **用户操作**：用户在[当前页面]上[操作哪个控件/区域]
-2. **页面布局**：当前页面的静态 UI 结构（来自 ui_summary，不受用户操作影响的部分，如顶部导航栏、底部Tab、搜索框等）
-3. **状态变化**：操作前后的页面空间/内容变化
-
-格式：
-```
-用户在[页面]上[操作]
-页面布局是：[页面静态布局描述]
-初始状态是：[操作前页面空间/内容状态]
-最终状态是：[操作后页面空间/内容状态]
-```
-
-示例:
-- ✅ "用户在首页搜索框输入'华为手机'
-    页面布局是：顶部搜索栏、底部导航栏、中间商品推荐区域
-    初始状态是：搜索框内容为'海尔洗衣机'
-    最终状态是：搜索框内容更新为'华为手机'"
-- ✅ "用户在搜索结果页点击筛选按钮
-    页面布局是：顶部搜索栏、底部导航栏、右侧筛选按钮
-    初始状态是：搜索结果页展示全部商品列表
-    最终状态是：弹出筛选菜单面板"
-- ✅ "用户点击'提交订单'按钮
-    页面布局是：订单确认页、收货地址区域、商品清单、底部提交按钮
-    初始状态是：订单确认页展示商品信息和¥2999
-    最终状态是：页面跳转至支付收银台"
-
-## 输出步骤的字段规范（来自建模 Schema）
-
-{step_schema_text}
-
-## 用户操作轨迹
-
-{step_data_text}
-
-## 要求
-1. 每个 stepData 条目对应一个输出步骤，按 order 顺序排列
-2. action 必须包含上述三个层次（操作、布局、状态变化）
-3. 页面布局来自 ui_summary 中对页面结构的描述，是不受操作影响的静态部分
-4. 初始状态和最终状态描述的是受操作影响的空间/内容变化
-5. 保留原始轨迹中的异常状态信息（如加载失败、错误提示等异常内容必须保留）
-6. 保持步骤之间的因果连贯性：后一步应能从前一步的结果自然推导
-7. 严格遵循输出字段规范中的类型约束
-
-## 输出格式
-直接输出 JSON 数组，不要 markdown 包裹或额外说明：
-[
-  {{"order": 1, "action": "..."}},
-  ...
-]"""
-
-
-STEPS_COMPRESS_PROMPT = """你是一个 APP 操作流程编辑专家。合并相邻的**同页面**操作步骤，使流程更简洁，同时保留页面布局信息。
-
-## Action 描述规范
-每条 action 应包含三个层次：
-
-1. **用户操作**：用户在[当前页面]上依次[操作1]、[操作2]…
-2. **页面布局**：当前页面的静态 UI 结构（不受操作影响的部分，如顶部导航栏、底部Tab等）
-3. **状态变化**：操作前后的页面空间/内容变化
-
-### 单步格式
-```
-用户在[页面]上[操作]
-页面布局是：[页面静态布局描述]
-初始状态是：[操作前页面空间/内容状态]
-最终状态是：[操作后页面空间/内容状态]
-```
-
-### 合并后格式
-```
-用户在[页面]上依次[操作1]、[操作2]…
-页面布局是：[页面静态布局描述（不受操作影响）]
-初始状态是：[合并前第一步的初始页面状态]
-最终状态是：[合并后最后一步的最终页面状态]
-```
-
-## 合并规则
-1. 识别相邻步骤是否发生在**同一个页面**上（根据 action 和原始 ui_summary 语义判断）
-2. 如果是，合并为 1 个步骤，按上述"合并后格式"输出
-3. **页面布局使用原始 ui_summary 中的页面结构描述，不丢失布局信息**
-4. 如果相邻步骤发生在**不同页面**，保持独立，不合并
-5. 合并后保留异常状态信息
-
-## 示例
-
-输入:
-  Step 1: "用户在首页搜索框输入'华为手机'
-    页面布局是：顶部搜索栏、底部导航栏
-    初始状态是：搜索框内容为'海尔洗衣机'
-    最终状态是：搜索框内容更新为'华为手机'"
-  原始 ui_summary: "京东首页，顶部有搜索框，当前内容为"海尔洗衣机"。搜索框右侧有搜索按钮。页面展示多种商品推荐。"
-  Step 2: "用户点击搜索按钮
-    页面布局是：顶部搜索栏、底部导航栏
-    初始状态是：搜索框内容为'华为手机'
-    最终状态是：页面跳转至搜索结果页"
-  原始 ui_summary: "页面顶部有搜索框，右侧有搜索按钮。页面主体显示商品推荐。底部为导航栏。"
-输出:
-  [{"order": 1, "action": "用户在首页依次在搜索框输入'华为手机'并点击搜索按钮\n页面布局是：顶部搜索栏、底部导航栏、中间商品推荐区域\n初始状态是：搜索框内容为'海尔洗衣机'\n最终状态是：页面跳转至搜索结果页"}]
-
-## 待处理的步骤
-{steps_text}
-
-## 原始轨迹数据（参考页面布局用）
-{utg_context}
-
-## 输出
-直接输出合并后的 JSON 数组（order 重新编号从 1 开始），不要 markdown 包裹：
-[
-  {{"order": 1, "action": "..."}},
-  ...
-]"""
-
-
-ENTITY_EXTRACTION_PROMPT = """你是一个 APP 数据抽取专家。从操作步骤中提取关键业务实体信息，填充到建模模板的数据主题中。
-
-## 实体的字段规范（来自建模 Schema）
-
-{entity_schema_text}
-
-## 操作步骤
-
-{steps_text}
-
-## 要求
-1. 分析所有步骤中提到的具体业务实体（商品、服务、内容、商品等）
-2. 从步骤描述中提取实体的具体属性值，严格遵循字段规范中的类型（string / number / price / enum 等）
-3. 步骤中未提及的字段设为 null
-4. 如果步骤中没有可提取的业务实体，返回空数组 []
-5. 不捏造步骤中不存在的数据
-6. 严格遵循输出 JSON 结构，不要增减字段
-
-## 输出格式
-直接输出 JSON 数组，不要 markdown 包裹：
-[
-  {{
-    "instanceId": "entity_from_steps",
-    "imageUrl": null,
-    "values": {{ ... }}
-  }}
-]"""
-
 
 # ═══════════════════════════════════════════════════════════
 # 主类
@@ -295,6 +153,18 @@ class FlowConverter:
                 else:
                     logger.info("  合并失败，使用原始步骤")
 
+            # ── Step 1.6: 冗余步骤精简 ───────────────────
+            current_steps = merged["mainFlow"]["steps"]
+            if len(current_steps) > 2:
+                logger.info(">>> 冗余步骤精简 ...")
+                deduped = self._llm_dedup_redundant_steps(current_steps)
+                if deduped and len(deduped) < len(current_steps):
+                    merged["mainFlow"]["steps"] = deduped
+                    logger.info(f"  精简后: {len(current_steps)} → {len(deduped)} 步")
+
+            # ── Step 1.7: 状态-布局矛盾检测 ─────────────
+            self._check_state_layout_consistency(merged["mainFlow"]["steps"])
+
             # ── Step 2: LLM 提取业务实体 → topics.mockInstances ──
             if enable_data_binding:
                 logger.info(">>> LLM 提取业务实体 ...")
@@ -348,9 +218,13 @@ class FlowConverter:
             summary = (s.get("ui_summary") or "").strip()
             thought = (s.get("thought") or "").strip()
             if summary:
-                line = f"Step {s['order']}: {summary[:300]}"
+                # 显式标注"当前页面状态"，防止 LLM 忽略 ui_summary 中的状态信息
+                line = (
+                    f"Step {s['order']}:\n"
+                    f"  【当前页面状态，以此为初始状态】{summary[:300]}"
+                )
                 if thought:
-                    line += f"\n   意图: {thought[:100]}"
+                    line += f"\n  【用户意图】{thought[:100]}"
                 lines.append(line)
         if not lines:
             return None
@@ -467,6 +341,88 @@ class FlowConverter:
         except Exception as e:
             logger.warning(f"  合并步骤失败: {e}")
             return None
+
+    # ── LLM 冗余步骤精简 ─────────────────────────────
+
+    def _llm_dedup_redundant_steps(self, steps: List[Dict]) -> Optional[List[Dict]]:
+        """
+        检测并合并重复操作：同一页面多次相同操作、无推进中间步骤。
+        """
+        if len(steps) < 2:
+            return None
+
+        lines = []
+        for s in steps:
+            action = (s.get("action") or "").strip()
+            if action:
+                lines.append(f"  Step {s['order']}: {action[:250]}")
+        steps_text = "\n".join(lines)[:5000]
+
+        prompt = STEPS_DEDUP_PROMPT.format(steps_text=steps_text)
+
+        try:
+            raw = self.llm_steps.chat(prompt)
+            parsed = self.llm_steps.extract_json(raw)
+
+            if parsed is None:
+                return None
+            if not isinstance(parsed, list):
+                parsed = parsed.get("steps", [])
+            if not isinstance(parsed, list) or not parsed:
+                return None
+
+            for i, step in enumerate(parsed):
+                step["order"] = i + 1
+                if not isinstance(step, dict) or not step.get("action", "").strip():
+                    return None
+
+            logger.info(f"  冗余精简: {len(steps)} → {len(parsed)} 步")
+            return parsed
+
+        except Exception as e:
+            logger.warning(f"  冗余精简失败: {e}")
+            return None
+
+    # ── 状态-布局一致性校验 ──────────────────────────
+
+    @staticmethod
+    def _check_state_layout_consistency(steps: List[Dict]) -> List[str]:
+        """
+        检查 action 中异常状态与布局描述是否矛盾。
+        例如："内容区域为空白占位图" 但同时提到 "筛选按钮" 等可交互控件。
+        """
+        warnings = []
+        anomaly_signals = [
+            '网络连接失败', '加载失败', '无法加载', '空白占位图',
+            '内容区域为空', '白屏', '黑屏', '错误提示',
+        ]
+        interactive_controls = [
+            '按钮', '输入框', '搜索框', '点击', '筛选', '选择',
+        ]
+
+        for step in steps:
+            action = step.get("action", "")
+            order = step.get("order", 0)
+
+            has_anomaly = any(sig in action for sig in anomaly_signals)
+            if not has_anomaly:
+                continue
+
+            # 检查异常是否被后续操作覆盖（如"用户点击重试"后恢复）
+            if '重试' in action or '恢复' in action or '重新加载' in action:
+                continue
+
+            has_control = any(ctrl in action for ctrl in interactive_controls)
+            if has_control:
+                warnings.append(
+                    f"Step {order}: 描述同时包含异常状态和可交互控件，"
+                    f"可能存在状态-布局矛盾"
+                )
+
+        if warnings:
+            for w in warnings:
+                logger.warning(f"  ⚠ {w}")
+        return warnings
 
     # ── LLM 实体提取 ─────────────────────────────────────
 
