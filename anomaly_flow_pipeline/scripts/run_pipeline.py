@@ -127,9 +127,12 @@ def main():
         print("❌ 请提供 --scenario 或 --scenarios")
         sys.exit(1)
 
-    # 输出目录
+    # 输出目录 — 始终追加时间戳避免覆盖
     timestamp = time.strftime("%Y%m%d_%H%M%S")
-    output_dir = Path(args.output_dir) if args.output_dir else Path(f"./outputs/pipeline_{timestamp}")
+    if args.output_dir:
+        output_dir = Path(args.output_dir) / f"pipeline_{timestamp}"
+    else:
+        output_dir = Path(f"./outputs/pipeline_{timestamp}")
     output_dir.mkdir(parents=True, exist_ok=True)
 
     # 质量报告
