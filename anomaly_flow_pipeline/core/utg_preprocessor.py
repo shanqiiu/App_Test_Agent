@@ -23,6 +23,8 @@ from .llm_client import LLMClient
 from .utg_loader import UTGLoader, UTGStep
 from ..prompts import (
     ACTION_REWRITE_PROMPT,
+    BATCH_ACTION_REWRITE_PROMPT,
+    BATCH_SEMANTIC_DEDUP_PROMPT,
     DATA_ALIGN_PROMPT,
     PAGE_COMPLETE_PROMPT,
     SEMANTIC_DEDUP_PROMPT,
@@ -56,7 +58,7 @@ def _compute_page_fingerprint(ui_summary: str, n_chars: int = 50) -> str:
     raw = ui_summary.strip()[:n_chars]
     # 提取关键内容（去掉标点符号和空白）
     key = re.sub(r'[\s,，。！？、；：""''【】《》（）\!\?\.\,\;\:\'\"\(\)\[\]\{\}]', '', raw)
-    return key[:30]
+    return key
 
 
 def _get_action_type_label(action_type: str) -> str:
@@ -91,22 +93,6 @@ class UTGPreprocessor:
             api_url=api_url,
             model=model,
             temperature=0.1,
-            max_tokens=1024,
-        )
-        self.llm_align = LLMClient(
-            api_key=api_key,
-            api_url=api_url,
-            model=model,
-            temperature=0.1,
-            max_tokens=2048,
-        )
-        # 语义去重用极轻量 LLM（输出仅 "same"/"different"，≤5 token）
-        self.llm_dedup = LLMClient(
-            api_key=api_key,
-            api_url=api_url,
-            model=model,
-            temperature=0.0,
-            max_tokens=8,
         )
 
     # ── Phase 0-1: 去重合并（Rule-based） ────────────────
@@ -166,16 +152,92 @@ class UTGPreprocessor:
 
     def _semantic_deduplicate(self, steps: List[UTGStep]) -> Tuple[List[UTGStep], Dict]:
         """
-        L2 语义去重：对 L1 文本指纹已判定不同的相邻步骤，
-        用 LLM 做语义等价判断，捕获表述不同但实质同页的重复。
-
-        每次 LLM 调用约 2-5 token，全序列总成本 < 200 token。
+        L2 语义去重：批量模式一次 LLM 判断所有相邻对，回退到逐对模式兜底。
         """
         if len(steps) < 2:
-            return steps, {"l2_removed": 0, "l2_merged": []}
+            return steps, {"l2_removed": 0, "l2_merged": [], "l2_checks": 0}
 
         stat = {"l2_removed": 0, "l2_merged": [], "l2_checks": 0}
 
+        # ── 构建候选对（排除操作类型明显不同的组合） ──
+        candidates = []  # [(index, curr_step, next_step)]
+        for i in range(len(steps) - 1):
+            curr = steps[i]
+            nxt = steps[i + 1]
+            curr_act = _get_action_type_label(curr.action_type)
+            next_act = _get_action_type_label(nxt.action_type)
+            if curr_act != next_act and curr_act != "点击" and next_act != "点击":
+                continue  # 操作类型完全不同 → 必定不同页面
+            candidates.append((i, curr, nxt))
+
+        if not candidates:
+            return steps, stat
+
+        # ── 批量 LLM 调用 ──
+        stat["l2_checks"] = len(candidates)
+        same_indices = set()
+
+        try:
+            pairs_lines = []
+            for idx, (i, curr, nxt) in enumerate(candidates):
+                pairs_lines.append(
+                    f"[{idx}] Step{curr.step_id}: {curr.ui_summary}\n"
+                    f"     Step{nxt.step_id}: {nxt.ui_summary}"
+                )
+            pairs_text = "\n\n".join(pairs_lines)
+
+            prompt = BATCH_SEMANTIC_DEDUP_PROMPT.format(
+                pair_count=len(candidates),
+                pairs_text=pairs_text,
+            )
+            logger.info(f"  批量语义去重: {len(candidates)} 对 → 1 次 LLM")
+            raw = self.llm.chat(prompt)
+            parsed = self.llm.extract_json(raw)
+
+            if isinstance(parsed, list) and len(parsed) == len(candidates):
+                for idx, result in enumerate(parsed):
+                    if isinstance(result, str) and result.strip().lower().startswith("same"):
+                        same_indices.add(candidates[idx][0])
+                logger.info(f"  批量去重结果: {len(same_indices)} 对合并")
+            else:
+                logger.warning("  批量去重返回格式异常，回退逐对模式")
+                return self._semantic_deduplicate_sequential(steps, stat)
+        except Exception as e:
+            logger.warning(f"  批量去重失败: {e}，回退逐对模式")
+            return self._semantic_deduplicate_sequential(steps, stat)
+
+        # ── 应用合并结果 ──
+        merged = []
+        skip_next = False
+        for i in range(len(steps)):
+            if skip_next:
+                skip_next = False
+                continue
+            if i == len(steps) - 1:
+                merged.append(steps[i])
+                break
+            if i in same_indices:
+                merged.append(steps[i])
+                skip_next = True
+                stat["l2_removed"] += 1
+                stat["l2_merged"].append(
+                    f"Step{steps[i].step_id}~Step{steps[i+1].step_id}"
+                )
+                logger.info(
+                    f"  L2 语义合并: Step{steps[i].step_id} + Step{steps[i+1].step_id}"
+                )
+            else:
+                merged.append(steps[i])
+
+        logger.info(
+            f"  语义去重: {len(candidates)} 对 → {stat['l2_removed']} 组合并"
+        )
+        return merged, stat
+
+    def _semantic_deduplicate_sequential(
+        self, steps: List[UTGStep], stat: Dict
+    ) -> Tuple[List[UTGStep], Dict]:
+        """逐对语义去重（批量失败时的兜底）"""
         merged = []
         skip_next = False
 
@@ -183,7 +245,6 @@ class UTGPreprocessor:
             if skip_next:
                 skip_next = False
                 continue
-
             if i == len(steps) - 1:
                 merged.append(steps[i])
                 break
@@ -191,61 +252,125 @@ class UTGPreprocessor:
             curr = steps[i]
             next_step = steps[i + 1]
 
-            # L1 已判定不同，L2 做语义判断
-            stat["l2_checks"] += 1
+            # 快速预判
+            curr_act = _get_action_type_label(curr.action_type)
+            next_act = _get_action_type_label(next_step.action_type)
+            if curr_act != next_act and curr_act != "点击" and next_act != "点击":
+                merged.append(curr)
+                continue
 
+            stat["l2_checks"] += 1
             try:
                 prompt = SEMANTIC_DEDUP_PROMPT.format(
-                    summary_a=curr.ui_summary[:300],
-                    summary_b=next_step.ui_summary[:300],
+                    summary_a=curr.ui_summary,
+                    summary_b=next_step.ui_summary,
                 )
-                result = self.llm_dedup.chat(prompt).strip().lower()
-                logger.debug(
-                    f"  L2 语义比较 Step{i}-Step{i+1}: {result}"
+                logger.info(
+                    f"  L2 语义比较 Step{curr.step_id} vs Step{next_step.step_id} ..."
+                )
+                result = self.llm.chat(prompt).strip().lower()
+                logger.info(
+                    f"  L2 结果: Step{curr.step_id} vs Step{next_step.step_id} → {result}"
                 )
 
                 if result.startswith("same"):
-                    # 合并：保留前一步，跳过后一步
                     merged.append(curr)
                     skip_next = True
                     stat["l2_removed"] += 1
                     stat["l2_merged"].append(
                         f"Step{curr.step_id}~Step{next_step.step_id}"
                     )
-                    logger.info(
-                        f"  L2 语义合并: Step{curr.step_id} + Step{next_step.step_id}"
-                    )
+                    logger.info(f"  L2 语义合并: Step{curr.step_id} + Step{next_step.step_id}")
                 else:
                     merged.append(curr)
-
             except Exception as e:
-                logger.debug(f"  L2 语义比较失败 (Step{i}): {e}")
+                logger.warning(f"  L2 语义比较异常 (Step{curr.step_id}): {e}")
                 merged.append(curr)
-
-        logger.info(
-            f"  语义去重: L2 检查 {stat['l2_checks']} 对, "
-            f"合并 {stat['l2_removed']} 对"
-        )
-        if stat["l2_merged"]:
-            logger.info(f"  L2 合并组: {', '.join(stat['l2_merged'])}")
 
         return merged, stat
 
-    # ── Phase 0-2: 动作驱动重写（LLM） ────────────────────
+    # ── Phase 0-2: 动作驱动重写（LLM 批量模式） ──────────
 
     def rewrite_to_action_driven(
         self, steps: List[UTGStep], batch_size: int = 5
     ) -> Tuple[List[str], Dict]:
         """
-        将每步的 ui_summary 重写为动作驱动描述。
+        批量重写：一次 LLM 调用处理全部步骤，返回 JSON 数组。
+        相比逐步串行（N 次 LLM），批量模式只需 1 次调用。
+
+        Args:
+            steps: 有效步骤列表
+            batch_size: 保留参数（兼容，批量模式不分组）
 
         Returns:
             (重写后的 ui_summary 列表, 重写统计)
         """
-        stat = {"total": len(steps), "success": 0, "failed": 0, "skipped": 0}
-        rewritten = []
+        stat = {"total": len(steps), "success": 0, "failed": 0, "skipped": 0,
+                "mode": "batch"}
 
-        for i, step in enumerate(steps):
+        effective_steps = [s for s in steps if s.ui_summary.strip()]
+        if not effective_steps:
+            for s in steps:
+                stat["skipped"] += 1
+            return [s.ui_summary for s in steps], stat
+
+        # ── 构建批量步骤文本 ──
+        step_lines = []
+        for s in effective_steps:
+            action_label = _get_action_type_label(s.action_type)
+            thought = s.thought.strip() if s.thought else action_label
+            step_lines.append(
+                f"Step {s.step_id}: [{action_label}] {thought}\n"
+                f"  页面描述: {s.ui_summary}"
+            )
+        steps_text = "\n\n".join(step_lines)
+
+        prompt = BATCH_ACTION_REWRITE_PROMPT.format(
+            step_count=len(effective_steps),
+            steps_text=steps_text,
+        )
+
+        try:
+            logger.info(f"  批量重写: {len(effective_steps)} 步 → 1 次 LLM")
+            raw = self.llm.chat(prompt)
+            parsed = self.llm.extract_json(raw)
+
+            if isinstance(parsed, list) and len(parsed) == len(effective_steps):
+                # 构建完整结果列表（含跳过的空步骤）
+                result_list = []
+                parsed_idx = 0
+                for s in steps:
+                    if s.ui_summary.strip():
+                        result_list.append(str(parsed[parsed_idx]).strip('"\''))
+                        stat["success"] += 1
+                        parsed_idx += 1
+                    else:
+                        result_list.append(s.ui_summary)
+                        stat["skipped"] += 1
+
+                logger.info(
+                    f"  批量重写完成: {stat['success']}/{len(effective_steps)} 成功"
+                )
+                return result_list, stat
+            else:
+                logger.warning(
+                    f"  批量重写返回格式异常 (type={type(parsed).__name__}, "
+                    f"len={len(parsed) if isinstance(parsed, list) else 'N/A'}), "
+                    f"回退到逐步模式"
+                )
+        except Exception as e:
+            logger.warning(f"  批量重写失败: {e}，回退到逐步模式")
+
+        # ── 回退：单步串行（兼容 LLM 返回格式异常时） ──
+        stat["mode"] = "sequential_fallback"
+        return self._rewrite_sequential(steps, stat)
+
+    def _rewrite_sequential(
+        self, steps: List[UTGStep], stat: Dict
+    ) -> Tuple[List[str], Dict]:
+        """单步串行重写（批量模式失败时的兜底）"""
+        rewritten = []
+        for step in steps:
             ui_summary = step.ui_summary.strip()
             if not ui_summary:
                 rewritten.append(ui_summary)
@@ -256,19 +381,16 @@ class UTGPreprocessor:
             thought = step.thought.strip() if step.thought else action_label
 
             prompt = ACTION_REWRITE_PROMPT.format(
-                ui_summary=ui_summary[:800],
-                thought=thought[:200],
+                ui_summary=ui_summary,
+                thought=thought,
                 action_type=action_label,
             )
 
             try:
-                result = self.llm.chat(prompt).strip()
-                # 清理可能的引号包裹
-                result = result.strip('"\'')
+                result = self.llm.chat(prompt).strip().strip('"\'')
                 if result:
                     rewritten.append(result)
                     stat["success"] += 1
-                    logger.debug(f"  Step {step.step_id}: ✓ 重写成功 ({len(result)} chars)")
                 else:
                     rewritten.append(ui_summary)
                     stat["skipped"] += 1
@@ -278,7 +400,7 @@ class UTGPreprocessor:
                 stat["failed"] += 1
 
         logger.info(
-            f"  重写: {stat['success']} 成功, {stat['failed']} 失败, "
+            f"  逐步重写: {stat['success']} 成功, {stat['failed']} 失败, "
             f"{stat['skipped']} 跳过"
         )
         return rewritten, stat
@@ -306,15 +428,15 @@ class UTGPreprocessor:
         # 构建步骤文本供 LLM 分析
         steps_text = ""
         for i, (step, rw) in enumerate(zip(steps, rewritten)):
-            steps_text += f"Step {i} (stepId={step.step_id}): {rw[:300]}\n\n"
+            steps_text += f"Step {i} (stepId={step.step_id}): {rw}\n\n"
 
         prompt = DATA_ALIGN_PROMPT.format(
-            query=query[:300], steps_text=steps_text
+            query=query, steps_text=steps_text
         )
 
         try:
-            raw = self.llm_align.chat(prompt)
-            parsed = self.llm_align.extract_json(raw)
+            raw = self.llm.chat(prompt)
+            parsed = self.llm.extract_json(raw)
             issues = parsed.get("issues", [])
             result["issues_found"] = len(issues)
             result["consistency_summary"] = parsed.get("consistency_summary", "")
@@ -388,7 +510,7 @@ class UTGPreprocessor:
         # 构建当前步骤文本
         steps_text = ""
         for i, rw in enumerate(rewritten):
-            steps_text += f"Step {i}: {rw[:200]}\n"
+            steps_text += f"Step {i}: {rw}\n"
 
         prompt = PAGE_COMPLETE_PROMPT.format(
             steps_text=steps_text,
@@ -396,8 +518,8 @@ class UTGPreprocessor:
         )
 
         try:
-            raw = self.llm_align.chat(prompt)
-            parsed = self.llm_align.extract_json(raw)
+            raw = self.llm.chat(prompt)
+            parsed = self.llm.extract_json(raw)
             missing = parsed.get("missing_pages", [])
 
             if not missing:
@@ -643,10 +765,10 @@ class UTGPreprocessor:
 
             try:
                 prompt = CAUSAL_REPAIR_PROMPT.format(
-                    prev_summary=prev[:400],
-                    next_summary=repaired[next_idx][:400],
+                    prev_summary=prev,
+                    next_summary=repaired[next_idx],
                 )
-                result = self.llm_align.chat(prompt).strip()
+                result = self.llm.chat(prompt).strip()
 
                 # 清理可能的 markdown 包裹
                 if result.startswith("```"):
@@ -725,3 +847,4 @@ class UTGPreprocessor:
         with open(path, 'w', encoding='utf-8') as f:
             json.dump(modified_utg, f, ensure_ascii=False, indent=2)
         return str(path)
+

@@ -60,6 +60,7 @@ from anomaly_flow_pipeline.core.utg_preprocessor import UTGPreprocessor
 from anomaly_flow_pipeline.core.utg_anomaly_injector import UTGAnomalyInjector
 from anomaly_flow_pipeline.core.flow_converter import FlowConverter
 from anomaly_flow_pipeline.core.quality_validator import QualityValidator
+from anomaly_flow_pipeline.core.flow_repairer import FlowRepairer
 
 
 def report_phase(phase_name: str, elapsed: float, details: Dict[str, Any]):
@@ -305,13 +306,45 @@ def main():
         quality_report["phases"]["validation"] = {"skipped": True}
 
     # ═══════════════════════════════════════════════════════
-    # Phase 4: 报告输出
+    # Phase 4: 基于验证报告自动修复
     # ═══════════════════════════════════════════════════════
-    print(">>> Phase 4: 报告输出")
+    if not args.no_validation and not validation_result.get("passed", True):
+        print(">>> Phase 4: 自动修复")
+        t0 = time.time()
+
+        repairer = FlowRepairer(model=args.model)
+        repair_result = repairer.repair(
+            flow_path=str(output_dir / "phase2_flow.json"),
+            validation_report=quality_report,
+            anomaly_scenario=scenarios[0] if len(scenarios) == 1 else str(scenarios),
+            output_path=str(output_dir / "phase4_repaired.json"),
+        )
+        t1 = time.time()
+
+        phase4_report = {
+            "success": repair_result["success"],
+            "step_count": repair_result.get("step_count", 0),
+            "steps_before": convert_result.get("step_count", 0),
+            "error": repair_result.get("error"),
+        }
+        quality_report["phases"]["repair"] = phase4_report
+        report_phase("Phase 4 自动修复", t1 - t0, phase4_report)
+
+        if repair_result["success"]:
+            print(f"  ✓ 修复后 Flow: {output_dir / 'phase4_repaired.json'}")
+        print()
+    else:
+        quality_report["phases"]["repair"] = {"skipped": True}
+
+    # ═══════════════════════════════════════════════════════
+    # Phase 5: 报告输出
+    # ═══════════════════════════════════════════════════════
+    print(">>> Phase 5: 报告输出")
     quality_report["outputs"] = {
         "preprocessed": str(output_dir / "phase0_preprocessed.json") if not args.no_preprocess else None,
         "injected": str(output_dir / "phase1_injected.json"),
         "flow": str(output_dir / "phase2_flow.json"),
+        "repaired": str(output_dir / "phase4_repaired.json") if quality_report.get("phases", {}).get("repair", {}).get("success") else None,
     }
 
     report_path = output_dir / "pipeline_report.json"
@@ -327,6 +360,8 @@ def main():
     print(f"  Pipeline 完成")
     print(f"  输出目录: {output_dir}")
     print(f"  Flow:     {output_dir / 'phase2_flow.json'}")
+    if quality_report.get("phases", {}).get("repair", {}).get("success"):
+        print(f"  修复后:   {output_dir / 'phase4_repaired.json'}")
     if quality_report["phases"].get("validation", {}).get("score"):
         print(f"  质量评分: {quality_report['phases']['validation']['score']}/1.0")
     print("=" * 60)

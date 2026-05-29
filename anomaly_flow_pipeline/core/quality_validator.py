@@ -62,7 +62,7 @@ class QualityValidator:
         """获取 LLM 客户端（延迟初始化）"""
         if self._llm is None:
             try:
-                self._llm = LLMClient(temperature=0.0, max_tokens=128)
+                self._llm = LLMClient(temperature=0.0)
             except Exception:
                 return None
         return self._llm
@@ -153,7 +153,7 @@ class QualityValidator:
                 all_issues.append(f"[{dim_name}] {issue}")
 
         if all_issues:
-            result["summary"] = f"发现 {len(all_issues)} 个问题: {'; '.join(all_issues[:5])}"
+            result["summary"] = f"发现 {len(all_issues)} 个问题: {'; '.join(all_issues)}"
             if len(all_issues) > 5:
                 result["summary"] += f" (还有 {len(all_issues) - 5} 个问题)"
         else:
@@ -289,7 +289,7 @@ class QualityValidator:
                     idx = m.start()
                     start = max(0, idx - 30)
                     end = min(len(action), idx + len(m.group()) + 30)
-                    ctx = action[start:end].strip()[:80]
+                    ctx = action[start:end].strip()
                     quantity_history.append((order, qty, ctx))
                     break  # 每个步骤只取第一个匹配
 
@@ -306,9 +306,9 @@ class QualityValidator:
                     so = s.get("order", 0)
                     if prev_order < so < curr_order:
                         a = s.get("action", "")
-                        steps_between += a[:100]
+                        steps_between += a
                         if re.search(r'添加|删除|移出|清空|增加|减少|加购|勾选|取消', a):
-                            action_between = s.get("action", "")[:80]
+                            action_between = s.get("action", "")
 
             # 如果没有合理解释的数量变化 > 1，标记
             if abs(curr_qty - prev_qty) > 1 and not action_between:
@@ -369,8 +369,8 @@ class QualityValidator:
             start = max(0, idx - 60)
             end = min(len(step_action), idx + len(raw) + 60)
             context = step_action[start:end].strip()
-            step_lines.append('  Step {}: "{}"'.format(order, context[:120]))
-        steps_text = "\n".join(step_lines)[:2000]
+            step_lines.append('  Step {}: "{}"'.format(order, context))
+        steps_text = "\n".join(step_lines)
 
         price_list = ", ".join(
             sorted(f'¥{int(p)}元' if p == int(p) else f'¥{p}元' for p in price_numerics)
@@ -508,7 +508,7 @@ class QualityValidator:
                 verb = m.group(1)
             m2 = re.search(r'(?:点击|输入|滑动|选择|切换)(\S+)', action)
             if m2:
-                target = m2.group(1)[:20]
+                target = m2.group(1)
             ops.append((order, verb, target, action))
 
         # 连续同操作检测
@@ -711,7 +711,7 @@ class QualityValidator:
 
         # 整体校验需要较大输出空间，用独立 LLM 客户端
         try:
-            llm_holistic = LLMClient(temperature=0.0, max_tokens=2048)
+            llm_holistic = LLMClient(temperature=0.0)
         except Exception:
             llm_holistic = llm
 
@@ -719,9 +719,9 @@ class QualityValidator:
         step_lines = []
         for s in steps:
             order = s.get("order", "?")
-            action = (s.get("action") or "").strip()[:300]
+            action = (s.get("action") or "").strip()
             step_lines.append(f"Step {order}: {action}")
-        steps_text = "\n\n".join(step_lines)[:6000]
+        steps_text = "\n\n".join(step_lines)
 
         prompt = HOLISTIC_VALIDATION_PROMPT.format(
             flow_name=main_flow.get("name", ""),
@@ -782,7 +782,7 @@ class QualityValidator:
 
             logger.info(f"  整体校验: {overall} (score={score})")
             if all_issues:
-                for issue in all_issues[:5]:
+                for issue in all_issues:
                     logger.info(f"    ⚠ {issue}")
 
             return {
@@ -867,3 +867,4 @@ def validate_flow(
 
     validator = QualityValidator()
     return validator.validate(flow_data, template_path)
+

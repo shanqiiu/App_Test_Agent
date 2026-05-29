@@ -115,14 +115,12 @@ class UTGAnomalyInjector:
             api_url=api_url,
             model=model,
             temperature=0.1,
-            max_tokens=1024,
         )
         self.llm_validate = LLMClient(
             api_key=api_key,
             api_url=api_url,
             model=model,
             temperature=0.0,
-            max_tokens=512,
         )
 
     # ── 单异常注入（增强版） ─────────────────────────────
@@ -376,8 +374,8 @@ class UTGAnomalyInjector:
                     "anomaly_scenario": scenario,
                     "injection_step": injection_step,
                     "step_id": target_step.step_id,
-                    "original_ui_summary": target_step.ui_summary[:200],
-                    "rewritten_ui_summary": rewritten[:200],
+                    "original_ui_summary": target_step.ui_summary,
+                    "rewritten_ui_summary": rewritten,
                     "decision_reason": decision.get("reason", ""),
                     "neighbor_adjustments": neighbor_adjusts,
                 }
@@ -535,7 +533,7 @@ class UTGAnomalyInjector:
                     pos=pos,
                     step_index=neighbor_idx,
                     anomaly_scenario=anomaly_scenario,
-                    current_step_description=rewritten_summary[:300],
+                    current_step_description=rewritten_summary,
                     original_ui_summary=neighbor_step.ui_summary,
                     thought=neighbor_step.thought.strip() if neighbor_step.thought else "(无)",
                     action_type=neighbor_step.action_type.strip() if neighbor_step.action_type else "(无)",
@@ -546,7 +544,7 @@ class UTGAnomalyInjector:
                         "position": pos,
                         "step_index": neighbor_idx,
                         "step_id": neighbor_step.step_id,
-                        "original": neighbor_step.ui_summary[:200],
+                        "original": neighbor_step.ui_summary,
                         "adjusted_text": adjusted,
                     })
                     logger.debug(f"  {pos}步微调: Step {neighbor_idx}")
@@ -580,15 +578,15 @@ class UTGAnomalyInjector:
 
         obscures = _contains_obscure(rewritten)
         if obscures:
-            issues.append(f"含有晦涩表述: {obscures[:3]}")
+            issues.append(f"含有晦涩表述: {obscures}")
 
         # LLM 验证
         if self.llm_validate:
             try:
                 prompt = VALIDATION_PROMPT.format(
-                    original=original[:500],
-                    rewritten=rewritten[:500],
-                    scenario=scenario[:200],
+                    original=original,
+                    rewritten=rewritten,
+                    scenario=scenario,
                 )
                 raw = self.llm_validate.chat(prompt)
                 parsed = self.llm_validate.extract_json(raw)
@@ -665,3 +663,4 @@ class UTGAnomalyInjector:
         with open(path, 'w', encoding='utf-8') as f:
             json.dump(modified_utg, f, ensure_ascii=False, indent=2)
         return str(path)
+

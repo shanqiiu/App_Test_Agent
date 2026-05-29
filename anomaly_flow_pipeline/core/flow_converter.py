@@ -64,7 +64,6 @@ class FlowConverter:
             api_url=api_url,
             model=model,
             temperature=0.0,
-            max_tokens=4096,
         )
         # 实体提取可略高 temperature 鼓励多样性
         self.llm_entity = LLMClient(
@@ -72,7 +71,6 @@ class FlowConverter:
             api_url=api_url,
             model=model,
             temperature=0.1,
-            max_tokens=1024,
         )
 
     # ── 主入口 ─────────────────────────────────────────────
@@ -221,15 +219,15 @@ class FlowConverter:
                 # 显式标注"当前页面状态"，防止 LLM 忽略 ui_summary 中的状态信息
                 line = (
                     f"Step {s['order']}:\n"
-                    f"  【当前页面状态，以此为初始状态】{summary[:300]}"
+                    f"  【当前页面状态，以此为初始状态】{summary}"
                 )
                 if thought:
-                    line += f"\n  【用户意图】{thought[:100]}"
+                    line += f"\n  【用户意图】{thought}"
                 lines.append(line)
         if not lines:
             return None
 
-        step_data_text = "\n\n".join(lines)[:4000]
+        step_data_text = "\n\n".join(lines)
 
         prompt = STEPS_GENERATION_PROMPT.format(
             step_schema_text=step_schema_text,
@@ -289,7 +287,7 @@ class FlowConverter:
         for s in steps:
             action = (s.get("action") or "").strip()
             if action:
-                lines.append(f"  Step {s['order']}: {action[:300]}")
+                lines.append(f"  Step {s['order']}: {action}")
         if not lines:
             return None
         steps_text = "\n".join(lines)
@@ -302,7 +300,7 @@ class FlowConverter:
                 summary = (s.get("ui_summary") or "").strip()
                 if summary:
                     ctx_lines.append(
-                        f"  Step {s['order']} ui_summary: {summary[:200]}"
+                        f"  Step {s['order']} ui_summary: {summary}"
                     )
             if ctx_lines:
                 utg_context = "\n".join(ctx_lines)
@@ -355,8 +353,8 @@ class FlowConverter:
         for s in steps:
             action = (s.get("action") or "").strip()
             if action:
-                lines.append(f"  Step {s['order']}: {action[:250]}")
-        steps_text = "\n".join(lines)[:5000]
+                lines.append(f"  Step {s['order']}: {action}")
+        steps_text = "\n".join(lines)
 
         prompt = STEPS_DEDUP_PROMPT.format(steps_text=steps_text)
 
@@ -444,8 +442,8 @@ class FlowConverter:
         for s in steps:
             action = (s.get("action") or "").strip()
             if action:
-                lines.append(f"Step {s['order']}: {action[:200]}")
-        steps_text = "\n".join(lines)[:3000]
+                lines.append(f"Step {s['order']}: {action}")
+        steps_text = "\n".join(lines)
 
         prompt = ENTITY_EXTRACTION_PROMPT.format(
             entity_schema_text=entity_schema_text,
@@ -635,3 +633,4 @@ class FlowConverter:
         p.parent.mkdir(parents=True, exist_ok=True)
         with open(p, 'w', encoding='utf-8') as f:
             json.dump(data, f, ensure_ascii=False, indent=2)
+

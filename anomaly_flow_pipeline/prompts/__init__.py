@@ -11,6 +11,7 @@ from . import shopping as _active
 # 从主题无关的 base 模块导入
 from .base import (
     DATA_ALIGN_PROMPT,
+    BATCH_SEMANTIC_DEDUP_PROMPT,
     SEMANTIC_DEDUP_PROMPT,
     CAUSAL_REPAIR_PROMPT,
     DECISION_PROMPT,
@@ -26,6 +27,7 @@ from .base import (
 # 从当前活跃主题导入
 from .shopping import (
     ACTION_REWRITE_PROMPT,
+    BATCH_ACTION_REWRITE_PROMPT,
     PAGE_COMPLETE_PROMPT,
     STEPS_GENERATION_PROMPT,
     PRICE_CONSISTENCY_PROMPT,
